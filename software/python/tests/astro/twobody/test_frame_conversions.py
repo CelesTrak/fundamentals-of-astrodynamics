@@ -22,7 +22,7 @@ def rv():
 @pytest.fixture
 def ecef_inputs():
     ttt = 0.042623631888994
-    jdut1 = 2.4531015e+06
+    jdut1 = 2.4531015e06
     lod = 0.0015563
     xp = -0.140682 * ARCSEC2RAD
     yp = 0.333309 * ARCSEC2RAD
@@ -36,7 +36,7 @@ class TestSpherical:
     @pytest.fixture
     def rv(self):
         # Position and velocity in km and km/s
-        r = np.array([4.286607049870562e+03, 4.286607049870561e+03, 3.5e+03])
+        r = np.array([4.286607049870562e03, 4.286607049870561e03, 3.5e03])
         v = np.array([4.059474712855235, 4.860051329924127, 4.018776695238445])
         return r, v
 
@@ -80,12 +80,12 @@ class TestClassical:
     @pytest.fixture
     def coe(self):
         # Vallado, 2007, Ex. 2-6
-        p = 11067.790              # semi-latus rectum, km
-        ecc = 0.83285              # eccentricity
-        incl = np.radians(87.87)   # inclination, rad
+        p = 11067.790  # semi-latus rectum, km
+        ecc = 0.83285  # eccentricity
+        incl = np.radians(87.87)  # inclination, rad
         raan = np.radians(227.89)  # RAAN, rad
-        argp = np.radians(53.38)   # arg. of periapsis, rad
-        nu = np.radians(92.335)    # true anomaly, rad
+        argp = np.radians(53.38)  # arg. of periapsis, rad
+        nu = np.radians(92.335)  # true anomaly, rad
         return p, ecc, incl, raan, argp, nu
 
     @pytest.fixture
@@ -99,10 +99,8 @@ class TestClassical:
     def test_coe2rv(self, coe):
         # Vallado, 2007, Ex. 2-6
         p, ecc, incl, raan, _, nu = coe
-        r_exp = np.array([-4.049198890323112e+03, -4.479765179366826e+03, 0])
-        v_exp = np.array(
-            [0.303279847002191, -0.274130533804499, 10.9917080783198]
-        )
+        r_exp = np.array([-4.049198890323112e03, -4.479765179366826e03, 0])
+        v_exp = np.array([0.303279847002191, -0.274130533804499, 10.9917080783198])
 
         # Call the function with test inputs
         r_out, v_out = fc.coe2rv(p, ecc, incl, raan, nu)
@@ -115,8 +113,9 @@ class TestClassical:
         # Vallado, 2007, Ex. 2-5
         # TODO: add tests for other orbit type cases
         # Call the function with test inputs
-        (p, a, ecc, incl, raan, argp, nu,
-         m, arglat, truelon, lonper, orbit_type) = fc.rv2coe(*rv)
+        (p, a, ecc, incl, raan, argp, nu, m, arglat, truelon, lonper, orbit_type) = (
+            fc.rv2coe(*rv)
+        )
 
         # Check if the output is close to the expected values
         # TODO: lonper is not `nan` in the book example (but is in matlab)
@@ -138,21 +137,19 @@ class TestEquinoctial:
     # TODO: validate with more test cases
     @pytest.fixture
     def eq(self):
-        a = 7000           # semimajor axis, km
-        af = 0.001         # eccentricity component
-        ag = 0.001         # eccentricity component
-        chi = 0.001        # EQW node vector component
-        psi = 0.001        # EQW node vector component
-        meanlon = np.pi/4  # mean longitude, rad
-        fr = 1             # retrograde factor (+1 = prograde)
+        a = 7000  # semimajor axis, km
+        af = 0.001  # eccentricity component
+        ag = 0.001  # eccentricity component
+        chi = 0.001  # EQW node vector component
+        psi = 0.001  # EQW node vector component
+        meanlon = np.pi / 4  # mean longitude, rad
+        fr = 1  # retrograde factor (+1 = prograde)
         return a, af, ag, chi, psi, meanlon, fr
 
     @pytest.fixture
     def rv(self):
         r = np.array([4942.747468305833, 4942.747468305833, 0])
-        v = np.array(
-            [-5.34339547370427, 5.343395473704271, 0.021373624642066363]
-        )
+        v = np.array([-5.34339547370427, 5.343395473704271, 0.021373624642066363])
         return r, v
 
     def test_eq2rv(self, eq, rv):
@@ -181,7 +178,7 @@ class TestEquinoctial:
         assert abs(chi - chi_exp) < DEFAULT_TOL
         assert abs(psi - psi_exp) < DEFAULT_TOL
         assert abs(meanlon - meanlon_exp) < DEFAULT_TOL
-        assert abs(truelon - np.pi/4) < DEFAULT_TOL
+        assert abs(truelon - np.pi / 4) < DEFAULT_TOL
         assert int(fr) == int(fr_exp)
 
 
@@ -189,23 +186,19 @@ class TestTopocentric:
     @pytest.fixture
     def rvseci(self):
         # ECI site position and velocity vector in km and km/s
-        rseci = [
-            -2.968655122428691e+03,
-            3.980613919662232e+03,
-            3.992860345291290e+03
-        ]
+        rseci = [-2.968655122428691e03, 3.980613919662232e03, 3.992860345291290e03]
         vseci = [-0.290278922351514, -0.216325537609299, -0.000157672327972]
         return rseci, vseci
 
     @pytest.fixture
     def tradec(self):
         # Topocentric coordinates
-        rho = 4.437731184421759e+09       # range, km
-        trtasc = 5.148532095674960        # right ascension, rad
-        tdecl = -0.363438990548242        # declination, rad
-        drho = -25.599038196399519        # range rate, km/s
+        rho = 4.437731184421759e09  # range, km
+        trtasc = 5.148532095674960  # right ascension, rad
+        tdecl = -0.363438990548242  # declination, rad
+        drho = -25.599038196399519  # range rate, km/s
         tdrtasc = -2.051513501139983e-09  # right ascension rate, rad/s
-        tddecl = -3.189648164446254e-10   # declination rate, rad/s
+        tddecl = -3.189648164446254e-10  # declination rate, rad/s
         return rho, trtasc, tdecl, drho, tdrtasc, tddecl
 
     @pytest.fixture
@@ -236,16 +229,16 @@ class TestTopocentric:
 class TestFlight:
     @pytest.fixture
     def rvmag(self):
-        rmag = 7000   # position magnitude, km
+        rmag = 7000  # position magnitude, km
         vmag = 7.546  # velocity magnitude, km
         return rmag, vmag
 
     @pytest.fixture
     def flight(self):
         latgc = np.pi / 6  # 30 degrees
-        lon = np.pi / 2    # 90 degrees
-        fpa = -np.pi / 6   # -30 degrees
-        az = np.pi / 4     # 45 degrees
+        lon = np.pi / 2  # 90 degrees
+        fpa = -np.pi / 6  # -30 degrees
+        az = np.pi / 4  # 45 degrees
         return latgc, lon, fpa, az
 
     def test_flt2rv(self, rv, rvmag, flight, ecef_inputs):
@@ -261,13 +254,11 @@ class TestFlight:
 
     def test_rv2flt(self, rv, rvmag, flight, ecef_inputs):
         # Expected outputs
-        rmag_exp, _ = rvmag                # vmag will not match original
+        rmag_exp, _ = rvmag  # vmag will not match original
         latgc_exp, lon_exp, _, _ = flight  # fpa and az will not match original
 
         # Call the function with test inputs
-        lon, latgc, rtasc, decl, fpa, az, rmag, vmag = fc.rv2flt(
-            *rv, *ecef_inputs
-        )
+        lon, latgc, rtasc, decl, fpa, az, rmag, vmag = fc.rv2flt(*rv, *ecef_inputs)
 
         # Check if the output is close to the expected values
         # Some values differ from the orignal ones inputted in the test above
@@ -448,7 +439,7 @@ class TestSatCoord:
             [
                 [0.21799815282930227, -0.8381728450587307, 0.4999430839297262],
                 [0.0043486171359898, -0.5114241285968169, -0.8593174327441467],
-                [0.9759394934584914, 0.18950367409403857, -0.10784462254949785]
+                [0.9759394934584914, 0.18950367409403857, -0.10784462254949785],
             ]
         )
 
@@ -472,7 +463,7 @@ class TestSatCoord:
             [
                 [0.07985444754543984, 0.1495990993516855, 0.9855168068989881],
                 [0.2028925141921107, -0.9704166460742649, 0.13086695804051995],
-                [0.9759394934584914, 0.18950367409403857, -0.10784462254949785]
+                [0.9759394934584914, 0.18950367409403857, -0.10784462254949785],
             ]
         )
 

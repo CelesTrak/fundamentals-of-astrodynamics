@@ -36,7 +36,7 @@ def calc_orbit_effects(ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=True):
         omegaearth (np.ndarray): Earth angular rotation vecctor
     """
     # Find matrices that account for various orbit effects
-    prec, _, _, _, _ = precess(ttt, opt='80')
+    prec, _, _, _, _ = precess(ttt, opt="80")
     deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps)
     st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms)
     pm = polarm(xp, yp, ttt, use_iau80=True)
@@ -48,8 +48,7 @@ def calc_orbit_effects(ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=True):
     return prec, nut, st, pm, omegaearth
 
 
-def ecef2eci(recef, vecef, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps,
-             eqeterms=True):
+def ecef2eci(recef, vecef, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=True):
     """Transforms a vector from the Earth-fixed (ITRF) frame (ECEF) to the ECI
     mean equator, mean equinox (J2000) frame.
 
@@ -86,9 +85,7 @@ def ecef2eci(recef, vecef, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps,
 
     # Velocity transformation
     vpef = np.dot(pm, vecef)
-    veci = np.dot(
-        prec, np.dot(nut, np.dot(st, vpef + np.cross(omegaearth, rpef)))
-    )
+    veci = np.dot(prec, np.dot(nut, np.dot(st, vpef + np.cross(omegaearth, rpef))))
 
     # Acceleration transformation
     aeci = (
@@ -100,8 +97,7 @@ def ecef2eci(recef, vecef, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps,
     return reci, veci, aeci
 
 
-def eci2ecef(reci, veci, aeci, ttt, jdut1, lod, xp, yp, ddpsi, ddeps,
-             eqeterms=True):
+def eci2ecef(reci, veci, aeci, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=True):
     """Transforms a vector from the ECI mean equator, mean equinox frame
     (J2000) to the Earth-fixed (ITRF) frame (ECEF).
 

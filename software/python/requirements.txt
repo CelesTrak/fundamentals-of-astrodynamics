@@ -2,3 +2,5 @@ numpy==1.26.4
 scipy==1.13.1
 setuptools==68.2.2
 wheel==0.41.2
+pytest==8.3.3
+pre-commit==3.8.0

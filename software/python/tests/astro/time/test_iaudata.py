@@ -29,13 +29,13 @@ def load_matlab_data(file_path, keys):
 @pytest.fixture()
 def iau80_mat_data():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, 'data', 'nutation_data.mat')
-    return load_matlab_data(file_path, keys=['iar80', 'rar80'])
+    file_path = os.path.join(current_dir, "data", "nutation_data.mat")
+    return load_matlab_data(file_path, keys=["iar80", "rar80"])
 
 
 def test_iau80in(iau80_mat_data):
-    matlab_iar80 = iau80_mat_data['iar80']
-    matlab_rar80 = iau80_mat_data['rar80']
+    matlab_iar80 = iau80_mat_data["iar80"]
+    matlab_rar80 = iau80_mat_data["rar80"]
 
     # Load Python data using iau80in
     iar80, rar80 = iau80in()

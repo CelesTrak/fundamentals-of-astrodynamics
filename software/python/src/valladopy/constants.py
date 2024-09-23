@@ -47,16 +47,16 @@ DEG2SEC = np.degrees(TWOPI) / DAY2SEC
 J2000 = 2451545.0  # Julian date of the epoch J2000.0
 
 # EGM-08 (Earth) constants used here
-RE = 6378.1363                      # km
+RE = 6378.1363  # km
 FLAT = 1.0 / 298.257223563
-EARTHROT = 7.292115e-5              # rad/s
-MU = 398600.4415                    # km^3/s^2
-MUM = 3.986004415e14                # m^3/s^2
+EARTHROT = 7.292115e-5  # rad/s
+MU = 398600.4415  # km^3/s^2
+MUM = 3.986004415e14  # m^3/s^2
 
 # Derived constants from the base values
 
 # Approximate Earth rotation
-EARTHROT_APPROX = TWOPI / DAY2SEC            # rad/s
+EARTHROT_APPROX = TWOPI / DAY2SEC  # rad/s
 
 # Earth eccentricity
 ECCEARTH = np.sqrt(2.0 * FLAT - FLAT**2)
@@ -84,11 +84,11 @@ DEGSEC = (180.0 / np.pi) / TUSEC
 RADPDAY = 2.0 * np.pi * 1.002737909350795
 
 # Astronomical distances & measurements
-SPEEDOFLIGHT = 299792.458           # km/s
-AU = 149597870.7                    # km
-EARTH2MOON = 384400.0               # km
-MOONRADIUS = 1738.0                 # km
-SUNRADIUS = 696000.0                # km
+SPEEDOFLIGHT = 299792.458  # km/s
+AU = 149597870.7  # km
+EARTH2MOON = 384400.0  # km
+MOONRADIUS = 1738.0  # km
+SUNRADIUS = 696000.0  # km
 
 # Masses in kg
 MASSSUN = 1.9891e30

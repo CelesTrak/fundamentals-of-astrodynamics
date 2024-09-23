@@ -22,8 +22,7 @@ def rva_eci():
     # Example ECI vectors (km, km/s, km/s^2)
     reci = np.array([2989.905220660578, -7387.200565596868, 6379.438182851598])
     veci = np.array([2.940401948462732, 3.809395206305895, 5.53064935673674])
-    aeci = np.array([-3.927364527726347e-05, -0.00269956155725574,
-                     0.0030002544835211])
+    aeci = np.array([-3.927364527726347e-05, -0.00269956155725574, 0.0030002544835211])
     return reci, veci, aeci
 
 
@@ -31,7 +30,7 @@ def rva_eci():
 def t_inputs():
     # Time inputs
     ttt = 0.042623631888994  # Julian centuries of TT
-    jdut1 = 2.4531015e+06  # Julian date of UT1
+    jdut1 = 2.4531015e06  # Julian date of UT1
     lod = 0.0015563  # Excess length of day, sec
     return ttt, jdut1, lod
 
@@ -39,11 +38,11 @@ def t_inputs():
 @pytest.fixture
 def orbit_effects_inputs():
     # Other inputs for accounting for orbit effectgs
-    xp = -0.140682 * ARCSEC2RAD     # Polar motion coefficient
-    yp = 0.333309 * ARCSEC2RAD      # Polar motion coefficient
+    xp = -0.140682 * ARCSEC2RAD  # Polar motion coefficient
+    yp = 0.333309 * ARCSEC2RAD  # Polar motion coefficient
     ddpsi = -0.052195 * ARCSEC2RAD  # Delta psi correction to GCRF, raed
     ddeps = -0.003875 * ARCSEC2RAD  # Delta epsilon correction to GCRF
-    eqeterms = True                 # Add extra terms for ast calculation
+    eqeterms = True  # Add extra terms for ast calculation
     return xp, yp, ddpsi, ddeps, eqeterms
 
 

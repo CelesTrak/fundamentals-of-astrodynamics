@@ -16,9 +16,7 @@ def custom_isclose(result, expected, rtol=1e-12, atol=1e-12):
     Returns:
         bool: True if the two values are close within the scaled tolerances
     """
-    scale_factor = (
-        10 ** np.floor(np.log10(abs(expected))) if expected != 0 else 1
-    )
+    scale_factor = 10 ** np.floor(np.log10(abs(expected))) if expected != 0 else 1
     scaled_atol = atol * scale_factor
     return np.isclose(result, expected, rtol=rtol, atol=scaled_atol)
 
@@ -40,9 +38,7 @@ def custom_allclose(a, b, rtol=1e-12, atol=1e-12):
     """
     a = np.asarray(a)
     b = np.asarray(b)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        scale_factors = np.where(
-            b != 0, 10 ** np.floor(np.log10(np.abs(b))), 1
-        )
+    with np.errstate(divide="ignore", invalid="ignore"):
+        scale_factors = np.where(b != 0, 10 ** np.floor(np.log10(np.abs(b))), 1)
     scaled_atol = atol * scale_factors
     return np.all(np.isclose(a, b, rtol=rtol, atol=scaled_atol))

@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 class OrbitType(Enum):
     CIR_EQUATORIAL = 1  # circular equatorial
-    CIR_INCLINED = 2    # circular inclined
+    CIR_INCLINED = 2  # circular inclined
     EPH_EQUATORIAL = 3  # elliptical, parabolic, hyperbolic equatorial
-    EPH_INCLINED = 4    # elliptical, parabolic, hyperbolic inclined
+    EPH_INCLINED = 4  # elliptical, parabolic, hyperbolic inclined
 
 
 def determine_orbit_type(ecc, incl, tol=SMALL):
@@ -75,18 +75,13 @@ def newtone(ecc, e0):
     if ecc < 0.999:
         # Elliptical orbit
         m = e0 - ecc * np.sin(e0)
-        sinv = (
-            (np.sqrt(1.0 - ecc * ecc) * np.sin(e0)) / (1.0 - ecc * np.cos(e0))
-        )
+        sinv = (np.sqrt(1.0 - ecc * ecc) * np.sin(e0)) / (1.0 - ecc * np.cos(e0))
         cosv = (np.cos(e0) - ecc) / (1.0 - ecc * np.cos(e0))
         nu = np.arctan2(sinv, cosv)
     elif ecc > 1.0001:
         # Hyperbolic orbit
         m = ecc * np.sinh(e0) - e0
-        sinv = (
-            (np.sqrt(ecc * ecc - 1.0) * np.sinh(e0))
-            / (1.0 - ecc * np.cosh(e0))
-        )
+        sinv = (np.sqrt(ecc * ecc - 1.0) * np.sinh(e0)) / (1.0 - ecc * np.cosh(e0))
         cosv = (np.cosh(e0) - ecc) / (1.0 - ecc * np.cosh(e0))
         nu = np.arctan2(sinv, cosv)
     else:
@@ -134,9 +129,7 @@ def newtonnu(ecc, nu, parabolic_lim_deg=168):
     # Hyperbolic case
     elif ecc > 1.0 + SMALL:
         if ecc > 1.0 and abs(nu) < np.pi - np.arccos(1.0 / ecc):
-            sine = (
-                (np.sqrt(ecc**2 - 1.0) * np.sin(nu)) / (1.0 + ecc * np.cos(nu))
-            )
+            sine = (np.sqrt(ecc**2 - 1.0) * np.sin(nu)) / (1.0 + ecc * np.cos(nu))
             e0 = np.arcsinh(sine)
             m = ecc * np.sinh(e0) - e0
     # Parabolic case
@@ -193,15 +186,10 @@ def newtonm(ecc, m, n_iter=50):
         ktr = 1
         while abs(e1 - e0) > SMALL and ktr <= n_iter:
             e0 = e1
-            e1 = (
-                e0 + (m - ecc * np.sinh(e0) + e0) / (ecc * np.cosh(e0) - 1.0)
-            )
+            e1 = e0 + (m - ecc * np.sinh(e0) + e0) / (ecc * np.cosh(e0) - 1.0)
             ktr += 1
 
-        sinv = (
-            -(np.sqrt(ecc ** 2 - 1.0) * np.sinh(e1))
-            / (1.0 - ecc * np.cosh(e1))
-        )
+        sinv = -(np.sqrt(ecc**2 - 1.0) * np.sinh(e1)) / (1.0 - ecc * np.cosh(e1))
         cosv = (np.cosh(e1) - ecc) / (1.0 - ecc * np.cosh(e1))
         nu = np.arctan2(sinv, cosv)
 
@@ -225,9 +213,7 @@ def newtonm(ecc, m, n_iter=50):
             e1 = e0 + (m - e0 + ecc * np.sin(e0)) / (1.0 - ecc * np.cos(e0))
             ktr += 1
 
-        sinv = (
-            (np.sqrt(1.0 - ecc ** 2) * np.sin(e1)) / (1.0 - ecc * np.cos(e1))
-        )
+        sinv = (np.sqrt(1.0 - ecc**2) * np.sin(e1)) / (1.0 - ecc * np.cos(e1))
         cosv = (np.cos(e1) - ecc) / (1.0 - ecc * np.cos(e1))
         nu = np.arctan2(sinv, cosv)
 
@@ -268,7 +254,7 @@ def kepler(ro, vo, dtsec, n_iters=50):
     rdotv = np.dot(ro, vo)
 
     # Find specific mechanical energy, alpha, and semi-major axis
-    sme = (magvo ** 2 / 2) - (MU / magro)
+    sme = (magvo**2 / 2) - (MU / magro)
     alpha = -2 * sme / MU
     a = -MU / (2 * sme) if np.abs(sme) > SMALL else np.inf
     alpha = 0.0 if np.abs(alpha) < SMALL else alpha
@@ -284,17 +270,18 @@ def kepler(ro, vo, dtsec, n_iters=50):
         # Parabolic orbit
         h = np.cross(ro, vo)
         magh = np.linalg.norm(h)
-        p = magh ** 2 / MU
-        s = 0.5 * (np.pi / 2 - np.arctan(3.0 * np.sqrt(MU / (p ** 3)) * dtsec))
+        p = magh**2 / MU
+        s = 0.5 * (np.pi / 2 - np.arctan(3.0 * np.sqrt(MU / (p**3)) * dtsec))
         w = np.arctan(np.tan(s) ** (1 / 3))
         xold = np.sqrt(p) * (2.0 / np.tan(2.0 * w))
         alpha = 0.0
     else:
         # Hyperbolic orbit
         temp = (
-            -2.0 * MU * dtsec
-            / (a * (rdotv + np.sign(dtsec) * np.sqrt(-MU * a)
-                    * (1.0 - magro * alpha)))
+            -2.0
+            * MU
+            * dtsec
+            / (a * (rdotv + np.sign(dtsec) * np.sqrt(-MU * a) * (1.0 - magro * alpha)))
         )
         xold = np.sign(dtsec) * np.sqrt(-a) * np.log(temp)
 
@@ -333,7 +320,7 @@ def kepler(ro, vo, dtsec, n_iters=50):
     # Check for convergence
     if ktr >= n_iters:
         logger.error(
-            f'Kepler not converged in {n_iters} iterations for dtsec = {dtsec}'
+            f"Kepler not converged in {n_iters} iterations for dtsec = {dtsec}"
         )
         return np.zeros(3), np.zeros(3)
 
@@ -352,6 +339,6 @@ def kepler(ro, vo, dtsec, n_iters=50):
     # Check if f and g values are consistent
     temp = f * gdot - fdot * g
     if np.abs(temp - 1.0) > 0.00001:
-        logger.warning('f and g values are inconsistent')
+        logger.warning("f and g values are inconsistent")
 
     return r, v

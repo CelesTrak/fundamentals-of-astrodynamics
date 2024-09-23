@@ -29,8 +29,10 @@ def gstime(jdut1):
 
     # Calculate Greenwich Sidereal Time in seconds
     gst = (
-        -6.2e-6 * tut1**3 + 0.093104 * tut1**2
-        + (876600.0 * 3600 + 8640184.812866) * tut1 + 67310.54841
+        -6.2e-6 * tut1**3
+        + 0.093104 * tut1**2
+        + (876600.0 * 3600 + 8640184.812866) * tut1
+        + 67310.54841
     )
 
     # Convert to radians
@@ -63,7 +65,8 @@ def sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms=True):
     # Find mean apparent sidereal time
     if jdut1 > 2450449.5 and eqeterms > 0:
         ast = (
-            gmst + deltapsi * np.cos(meaneps)
+            gmst
+            + deltapsi * np.cos(meaneps)
             + 0.00264 * const.ARCSEC2RAD * np.sin(omega)
             + 0.000063 * const.ARCSEC2RAD * np.sin(2.0 * omega)
         )
@@ -74,17 +77,21 @@ def sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms=True):
     omegaearth = const.EARTHROT * (1.0 - lod / const.DAY2SEC)
 
     # Transformation matrix for PEF to TOD
-    st = np.array([
-        [np.cos(ast), -np.sin(ast), 0.0],
-        [np.sin(ast), np.cos(ast), 0.0],
-        [0.0, 0.0, 1.0]
-    ])
+    st = np.array(
+        [
+            [np.cos(ast), -np.sin(ast), 0.0],
+            [np.sin(ast), np.cos(ast), 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
 
     # Sidereal time rate matrix
-    stdot = np.array([
-        [-omegaearth * np.sin(ast), -omegaearth * np.cos(ast), 0.0],
-        [omegaearth * np.cos(ast), -omegaearth * np.sin(ast), 0.0],
-        [0.0, 0.0, 0.0]
-    ])
+    stdot = np.array(
+        [
+            [-omegaearth * np.sin(ast), -omegaearth * np.cos(ast), 0.0],
+            [omegaearth * np.cos(ast), -omegaearth * np.sin(ast), 0.0],
+            [0.0, 0.0, 0.0],
+        ]
+    )
 
     return st, stdot

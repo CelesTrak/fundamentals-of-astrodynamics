@@ -44,15 +44,11 @@ def site(latgd, lon, alt):
     """
     # Compute site position vector
     sinlat = np.sin(latgd)
-    cearth = RE / np.sqrt(1.0 - ECCEARTHSQRD * sinlat ** 2)
+    cearth = RE / np.sqrt(1.0 - ECCEARTHSQRD * sinlat**2)
     rdel = (cearth + alt) * np.cos(latgd)
     rk = ((1.0 - ECCEARTHSQRD) * cearth + alt) * sinlat
 
-    rsecef = np.array([
-        rdel * np.cos(lon),
-        rdel * np.sin(lon),
-        rk
-    ])
+    rsecef = np.array([rdel * np.cos(lon), rdel * np.sin(lon), rk])
 
     # Site velocity vector in ECEF frame is zero
     vsecef = np.array([0.0, 0.0, 0.0])
@@ -77,11 +73,11 @@ def findc2c3(znew):
     if znew > SMALL:
         sqrtz = np.sqrt(znew)
         c2new = (1.0 - np.cos(sqrtz)) / znew
-        c3new = (sqrtz - np.sin(sqrtz)) / (sqrtz ** 3)
+        c3new = (sqrtz - np.sin(sqrtz)) / (sqrtz**3)
     elif znew < -SMALL:
         sqrtz = np.sqrt(-znew)
         c2new = (1.0 - np.cosh(sqrtz)) / znew
-        c3new = (np.sinh(sqrtz) - sqrtz) / (sqrtz ** 3)
+        c3new = (np.sinh(sqrtz) - sqrtz) / (sqrtz**3)
     else:
         c2new = 0.5
         c3new = 1.0 / 6.0
@@ -183,7 +179,7 @@ def checkhitearth(altpad, r1, v1, r2, v2, nrev):
             hitearthstr (str): Explanation of the impact status
     """
     # Initialize variables
-    hitearth, hitearthstr = False, 'No impact'
+    hitearth, hitearthstr = False, "No impact"
 
     # Compute magnitudes of position vectors
     magr1 = np.linalg.norm(r1)
@@ -194,7 +190,7 @@ def checkhitearth(altpad, r1, v1, r2, v2, nrev):
 
     # Check if the initial or final position vector is below the padded radius
     if magr1 < rpad or magr2 < rpad:
-        hitearth, hitearthstr = True, 'Impact at initial/final radii'
+        hitearth, hitearthstr = True, "Impact at initial/final radii"
     else:
         rdotv1 = np.dot(r1, v1)
         rdotv2 = np.dot(r2, v2)
@@ -221,13 +217,15 @@ def checkhitearth(altpad, r1, v1, r2, v2, nrev):
             # Check if the radius of perigee is below the padded radius
             rp = a * (1.0 - ecc)
             if rp < rpad:
-                hitearth, hitearthstr = True, 'Impact during nrev'
+                hitearth, hitearthstr = True, "Impact during nrev"
 
         # Check for special cases when nrev = 0
         else:
-            if ((rdotv1 < 0.0 < rdotv2) or
-                (rdotv1 > 0.0 < rdotv2 and ecosea1 < ecosea2) or
-                    (rdotv1 < 0.0 > rdotv2 and ecosea1 > ecosea2)):
+            if (
+                (rdotv1 < 0.0 < rdotv2)
+                or (rdotv1 > 0.0 < rdotv2 and ecosea1 < ecosea2)
+                or (rdotv1 < 0.0 > rdotv2 and ecosea1 > ecosea2)
+            ):
 
                 # Check for parabolic impact
                 if abs(ainv) <= SMALL:
@@ -235,7 +233,7 @@ def checkhitearth(altpad, r1, v1, r2, v2, nrev):
                     magh = np.linalg.norm(hbar)
                     rp = magh**2 * 0.5 / MU
                     if rp < rpad:
-                        hitearth, hitearthstr = True, 'Parabolic impact'
+                        hitearth, hitearthstr = True, "Parabolic impact"
 
                 else:
                     a = 1.0 / ainv
@@ -249,12 +247,12 @@ def checkhitearth(altpad, r1, v1, r2, v2, nrev):
                     if ecc < 1.0:
                         rp = a * (1.0 - ecc)
                         if rp < rpad:
-                            hitearth, hitearthstr = True, 'Elliptical impact'
+                            hitearth, hitearthstr = True, "Elliptical impact"
 
                     # Check for hyperbolic impact
                     elif rdotv1 < 0.0 < rdotv2:
                         rp = a * (1.0 - ecc)
                         if rp < rpad:
-                            hitearth, hitearthstr = True, 'Hyperbolic impact'
+                            hitearth, hitearthstr = True, "Hyperbolic impact"
 
     return hitearth, hitearthstr

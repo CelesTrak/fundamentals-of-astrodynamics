@@ -14,7 +14,7 @@ def iau80in():
     """
     # Define the path to the nut80.dat file
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, 'data', 'nut80.dat')
+    file_path = os.path.join(current_dir, "data", "nut80.dat")
 
     # Load the nutation data
     nut80 = np.loadtxt(file_path)
