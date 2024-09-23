@@ -16,7 +16,6 @@ from ..constants import SMALL
 # Axes Rotations
 ###############################################################################
 
-
 def rot1(vec, xval):
     """Rotation about the 1st axis (x-axis)
 
@@ -28,7 +27,13 @@ def rot1(vec, xval):
         array_like: Rotated vector
     """
     c, s = np.cos(xval), np.sin(xval)
-    outvec = np.array([vec[0], c * vec[1] + s * vec[2], c * vec[2] - s * vec[1]])
+    outvec = np.array(
+        [
+            vec[0],
+            c * vec[1] + s * vec[2],
+            c * vec[2] - s * vec[1]
+        ]
+    )
     return outvec
 
 
@@ -43,7 +48,13 @@ def rot2(vec, xval):
         array_like: Rotated vector
     """
     c, s = np.cos(xval), np.sin(xval)
-    outvec = np.array([c * vec[0] - s * vec[2], vec[1], c * vec[2] + s * vec[0]])
+    outvec = np.array(
+        [
+            c * vec[0] - s * vec[2],
+            vec[1],
+            c * vec[2] + s * vec[0]
+        ]
+    )
     return outvec
 
 
@@ -58,61 +69,75 @@ def rot3(vec, xval):
         array_like: Rotated vector
     """
     c, s = np.cos(xval), np.sin(xval)
-    outvec = np.array([c * vec[0] + s * vec[1], c * vec[1] - s * vec[0], vec[2]])
+    outvec = np.array(
+        [
+            c * vec[0] + s * vec[1],
+            c * vec[1] - s * vec[0],
+            vec[2]
+        ]
+    )
     return outvec
-
 
 ###############################################################################
 # Rotation Matrices
 ###############################################################################
 
-
 def rot1mat(xval: float) -> ArrayLike:
     """Rotation matrix for an input angle about the first axis.
     Assume: Use of "column" vectors
-
+    
     Args:
         xval (float): Angle of rotation in radians
-
+    
     Returns:
         outmat (array_like): Rotation matrix
     """
     c, s = np.cos(xval), np.sin(xval)
-
-    outmat = np.array([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]])
+    
+    outmat = np.array(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, c, -s],
+            [0.0, s, c]
+        ]
+    )
 
     return outmat
-
 
 def rot2mat(xval: float) -> ArrayLike:
     """Rotation matrix for an input angle about the second axis.
     Assume: Use of "column" vectors
-
+    
     Args:
         xval (float): Angle of rotation in radians
-
+    
     Returns:
         outmat (array_like): Rotation matrix
     """
     c, s = np.cos(xval), np.sin(xval)
-
-    outmat = np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
-
+    
+    outmat = np.array(
+        [
+            [c, 0.0, s],
+            [0.0, 1.0, 0.0],
+            [-s, 0.0, c]
+        ]
+    )
+    
     return outmat
-
 
 def rot3mat(xval: float) -> ArrayLike:
     """Rotation matrix for an input angle about the third axis.
     Assume: Use of "column" vectors
-
+    
     Args:
         xval (float): Angle of rotation in radians
-
+    
     Returns:
         outmat (array_like): Rotation matrix
     """
     c, s = np.cos(xval), np.sin(xval)
-
+    
     outmat = np.array(
         [
             [c, -s, 0.0],
@@ -120,14 +145,12 @@ def rot3mat(xval: float) -> ArrayLike:
             [0.0, 0.0, 1.0],
         ]
     )
-
+    
     return outmat
-
 
 ###############################################################################
 # Vector Math
 ###############################################################################
-
 
 def angle(v1, v2):
     """Calculates the angle between two vectors in radians
@@ -150,7 +173,7 @@ def angle(v1, v2):
     mag_v1 = np.linalg.norm(v1)
     mag_v2 = np.linalg.norm(v2)
 
-    if mag_v1 * mag_v2 > SMALL**2:
+    if mag_v1 * mag_v2 > SMALL ** 2:
         cos_angle = np.dot(v1, v2) / (mag_v1 * mag_v2)
         cos_angle = np.clip(cos_angle, -1, 1)  # Keep cosine within domain
         return np.arccos(cos_angle)
