@@ -7,6 +7,8 @@
 # -----------------------------------------------------------------------------
 
 from dataclasses import dataclass
+from typing import Tuple
+
 import numpy as np
 
 from ... import constants as const
@@ -100,11 +102,11 @@ class DscomOutput:
 
 def dscom(
     epoch: float,
-    ep: float,
-    argpp: float,
     tc: float,
+    ep: float,
     inclp: float,
     nodep: float,
+    argpp: float,
     np_: float,
 ) -> DscomOutput:
     """Computes deep space common terms for SGP4 ( used by both the secular and
@@ -118,11 +120,11 @@ def dscom(
 
     Args:
         epoch (float): Epoch time (units = ?)  # TODO: check units
+        tc (float): Time since epoch (units = ?)  # TODO: check units
         ep (float): Eccentricity
-        argpp (float): Argument of perigee in radians
-        tc (float): Time since epoch (minutes?)  # TODO: check units
         inclp (float): Inclination in radians
         nodep (float): RAAN (right ascension of ascending node) in radians
+        argpp (float): Argument of perigee in radians
         np_ (float): Mean motion in rad/s  # TODO: check units
 
     Returns:
@@ -287,3 +289,132 @@ def dscom(
     dscom_out.xh3 = -2 * dscom_out.s2 * (dscom_out.z23 - dscom_out.z21)
 
     return dscom_out
+
+
+def dpper(
+    dscom_out: DscomOutput,
+    t: float,
+    ep: float,
+    inclp: float,
+    nodep: float,
+    argpp: float,
+    mp: float,
+    use_afspc_mode: bool = True,
+) -> Tuple[float, float, float, float, float]:
+    """Deep space long period periodic contributions to mean elements.
+
+    References:
+        - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
+        - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
+        - Hoots, Schumacher, and Glover, 2004
+        - Vallado, Crawford, Hujsak, Kelso, 2006
+
+    Args:
+        dscom_out (DscomOutput): Deep space common terms
+        t (float): Time since epoch (units = ?)  # TODO: check units
+        ep (float): Eccentricity
+        inclp (float): Inclination in radians
+        nodep (float): RAAN (right ascension of ascending node) in radians
+        argpp (float): Argument of perigee in radians
+        mp (float): Mean anomaly in radians
+        use_afspc_mode (bool): Flag to use AFSPC mode (default = True)
+
+    Returns:
+        tuple: (ep, inclp, nodep, argpp, mp)
+            ep (float): Updated eccentricity
+            inclp (float): Updated inclination in radians
+            nodep (float): Updated RAAN (right ascension of ascending node) in radians
+            argpp (float): Updated argument of perigee in radians
+            mp (float): Updated mean anomaly in radians
+
+    Notes:
+        - These periodics are zero at epoch by design.
+    """
+    # Constants
+    zns = 1.19459e-5
+    zes = 0.01675
+    znl = 1.5835218e-4
+    zel = 0.05490
+
+    # Calculate time-varying periodics
+    zm = dscom_out.zmos + zns * t
+    zf = zm + 2.0 * zes * np.sin(zm)
+    sinzf = np.sin(zf)
+    f2 = 0.5 * sinzf**2 - 0.25
+    f3 = -0.5 * sinzf * np.cos(zf)
+    ses = dscom_out.se2 * f2 + dscom_out.se3 * f3
+    sis = dscom_out.si2 * f2 + dscom_out.si3 * f3
+    sls = dscom_out.sl2 * f2 + dscom_out.sl3 * f3 + dscom_out.sl4 * sinzf
+    sghs = dscom_out.sgh2 * f2 + dscom_out.sgh3 * f3 + dscom_out.sgh4 * sinzf
+    shs = dscom_out.sh2 * f2 + dscom_out.sh3 * f3
+    zm = dscom_out.zmol + znl * t
+    zf = zm + 2.0 * zel * np.sin(zm)
+    sinzf = np.sin(zf)
+    f2 = 0.5 * sinzf**2 - 0.25
+    f3 = -0.5 * sinzf * np.cos(zf)
+    sel = dscom_out.ee2 * f2 + dscom_out.e3 * f3
+    sil = dscom_out.xi2 * f2 + dscom_out.xi3 * f3
+    sll = dscom_out.xl2 * f2 + dscom_out.xl3 * f3 + dscom_out.xl4 * sinzf
+    sghl = dscom_out.xgh2 * f2 + dscom_out.xgh3 * f3 + dscom_out.xgh4 * sinzf
+    shll = dscom_out.xh2 * f2 + dscom_out.xh3 * f3
+
+    # Initialize periodics
+    pe = ses + sel
+    pinc = sis + sil
+    pl = sls + sll
+    pgh = sghs + sghl
+    ph = shs + shll
+
+    # Subtract baseline offsets
+    pe -= dscom_out.peo
+    pinc -= dscom_out.pinco
+    pl -= dscom_out.plo
+    pgh -= dscom_out.pgho
+    ph -= dscom_out.pho
+
+    # Update inclination and eccentricity
+    inclp += pinc
+    ep += pe
+    sinip = np.sin(inclp)
+    cosip = np.cos(inclp)
+
+    # Apply periodics based on inclination
+    if inclp >= 0.2:
+        # Apply periodics directly
+        ph /= sinip
+        pgh -= cosip * ph
+        argpp += pgh
+        nodep += ph
+        mp += pl
+    else:
+        # Apply periodics with Lyddane modification
+        sinop, cosop = np.sin(nodep), np.cos(nodep)
+        alfdp = sinip * sinop
+        betdp = sinip * cosop
+        dalf = ph * cosop + pinc * cosip * sinop
+        dbet = -ph * sinop + pinc * cosip * cosop
+        alfdp += dalf
+        betdp += dbet
+
+        # SGP4 fix for AFSPC-written intrinsic functions
+        nodep = np.remainder(nodep, const.TWOPI)
+        if nodep < 0.0 and use_afspc_mode:
+            nodep += const.TWOPI
+
+        xls = mp + argpp + cosip * nodep
+        dls = pl + pgh - pinc * nodep * sinip
+        xls += dls
+        xnoh = nodep
+        nodep = np.arctan2(alfdp, betdp)
+
+        # SGP4 fix for AFSPC-written intrinsic functions
+        if nodep < 0.0 and use_afspc_mode:
+            nodep += const.TWOPI
+
+        if np.abs(xnoh - nodep) > np.pi:
+            nodep += const.TWOPI if nodep < xnoh else -const.TWOPI
+
+        mp += pl
+        argpp = xls - mp - cosip * nodep
+
+    return ep, inclp, nodep, argpp, mp
