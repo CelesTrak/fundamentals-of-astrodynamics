@@ -100,6 +100,41 @@ class DscomOutput:
     zmos: float = 0.0
 
 
+@dataclass
+class DsinitOutput:
+    em: float = 0.0
+    argpm: float = 0.0
+    inclm: float = 0.0
+    mm: float = 0.0
+    nm: float = 0.0
+    nodem: float = 0.0
+    irez: int = 0
+    atime: float = 0.0
+    d2201: float = 0.0
+    d2211: float = 0.0
+    d3210: float = 0.0
+    d3222: float = 0.0
+    d4410: float = 0.0
+    d4422: float = 0.0
+    d5220: float = 0.0
+    d5232: float = 0.0
+    d5421: float = 0.0
+    d5433: float = 0.0
+    dedt: float = 0.0
+    didt: float = 0.0
+    dmdt: float = 0.0
+    dndt: float = 0.0
+    dnodt: float = 0.0
+    domdt: float = 0.0
+    del1: float = 0.0
+    del2: float = 0.0
+    del3: float = 0.0
+    xfact: float = 0.0
+    xlamo: float = 0.0
+    xli: float = 0.0
+    xni: float = 0.0
+
+
 def dscom(
     epoch: float,
     tc: float,
@@ -300,6 +335,7 @@ def dpper(
     argpp: float,
     mp: float,
     use_afspc_mode: bool = True,
+    incl_tol: float = 0.2,
 ) -> Tuple[float, float, float, float, float]:
     """Deep space long period periodic contributions to mean elements.
 
@@ -318,6 +354,7 @@ def dpper(
         argpp (float): Argument of perigee in radians
         mp (float): Mean anomaly in radians
         use_afspc_mode (bool): Flag to use AFSPC mode (default = True)
+        incl_tol (float): Inclination tolerance for applying periodics (default = 0.2)
 
     Returns:
         tuple: (ep, inclp, nodep, argpp, mp)
@@ -379,7 +416,7 @@ def dpper(
     cosip = np.cos(inclp)
 
     # Apply periodics based on inclination
-    if inclp >= 0.2:
+    if inclp >= incl_tol:
         # Apply periodics directly
         ph /= sinip
         pgh -= cosip * ph
@@ -418,3 +455,258 @@ def dpper(
         argpp = xls - mp - cosip * nodep
 
     return ep, inclp, nodep, argpp, mp
+
+
+def dsinit(
+    dscom_out: DscomOutput,
+    xke: float,
+    argpo: float,
+    t: float,
+    tc: float,
+    gsto: float,
+    mo: float,
+    mdot: float,
+    no: float,
+    nodeo: float,
+    nodedot: float,
+    xpidot: float,
+    ecco: float,
+    eccsq: float,
+    inclm: float,
+    nodem: float,
+    argpm: float,
+    mm: float,
+    incl_tol: float = np.radians(3),
+) -> DsinitOutput:
+    """Deep space initialization for SGP4.
+
+    This function provides deep space contributions to mean motion dot due to
+    geopotential resonance with half day and one day orbits.
+
+    References:
+        - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
+        - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
+        - Hoots, Schumacher, and Glover, 2004
+        - Vallado, Crawford, Hujsak, Kelso, 2006
+
+    Args:
+        dscom_out (DscomOutput): Deep space common terms
+        xke (float): SGP4 constant
+        argpo (float): Argument of perigee in radians
+        t (float): Time since epoch (units = ?)  # TODO: check units
+        tc (float): Time since epoch (units = ?)  # TODO: check units
+        gsto (float): GST at epoch in radians
+        mo (float): Mean anomaly in radians
+        mdot (float): Mean anomaly dot in rad/s
+        no (float): Mean motion in rad/s  # TODO: check units
+        nodeo (float): RAAN at epoch in radians
+        nodedot (float): RAAN dot in rad/s
+        xpidot (float): RAAN dot in rad/s
+        ecco (float): Eccentricity
+        eccsq (float): Eccentricity squared
+        inclm (float): Inclination in radians
+        nodem (float): RAAN in radians
+        argpm (float): Argument of perigee in radians
+        mm (float): Mean anomaly in radians
+        incl_tol (float): Inclination tolerance for applying periodics
+                          (default = 3 deg in radians)
+
+    Returns:
+        DsinitOutput: Dataclass containing deep space initialization terms
+    """
+    # Initialize output dataclass
+    dsinit_out = DsinitOutput()
+
+    # Constants
+    rptim = 4.37526908801129966e-3
+    q22, q31, q33 = 1.7891679e-6, 2.1460748e-6, 2.2123015e-7
+    root22, root44, root54 = 1.7891679e-6, 7.3636953e-9, 2.1765803e-9
+    root32, root52 = 3.7393792e-7, 1.1428639e-7
+    x2o3 = 2 / 3
+    znl, zns = 1.5835218e-4, 1.19459e-5
+
+    # Initialize outputs
+    dsinit_out.em, dsinit_out.nm = dscom_out.em, dscom_out.nm
+    if 0.0034906585 < dsinit_out.nm < 0.0052359877:
+        dsinit_out.irez = 1
+    if 8.26e-3 <= dsinit_out.nm <= 9.24e-3 and dsinit_out.em >= 0.5:
+        dsinit_out.irez = 2
+    emsq = dscom_out.emsq
+
+    # Solar terms
+    ses = dscom_out.ss1 * zns * dscom_out.ss5
+    sis = dscom_out.ss2 * zns * (dscom_out.sz11 + dscom_out.sz13)
+    sls = (
+        -zns * dscom_out.ss3 * (dscom_out.sz1 + dscom_out.sz3 - 14 - 6 * dscom_out.emsq)
+    )
+    sghs = dscom_out.ss4 * zns * (dscom_out.sz31 + dscom_out.sz33 - 6)
+    shs = -zns * dscom_out.ss2 * (dscom_out.sz21 + dscom_out.sz23)
+    if inclm < incl_tol or inclm > np.pi - incl_tol:
+        shs = 0
+    if dscom_out.sinim != 0:
+        shs /= dscom_out.sinim
+    sgs = sghs - dscom_out.cosim * shs
+
+    # Lunar terms
+    dsinit_out.dedt = ses + dscom_out.s1 * znl * dscom_out.s5
+    dsinit_out.didt = sis + dscom_out.s2 * znl * (dscom_out.z11 + dscom_out.z13)
+    dsinit_out.dmdt = sls - znl * dscom_out.s3 * (
+        dscom_out.z1 + dscom_out.z3 - 14 - 6 * dscom_out.emsq
+    )
+    sghl = dscom_out.s4 * znl * (dscom_out.z31 + dscom_out.z33 - 6)
+    shll = -znl * dscom_out.s2 * (dscom_out.z21 + dscom_out.z23)
+    if inclm < incl_tol or inclm > np.pi - incl_tol:
+        shll = 0
+    dsinit_out.domdt, dsinit_out.dnodt = sgs + sghl, shs
+    if dscom_out.sinim != 0:
+        dsinit_out.domdt -= dscom_out.cosim / dscom_out.sinim * shll
+        dsinit_out.dnodt += shll / dscom_out.sinim
+
+    # Deep space resonance effects
+    theta = np.remainder(gsto + tc * rptim, const.TWOPI)
+    dsinit_out.em += dsinit_out.dedt * t
+    dsinit_out.inclm = inclm + dsinit_out.didt * t
+    dsinit_out.argpm = argpm + dsinit_out.domdt * t
+    dsinit_out.nodem = nodem + dsinit_out.dnodt * t
+    dsinit_out.mm = mm + dsinit_out.dmdt * t
+
+    # Return if no resonance
+    if dsinit_out.irez == 0:
+        return dsinit_out
+
+    aonv = (dsinit_out.nm / xke) ** x2o3
+
+    # Geopotential resonance for 12-hour orbits
+    if dsinit_out.irez == 2:
+        cosisq = dscom_out.cosim**2
+        emo = dsinit_out.em
+        em = ecco
+        emsqo = dscom_out.emsq
+        emsq = eccsq
+        eoc = em * emsq
+        g201 = -0.306 - (em - 0.64) * 0.440
+
+        if em <= 0.65:
+            g211 = 3.616 - 13.2470 * em + 16.2900 * emsq
+            g310 = -19.302 + 117.3900 * em - 228.4190 * emsq + 156.5910 * eoc
+            g322 = -18.9068 + 109.7927 * em - 214.6334 * emsq + 146.5816 * eoc
+            g410 = -41.122 + 242.6940 * em - 471.0940 * emsq + 313.9530 * eoc
+            g422 = -146.407 + 841.8800 * em - 1629.014 * emsq + 1083.4350 * eoc
+            g520 = -532.114 + 3017.977 * em - 5740.032 * emsq + 3708.2760 * eoc
+        else:
+            g211 = -72.099 + 331.819 * em - 508.738 * emsq + 266.724 * eoc
+            g310 = -346.844 + 1582.851 * em - 2415.925 * emsq + 1246.113 * eoc
+            g322 = -342.585 + 1554.908 * em - 2366.899 * emsq + 1215.972 * eoc
+            g410 = -1052.797 + 4758.686 * em - 7193.992 * emsq + 3651.957 * eoc
+            g422 = -3581.690 + 16178.110 * em - 24462.770 * emsq + 12422.520 * eoc
+            if em > 0.715:
+                g520 = -5149.66 + 29936.92 * em - 54087.36 * emsq + 31324.56 * eoc
+            else:
+                g520 = 1464.74 - 4664.75 * em + 3763.64 * emsq
+
+        if em < 0.7:
+            g533 = -919.22770 + 4988.6100 * em - 9064.7700 * emsq + 5542.21 * eoc
+            g521 = -822.71072 + 4568.6173 * em - 8491.4146 * emsq + 5337.524 * eoc
+            g532 = -853.66600 + 4690.2500 * em - 8624.7700 * emsq + 5341.4 * eoc
+        else:
+            g533 = -37995.780 + 161616.52 * em - 229838.20 * emsq + 109377.94 * eoc
+            g521 = -51752.104 + 218913.95 * em - 309468.16 * emsq + 146349.42 * eoc
+            g532 = -40023.880 + 170470.89 * em - 242699.48 * emsq + 115605.82 * eoc
+
+        dsinit_out.em = em
+        sini2 = dscom_out.sinim**2
+        f220 = 0.75 * (1.0 + 2.0 * dscom_out.cosim + cosisq)
+        f221 = 1.5 * sini2
+        f321 = 1.875 * dscom_out.sinim * (1 - 2 * dscom_out.cosim - 3 * cosisq)
+        f322 = -1.875 * dscom_out.sinim * (1 + 2 * dscom_out.cosim - 3 * cosisq)
+        f441 = 35 * sini2 * f220
+        f442 = 39.3750 * sini2**2
+        f522 = (
+            9.84375
+            * dscom_out.sinim
+            * (
+                sini2 * (1 - 2 * dscom_out.cosim - 5 * cosisq)
+                + 0.33333333 * (-2 + 4 * dscom_out.cosim + 6 * cosisq)
+            )
+        )
+        f523 = dscom_out.sinim * (
+            4.92187512 * sini2 * (-2 - 4 * dscom_out.cosim + 10 * cosisq)
+            + 6.56250012 * (1 + 2 * dscom_out.cosim - 3 * cosisq)
+        )
+        f542 = (
+            29.53125
+            * dscom_out.sinim
+            * (
+                2
+                - 8 * dscom_out.cosim
+                + cosisq * (-12 + 8 * dscom_out.cosim + 10 * cosisq)
+            )
+        )
+        f543 = (
+            29.53125
+            * dscom_out.sinim
+            * (
+                -2
+                - 8 * dscom_out.cosim
+                + cosisq * (12 + 8 * dscom_out.cosim - 10 * cosisq)
+            )
+        )
+
+        xno2 = dsinit_out.nm**2
+        ainv2 = aonv**2
+        temp1 = 3 * xno2 * ainv2
+        temp = temp1 * root22
+        dsinit_out.d2201 = temp * f220 * g201
+        dsinit_out.d2211 = temp * f221 * g211
+        temp1 *= aonv
+        temp = temp1 * root32
+        dsinit_out.d3210 = temp * f321 * g310
+        dsinit_out.d3222 = temp * f322 * g322
+        temp1 *= aonv
+        temp = 2 * temp1 * root44
+        dsinit_out.d4410 = temp * f441 * g410
+        dsinit_out.d4422 = temp * f442 * g422
+        temp1 *= aonv
+        temp = temp1 * root52
+        dsinit_out.d5220 = temp * f522 * g520
+        dsinit_out.d5232 = temp * f523 * g532
+        temp = 2 * temp1 * root54
+        dsinit_out.d5421 = temp * f542 * g521
+        dsinit_out.d5433 = temp * f543 * g533
+        dsinit_out.xlamo = (mo + nodeo + nodeo - theta - theta) % const.TWOPI
+        dsinit_out.xfact = (
+            mdot + dsinit_out.dmdt + 2 * (nodedot + dsinit_out.dnodt - rptim) - no
+        )
+        dsinit_out.em, emsq = emo, emsqo
+
+    # Synchronous resonance terms
+    if dsinit_out.irez == 1:
+        g200 = 1 + emsq * (-2.5 + 0.8125 * emsq)
+        g310 = 1 + 2 * emsq
+        g300 = 1 + emsq * (-6 + 6.60937 * emsq)
+        f220 = 0.75 * (1 + dscom_out.cosim) ** 2
+        f311 = 0.9375 * dscom_out.sinim**2 * (1 + 3 * dscom_out.cosim) - 0.75 * (
+            1 + dscom_out.cosim
+        )
+        f330 = 1 + dscom_out.cosim
+        f330 = 1.875 * f330**3
+        dsinit_out.del1 = 3 * dsinit_out.nm**2 * aonv**2
+        dsinit_out.del2 = 2 * dsinit_out.del1 * f220 * g200 * q22
+        dsinit_out.del3 = 3 * dsinit_out.del1 * f330 * g300 * q33 * aonv
+        dsinit_out.del1 *= f311 * g310 * q31 * aonv
+        dsinit_out.xlamo = (mo + nodeo + argpo - theta) % const.TWOPI
+        dsinit_out.xfact = (
+            mdot
+            + xpidot
+            - rptim
+            + dsinit_out.dmdt
+            + dsinit_out.domdt
+            + dsinit_out.dnodt
+            - no
+        )
+
+    # Initialize the integrator for SGP4
+    dsinit_out.xli, dsinit_out.xni = dsinit_out.xlamo, no
+    dsinit_out.nm += dsinit_out.dndt
+
+    return dsinit_out

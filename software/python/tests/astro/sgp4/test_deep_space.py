@@ -11,7 +11,8 @@ def oe_params():
     node = 4.87072001413786
     argp = 4.62102273937204
     n = 0.00874854701963024
-    return ecc, incl, node, argp, n
+    m = 0.353005058520617
+    return ecc, incl, node, argp, n, m
 
 
 @pytest.fixture
@@ -101,13 +102,50 @@ def dscom_data():
     )
 
 
+@pytest.fixture
+def dsinit_data():
+    return deep_space.DsinitOutput(
+        em=0.6877146,
+        argpm=0.0,
+        inclm=1.11977881347003,
+        mm=0.0,
+        nm=0.00874854701963024,
+        nodem=0.0,
+        irez=2,
+        atime=0.0,
+        d2201=-1.1973595516231175e-11,
+        d2211=6.453213834121464e-11,
+        d3210=-3.893722738131192e-12,
+        d3222=-7.364857538023262e-12,
+        d4410=2.576960140946351e-12,
+        d4422=4.361455592714325e-12,
+        d5220=-2.5287894659528763e-12,
+        d5232=6.767712568551672e-13,
+        d5421=-2.2806980465619985e-12,
+        d5433=-1.6595708214914119e-12,
+        dedt=-2.8885476234610726e-08,
+        didt=-9.784108269214128e-09,
+        dmdt=9.270786742526891e-08,
+        dndt=0.0,
+        dnodt=-6.12432348969529e-08,
+        domdt=-1.4155210733836329e-08,
+        del1=0.0,
+        del2=0.0,
+        del3=0.0,
+        xfact=-0.008753597222053683,
+        xlamo=2.662899525767248,
+        xli=2.662899525767248,
+        xni=0.00874854701963024,
+    )
+
+
 def test_dscom(oe_params, dscom_data):
     # Inputs
     epoch = 20630.3321544402
     tc = 0
 
-    # Call dscom method
-    dscom_out = deep_space.dscom(epoch, tc, *oe_params)
+    # Call method
+    dscom_out = deep_space.dscom(epoch, tc, *oe_params[:-1])
 
     # Check results
     for key in dscom_data.__dataclass_fields__:
@@ -117,10 +155,9 @@ def test_dscom(oe_params, dscom_data):
 def test_dpper(oe_params, dscom_data):
     # Inputs
     t = 0
-    m = 0.353005058520617
-    ecc, incl, node, argp, _ = oe_params
+    ecc, incl, node, argp, _, m = oe_params
 
-    # Call dpper method
+    # Call method
     ep, inclp, nodep, argpp, mp = deep_space.dpper(
         dscom_data, t, ecc, incl, node, argp, m
     )
@@ -131,3 +168,42 @@ def test_dpper(oe_params, dscom_data):
     assert custom_isclose(nodep, 4.869997828497486)
     assert custom_isclose(argpp, 4.62188106182903)
     assert custom_isclose(mp, 0.35183574006201346)
+
+
+def test_dsinit(oe_params, dscom_data, dsinit_data):
+    # Inputs
+    ecco, inclm, nodeo, argpo, no, mo = oe_params
+    t = tc = 0
+    xke = 0.0743669161331734
+    gsto = 0.574180126924752
+    mdot = 0.00874808688663313
+    nodedot = -1.28456721580123e-06
+    xpidot = -1.35893730845456e-06
+    eccsq = dscom_data.emsq
+    nodem = argpm = mm = 0
+
+    # Call method
+    dsinit_out = deep_space.dsinit(
+        dscom_data,
+        xke,
+        argpo,
+        t,
+        tc,
+        gsto,
+        mo,
+        mdot,
+        no,
+        nodeo,
+        nodedot,
+        xpidot,
+        ecco,
+        eccsq,
+        inclm,
+        nodem,
+        argpm,
+        mm,
+    )
+
+    # Check results
+    for key in dsinit_data.__dataclass_fields__:
+        assert custom_isclose(getattr(dsinit_out, key), getattr(dsinit_data, key))
