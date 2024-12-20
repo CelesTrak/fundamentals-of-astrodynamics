@@ -7,11 +7,18 @@
 # --------------------------------------------------------------------------------------
 
 from dataclasses import dataclass
+from enum import Enum
+from typing import Tuple
 
 import numpy as np
+from pydantic import BaseModel
 
 from ... import constants as const
+from ...mathtime.julian_date import jday
+from ...mathtime.calendar import days_to_mdh
 from ..time.sidereal import gstime
+from .deep_space import dscom, dpper, dsinit
+from .utils import WGSModel, getgravc
 
 
 @dataclass
@@ -31,6 +38,253 @@ class SGP4InitOutput:
     sinio: float = 0.0
     gsto: float = 0.0
     no_unkozai: float = 0.0
+
+
+class TypeRun(Enum):
+    """Character for mode of SGP4 Execution."""
+
+    Catalog = "c"  # +/- 1 day from epoch, 20 min steps
+    Verification = "v"  # start/stop/timestep from TLE input (Line 2)
+    FromJD = "j"  # start/stop/timestep provided from start and stop Julian dates
+    Manual = "m"  # custom start/stop/timestep provided
+
+
+class Classification(Enum):
+    """Classification of the satellite."""
+
+    Unclassified = "U"
+    Classified = "C"
+
+
+class SatRec(BaseModel):
+    radiusearthkm: float = const.RE
+    xke: float = 0.0743669161
+    mo: float = 0.0
+    mdot: float = 0.0
+    argpo: float = 0.0
+    argpdot: float = 0.0
+    nodeo: float = 0.0
+    nodedot: float = 0.0
+    nodecf: float = 0.0
+    cc1: float = 0.0
+    cc4: float = 0.0
+    t2cof: float = 0.0
+    omgcof: float = 0.0
+    xmcof: float = 0.0
+    eta: float = 0.0
+    delmo: float = 0.0
+    d2: float = 0.0
+    d3: float = 0.0
+    d4: float = 0.0
+    t3cof: float = 0.0
+    t4cof: float = 0.0
+    t5cof: float = 0.0
+    no: float = 0.0
+    ecco: float = 0.0
+    inclo: float = 0.0
+    isimp: int = 0
+    bstar: float = 0.0
+    j3oj2: float = 0.0
+    gsto: float = 0.0
+    xfact: float = 0.0
+    xlamo: float = 0.0
+    atime: float = 0.0
+    error: int = 0
+    t: float = 0.0
+    aycof: float = 0.0
+    xlcof: float = 0.0
+    con41: float = 0.0
+    x1mth2: float = 0.0
+    x7thm1: float = 0.0
+    satnum: int = 0
+    intldesg: str = ""
+    epochyr: int = 0
+    epochdays: float = 0.0
+    ndot: float = 0.0
+    nddot: float = 0.0
+    elnum: int = 0
+    revnum: int = 0
+    no_kozai: float = 0.0
+    jdsatepoch: float = 0.0
+    jdsatepochf: float = 0.0
+    classification: Classification = Classification.Unclassified
+
+
+class SGP4:
+    def __init__(
+        self, wgs_model: WGSModel = WGSModel.WGS_84, use_afspc_mode: bool = True
+    ):
+        self.wgs_model = wgs_model
+        self.use_afspc_mode = use_afspc_mode
+        self.grav_const = getgravc(wgs_model)
+        self.satrec = SatRec()
+        self.use_deep_space = False
+
+        # TLE attributes
+        self.jdstart_full = None
+        self.jdstop_full = None
+
+    @staticmethod
+    def preprocess_tle(tle_line1: str, tle_line2: str) -> Tuple[str, str]:
+        # Ensure correct lengths
+        # tle_line1 = tle_line1.ljust(69)
+        # tle_line2 = tle_line2.ljust(69)
+
+        # Fix line 1 issues
+        tle_line1 = list(tle_line1)
+        for j in range(10, 16):
+            if tle_line1[j] == " ":
+                tle_line1[j] = "_"
+        if tle_line1[44] == " ":
+            tle_line1[43] = tle_line1[44]
+        tle_line1[44] = "."
+        if tle_line1[7] == " ":
+            tle_line1[7] = "U"
+        if tle_line1[9] == " ":
+            tle_line1[9] = "."
+        for j in range(45, 50):
+            if tle_line1[j] == " ":
+                tle_line1[j] = "0"
+        if tle_line1[51] == " ":
+            tle_line1[51] = "0"
+        if tle_line1[53] != " ":
+            tle_line1[52] = tle_line1[53]
+        tle_line1[53] = "."
+        if tle_line1[62] == " ":
+            tle_line1[62] = "0"
+        if len(tle_line1) < 68 or tle_line1[67] == " ":
+            tle_line1[67] = "0"
+
+        # Fix line 2 issues
+        tle_line2 = list(tle_line2)
+        tle_line2[25] = "."
+        for j in range(26, 33):
+            if tle_line2[j] == " ":
+                tle_line2[j] = "0"
+
+        # Convert back to strings
+        return "".join(tle_line1), "".join(tle_line2)
+
+    def set_jd_from_from_ymdhms(
+        self,
+        start_ymdhms: Tuple[int, int, int, int, int, float],
+        stop_ymdhms: Tuple[int, int, int, int, int, float],
+    ):
+        jdstart, jdstartf = jday(*start_ymdhms)
+        jdstop, jdstopf = jday(*stop_ymdhms)
+        self.jdstart_full = jdstart + jdstartf
+        self.jdstop_full = jdstop + jdstopf
+
+    def set_jd_from_yr_doy(
+        self, start_yr: int, start_doy: float, stop_yr: int, stop_doy: float
+    ):
+        start_mdhms = days_to_mdh(start_yr, start_doy)
+        stop_mdhms = days_to_mdh(stop_yr, stop_doy)
+
+        self.set_jd_from_from_ymdhms((start_yr, *start_mdhms), (stop_yr, *stop_mdhms))
+
+    def twoline2rv(
+        self,
+        tle_line1: str,
+        tle_line2: str,
+        typerun: TypeRun = TypeRun.Catalog,
+        start: float | None = None,
+        stop: float | None = None,
+        step: float | None = None,
+    ):
+        """
+        Parse TLE lines and populate SatRec.
+        """
+        # Constants
+        xpdotp = const.DAY2MIN / const.TWOPI  # rev/day / rad/min
+
+        # Preprocess TLE lines
+        tle_line1, tle_line2 = self.preprocess_tle(tle_line1, tle_line2)
+
+        # Parse the first line
+        self.satrec.satnum = int(tle_line1[2:7])
+        self.satrec.classification = Classification(tle_line1[7])
+        self.satrec.intldesg = tle_line1[9:17].strip()
+        self.satrec.epochyr = int(tle_line1[18:20])
+        self.satrec.epochdays = float(tle_line1[20:32])
+        self.satrec.ndot = float(tle_line1[33:43])
+        self.satrec.nddot = float(tle_line1[44:50]) * 10 ** int(tle_line1[50:52])
+        self.satrec.bstar = float(tle_line1[53:59]) * 10 ** int(tle_line1[59:61])
+        self.satrec.elnum = int(tle_line1[64:68])
+
+        # Parse the second line
+        self.satrec.inclo = np.radians(float(tle_line2[8:16].strip()))
+        self.satrec.nodeo = np.radians(float(tle_line2[17:25].strip()))
+        self.satrec.ecco = float(f"0.{tle_line2[26:33].strip()}")
+        self.satrec.argpo = np.radians(float(tle_line2[34:42].strip()))
+        self.satrec.mo = np.radians(float(tle_line2[43:51].strip()))
+        self.satrec.no_kozai = float(tle_line2[52:63].strip()) / xpdotp
+        self.satrec.revnum = int(tle_line2[63:68].strip())
+
+        # Convert epoch year to full year
+        self.satrec.epochyr += 2000 if self.satrec.epochyr < 57 else 1900
+
+        # Adjust ndot and nddot units
+        self.satrec.ndot /= xpdotp * const.DAY2MIN  # rad/min^2
+        self.satrec.nddot /= xpdotp * const.DAY2MIN**2  # rad/min^3
+
+        # Compute Julian date of the epoch
+        mdhms = days_to_mdh(self.satrec.epochyr, self.satrec.epochdays)
+        self.satrec.jdsatepoch, self.satrec.jdsatepochf = jday(
+            self.satrec.epochyr, *mdhms
+        )
+
+        # Default values for start, stop, and step
+        startmfe, stopmfe, deltamin = 0, const.DAY2MIN, 1
+
+        # Set start, stop, and step based on the type of run
+        # Complete catalog evaluation
+        if typerun == TypeRun.Catalog:
+            startmfe, stopmfe, deltamin = -const.DAY2MIN, const.DAY2MIN, 20
+
+        # Verification - use TLE start/stop/step values
+        elif typerun == TypeRun.Verification:
+            startmfe = float(tle_line2[69:81].strip())
+            stopmfe = float(tle_line2[82:96].strip())
+            deltamin = float(tle_line2[96:105].strip())
+
+        # From Julian dates (these must be set before calling this function)
+        elif typerun == TypeRun.FromJD:
+            if any(value is None for value in (self.jdstart_full, self.jdstop_full)):
+                raise ValueError(
+                    "FromJD mode requires start and stop Julian dates. "
+                    "Please set them prior to calling this function!"
+                )
+            jdsatepoch = self.satrec.jdsatepoch + self.satrec.jdsatepochf
+            startmfe = (self.jdstart_full - jdsatepoch) * const.DAY2MIN
+            stopmfe = (self.jdstop_full - jdsatepoch) * const.DAY2MIN
+            deltamin = step or deltamin
+
+        # Manual mode - use provided start/stop/step values
+        elif typerun == TypeRun.Manual:
+            if any(value is None for value in (start, stop, step)):
+                raise ValueError("Manual mode requires start, stop, and step values.")
+
+        # Invalid mode
+        else:
+            raise ValueError(f"Invalid mode: {typerun}")
+
+        # Initialize SGP4
+        self.sgp4init()
+
+        return startmfe, stopmfe, deltamin
+
+    def sgp4init(self):
+        """
+        Initialize the satellite parameters.
+        """
+        pass
+
+    def propagate(self, t: float):
+        """
+        Perform the propagation for the satellite at time t.
+        """
+        pass
 
 
 def initl(

@@ -66,7 +66,7 @@ def jday(
         + np.floor(275 * month / 9.0)
         + day
         + 1721013.5
-    )  # Use - 678987.0 to go to MJD directly
+    )  # use - 678987.0 to go to MJD directly
 
     # Calculate fractional part of the day
     jd_frac = (second + minute * const.MIN2SEC + hour * const.HR2SEC) / const.DAY2SEC
