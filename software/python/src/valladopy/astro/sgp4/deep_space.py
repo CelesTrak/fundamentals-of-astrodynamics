@@ -101,7 +101,7 @@ class DscomOutput:
 
 
 @dataclass
-class DsinitOutput:
+class DsInitOutput:
     em: float = 0.0
     argpm: float = 0.0
     inclm: float = 0.0
@@ -477,7 +477,7 @@ def dsinit(
     argpm: float,
     mm: float,
     incl_tol: float = np.radians(3),
-) -> DsinitOutput:
+) -> DsInitOutput:
     """Deep space initialization for SGP4.
 
     This function provides deep space contributions to mean motion dot due to
@@ -512,10 +512,10 @@ def dsinit(
                           (default = 3 deg in radians)
 
     Returns:
-        DsinitOutput: Dataclass containing deep space initialization terms
+        DsInitOutput: Dataclass containing deep space initialization terms
     """
     # Initialize output dataclass
-    dsinit_out = DsinitOutput()
+    dsinit_out = DsInitOutput()
 
     # Constants
     rptim = 4.37526908801129966e-3

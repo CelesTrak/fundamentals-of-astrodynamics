@@ -1,4 +1,5 @@
 import pytest
+
 import src.valladopy.astro.sgp4.deep_space as deep_space
 
 from ...conftest import custom_isclose
@@ -104,7 +105,7 @@ def dscom_data():
 
 @pytest.fixture
 def dsinit_data():
-    return deep_space.DsinitOutput(
+    return deep_space.DsInitOutput(
         em=0.6877146,
         argpm=0.0,
         inclm=1.11977881347003,
