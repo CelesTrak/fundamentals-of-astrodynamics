@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Authors: David Vallado, Jeff Beck
 # Date: 28 June 2005
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 from dataclasses import dataclass
 from typing import Tuple
@@ -144,7 +144,7 @@ def dscom(
     argpp: float,
     np_: float,
 ) -> DscomOutput:
-    """Computes deep space common terms for SGP4 ( used by both the secular and
+    """Computes deep space common terms for SGP4 (used by both the secular and
     periodics subroutines).
 
     References:

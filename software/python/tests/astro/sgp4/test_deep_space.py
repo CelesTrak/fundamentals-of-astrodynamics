@@ -6,17 +6,6 @@ from ...conftest import custom_isclose
 
 
 @pytest.fixture
-def oe_params():
-    ecc = 0.6877146
-    incl = 1.11977881347003
-    node = 4.87072001413786
-    argp = 4.62102273937204
-    n = 0.00874854701963024
-    m = 0.353005058520617
-    return ecc, incl, node, argp, n, m
-
-
-@pytest.fixture
 def dscom_data():
     return deep_space.DscomOutput(
         sinim=0.9000040530708066,
@@ -140,9 +129,8 @@ def dsinit_data():
     )
 
 
-def test_dscom(oe_params, dscom_data):
+def test_dscom(epoch, oe_params, dscom_data):
     # Inputs
-    epoch = 20630.3321544402
     tc = 0
 
     # Call method
