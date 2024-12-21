@@ -247,9 +247,9 @@
             stopmfe  = input('input stop mfe: ');
             deltamin = input('input time step in minutes: ');
         end
-        %     // perform complete catalog evaluation
     end
 
+    % perform complete catalog evaluation
     if (typerun == 'c')
         startmfe =  -1440.0;
         stopmfe  =  1440.0;
