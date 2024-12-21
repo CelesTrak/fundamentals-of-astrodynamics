@@ -189,8 +189,37 @@ class SGP4:
         stop: float | None = None,
         step: float | None = None,
     ):
-        """
-        Parse TLE lines and populate SatRec.
+        """Parse TLE lines and populate SGP4 variables.
+
+        This function converts the two line element (TLE) set character string data to
+        variables and initializes the sgp4 variables. several intermediate variables
+        and quantities are determined. The Verification mode permits quick checks of any
+        changes to the underlying technical theory and works using a
+        modified tle file in which the start, stop, and delta time values are
+        included at the end of the second line of data. The Catalog mode simply
+        propagates from -1440 to 1440 min from epoch and is useful when performing
+        entire catalog runs.
+
+        If using the FromJD mode, the start and stop Julian dates must be set before
+        calling this function (see `set_jd_from_from_ymdhms` or `set_jd_from_yr_doy`).
+
+        References:
+            - NORAD Spacetrack Report #3
+            - Vallado, Crawford, Hujsak, Kelso 2006
+
+        Args:
+            tle_line1 (str): First line of the TLE set
+            tle_line2 (str): Second line of the TLE set
+            typerun (TypeRun): Mode of execution (default = TypeRun.Catalog)
+            start (float, optional): Start time in minutes from epoch (default = None)
+            stop (float, optional): Stop time in minutes from epoch (default = None)
+            step (float, optional): Time step in minutes (default = None)
+
+        Returns:
+            tuple (startmfe, stopmfe, deltamin)
+                startmfe (float): Start time in minutes from epoch
+                stopmfe (float): Stop time in minutes from epoch
+                deltamin (float): Time step in minutes
         """
         # Constants
         xpdotp = const.DAY2MIN / const.TWOPI  # rev/day / rad/min
