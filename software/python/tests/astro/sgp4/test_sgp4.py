@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import src.valladopy.astro.sgp4.sgp4 as sgp4
+from src.valladopy.astro.sgp4.utils import WGSModel
 
 from ...conftest import DEFAULT_TOL, custom_isclose
 
@@ -77,9 +78,8 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp):
 
 def test_initl(epoch, oe_params):
     # Inputs
+    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
     ecco, inclo, *_ = oe_params
-    xke = 0.0743669161331734
-    j2 = 0.001082616
     no_kozai = 0.00874808688806747
 
     # Expected outputs
@@ -101,7 +101,7 @@ def test_initl(epoch, oe_params):
     }
 
     # Call method
-    sgp4init_out = sgp4.initl(xke, j2, epoch, ecco, inclo, no_kozai)
+    sgp4init_out = sgp4_obj.initl(epoch, ecco, inclo, no_kozai)
 
     # Check results
     for key in expected:
