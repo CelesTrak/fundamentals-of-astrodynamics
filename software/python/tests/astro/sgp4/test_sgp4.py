@@ -13,6 +13,38 @@ def set_jd_startstop(sgp4_obj):
     sgp4_obj.set_jd_from_from_ymdhms(start_ymdhms, stop_ymdhms)
 
 
+def test_initl(epoch, oe_params):
+    # Inputs
+    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
+    sgp4_obj.satrec.ecco, sgp4_obj.satrec.inclo, *_ = oe_params
+    sgp4_obj.satrec.no_kozai = 0.00874808688806747
+
+    # Expected outputs
+    expected = {
+        "ainv": 0.24008817584663986,
+        "ao": 4.165136398215487,
+        "con41": -0.43002188663163776,
+        "con42": 0.05003647771939623,
+        "cosio": 0.43588152571096744,
+        "cosio2": 0.18999270445612076,
+        "eccsq": 0.47295137105315993,
+        "omeosq": 0.5270486289468401,
+        "posq": 4.819032241803303,
+        "rp": 1.3007112861712828,
+        "rteosq": 0.7259811491676903,
+        "sinio": 0.9000040530708066,
+        "gsto": 0.574180126902192,
+        "no_unkozai": 0.008748547019630244,
+    }
+
+    # Call method
+    sgp4init_out = sgp4_obj.initl(epoch)
+
+    # Check results
+    for key in expected:
+        assert custom_isclose(getattr(sgp4init_out, key), expected[key])
+
+
 @pytest.mark.parametrize(
     "typerun, startmfe_exp, stopmfe_exp, deltamin_exp",
     [
@@ -21,8 +53,11 @@ def set_jd_startstop(sgp4_obj):
         (sgp4.TypeRun.FromJD, 12863952.7377735, 12867015.7877738, 1),
     ],
 )
-def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp):
+def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp, monkeypatch):
     # TODO: Add more test cases
+    # Patch SGP4 initialization method
+    monkeypatch.setattr(sgp4.SGP4, "sgp4init", lambda *args: None)
+
     # Initialize SGP4 class
     sgp4_obj = sgp4.SGP4()
 
@@ -74,35 +109,3 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp):
         # Float comparisons
         else:
             assert custom_isclose(getattr(sgp4_obj.satrec, key), expected[key])
-
-
-def test_initl(epoch, oe_params):
-    # Inputs
-    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
-    ecco, inclo, *_ = oe_params
-    no_kozai = 0.00874808688806747
-
-    # Expected outputs
-    expected = {
-        "ainv": 0.24008817584663986,
-        "ao": 4.165136398215487,
-        "con41": -0.43002188663163776,
-        "con42": 0.05003647771939623,
-        "cosio": 0.43588152571096744,
-        "cosio2": 0.18999270445612076,
-        "eccsq": 0.47295137105315993,
-        "omeosq": 0.5270486289468401,
-        "posq": 4.819032241803303,
-        "rp": 1.3007112861712828,
-        "rteosq": 0.7259811491676903,
-        "sinio": 0.9000040530708066,
-        "gsto": 0.574180126902192,
-        "no_unkozai": 0.008748547019630244,
-    }
-
-    # Call method
-    sgp4init_out = sgp4_obj.initl(epoch, ecco, inclo, no_kozai)
-
-    # Check results
-    for key in expected:
-        assert custom_isclose(getattr(sgp4init_out, key), expected[key])

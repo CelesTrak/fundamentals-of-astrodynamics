@@ -74,6 +74,7 @@ class SatRec(BaseModel):
     omgcof: float = 0.0
     xmcof: float = 0.0
     eta: float = 0.0
+    sinmao: float = 0.0
     delmo: float = 0.0
     d2: float = 0.0
     d3: float = 0.0
@@ -181,88 +182,6 @@ class SGP4:
         stop_mdhms = days_to_mdh(stop_yr, stop_doy)
 
         self.set_jd_from_from_ymdhms((start_yr, *start_mdhms), (stop_yr, *stop_mdhms))
-
-    def initl(
-        self,
-        epoch: float,
-        ecco: float,
-        inclo: float,
-        no_kozai: float,
-        use_afspc_mode: bool = True,
-    ) -> SGP4InitOutput:
-        """Initialize parameters for the SPG4 propagator.
-
-        References:
-            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
-            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
-            - Hoots, Schumacher, and Glover, 2004
-            - Vallado, Crawford, Hujsak, Kelso, 2006
-
-        Args:
-            epoch (float): Epoch time in days from Jan 0, 1950, 0 hr
-            ecco (float): Eccentricity
-            inclo (float): Inclination of the satellite
-            no_kozai (float): Mean motion of the satellite
-            use_afspc_mode (bool): Flag to use AFSPC mode (default = True)
-
-        Returns:
-            SGP4InitOutput: Dataclass encapsulating the initialized values
-        """
-        # Initialize output dataclass
-        sgp4init_output = SGP4InitOutput()
-
-        # Calculate auxiliary epoch quantities
-        sgp4init_output.eccsq = ecco**2
-        sgp4init_output.omeosq = 1.0 - sgp4init_output.eccsq
-        sgp4init_output.rteosq = np.sqrt(sgp4init_output.omeosq)
-        sgp4init_output.cosio = np.cos(inclo)
-        sgp4init_output.cosio2 = sgp4init_output.cosio**2
-
-        # Un-Kozai the mean motion
-        ak = (self.grav_const.xke / no_kozai) ** self.x2o3
-        d1 = (
-            0.75
-            * self.grav_const.j2
-            * (3 * sgp4init_output.cosio2 - 1)
-            / (sgp4init_output.rteosq * sgp4init_output.omeosq)
-        )
-        delta = d1 / (ak**2)
-        adel = ak * (1 - delta**2 - delta * (1 / 3 + 134 * delta**2 / 81))
-        delta = d1 / (adel**2)
-        sgp4init_output.no_unkozai = no_kozai / (1 + delta)
-
-        # Calculate other terms
-        sgp4init_output.ao = (
-            self.grav_const.xke / sgp4init_output.no_unkozai
-        ) ** self.x2o3
-        sgp4init_output.sinio = np.sin(inclo)
-        po = sgp4init_output.ao * sgp4init_output.omeosq
-        sgp4init_output.con42 = 1 - 5 * sgp4init_output.cosio2
-        sgp4init_output.con41 = (
-            -sgp4init_output.con42 - sgp4init_output.cosio2 - sgp4init_output.cosio2
-        )
-        sgp4init_output.ainv = 1 / sgp4init_output.ao
-        sgp4init_output.posq = po**2
-        sgp4init_output.rp = sgp4init_output.ao * (1 - ecco)
-
-        # Calculate Greenwich Sidereal Time
-        if use_afspc_mode:
-            sgp4init_output.gsto = gstime(epoch + 2433281.5) % const.TWOPI
-        else:
-            # SGP4 fix - use old way of finding GST
-            # Count integer number of days from 0 Jan 1970
-            ts70 = epoch - 7305
-            ids70 = np.floor(ts70 + 1e-8)
-            tfrac = ts70 - ids70
-            c1 = 1.72027916940703639e-2
-            thgr70 = 1.7321343856509374
-            fk5r = 5.07551419432269442e-15
-            c1p2p = c1 + const.TWOPI
-            sgp4init_output.gsto = np.mod(
-                thgr70 + c1 * ids70 + c1p2p * tfrac + ts70 * ts70 * fk5r, const.TWOPI
-            )
-
-        return sgp4init_output
 
     def twoline2rv(
         self,
@@ -387,6 +306,77 @@ class SGP4:
 
         return startmfe, stopmfe, deltamin
 
+    def initl(self, epoch: float) -> SGP4InitOutput:
+        """Initialize parameters for the SPG4 propagator.
+
+        References:
+            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
+            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
+            - Hoots, Schumacher, and Glover, 2004
+            - Vallado, Crawford, Hujsak, Kelso, 2006
+
+        Args:
+            epoch (float): Epoch time in days from Jan 0, 1950, 0 hr
+
+        Returns:
+            SGP4InitOutput: Dataclass encapsulating the initialized values
+        """
+        # Initialize output dataclass
+        sgp4init_output = SGP4InitOutput()
+
+        # Calculate auxiliary epoch quantities
+        sgp4init_output.eccsq = self.satrec.ecco**2
+        sgp4init_output.omeosq = 1.0 - sgp4init_output.eccsq
+        sgp4init_output.rteosq = np.sqrt(sgp4init_output.omeosq)
+        sgp4init_output.cosio = np.cos(self.satrec.inclo)
+        sgp4init_output.cosio2 = sgp4init_output.cosio**2
+
+        # Un-Kozai the mean motion
+        ak = (self.grav_const.xke / self.satrec.no_kozai) ** self.x2o3
+        d1 = (
+            0.75
+            * self.grav_const.j2
+            * (3 * sgp4init_output.cosio2 - 1)
+            / (sgp4init_output.rteosq * sgp4init_output.omeosq)
+        )
+        delta = d1 / (ak**2)
+        adel = ak * (1 - delta**2 - delta * (1 / 3 + 134 * delta**2 / 81))
+        delta = d1 / (adel**2)
+        sgp4init_output.no_unkozai = self.satrec.no_kozai / (1 + delta)
+
+        # Calculate other terms
+        sgp4init_output.ao = (
+            self.grav_const.xke / sgp4init_output.no_unkozai
+        ) ** self.x2o3
+        sgp4init_output.sinio = np.sin(self.satrec.inclo)
+        po = sgp4init_output.ao * sgp4init_output.omeosq
+        sgp4init_output.con42 = 1 - 5 * sgp4init_output.cosio2
+        sgp4init_output.con41 = (
+            -sgp4init_output.con42 - sgp4init_output.cosio2 - sgp4init_output.cosio2
+        )
+        sgp4init_output.ainv = 1 / sgp4init_output.ao
+        sgp4init_output.posq = po**2
+        sgp4init_output.rp = sgp4init_output.ao * (1 - self.satrec.ecco)
+
+        # Calculate Greenwich Sidereal Time
+        if self.use_afspc_mode:
+            sgp4init_output.gsto = gstime(epoch + 2433281.5) % const.TWOPI
+        else:
+            # SGP4 fix - use old way of finding GST
+            # Count integer number of days from 0 Jan 1970
+            ts70 = epoch - 7305
+            ids70 = np.floor(ts70 + 1e-8)
+            tfrac = ts70 - ids70
+            c1 = 1.72027916940703639e-2
+            thgr70 = 1.7321343856509374
+            fk5r = 5.07551419432269442e-15
+            c1p2p = c1 + const.TWOPI
+            sgp4init_output.gsto = np.mod(
+                thgr70 + c1 * ids70 + c1p2p * tfrac + ts70 * ts70 * fk5r, const.TWOPI
+            )
+
+        return sgp4init_output
+
     def sgp4init(self, epoch: float):
         """Initializes variables for SGP4.
 
@@ -399,14 +389,7 @@ class SGP4:
 
         # Initialize epoch-dependent values
         self.satrec.t = 0
-        sgp4init_out = self.initl(
-            self.satrec.ecco,
-            epoch,
-            self.satrec.inclo,
-            self.satrec.no_kozai,
-            self.use_afspc_mode,
-            # epoch, satrec
-        )
+        sgp4init_out = self.initl(epoch)
 
         # Calculate derived orbital parameters
         self.satrec.a = (self.satrec.no * self.grav_const.tumin) ** (-2 / 3)
