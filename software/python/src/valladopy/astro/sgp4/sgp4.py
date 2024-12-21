@@ -17,7 +17,6 @@ from ... import constants as const
 from ...mathtime.julian_date import jday
 from ...mathtime.calendar import days_to_mdh
 from ..time.sidereal import gstime
-from .deep_space import dscom, dpper, dsinit
 from .utils import WGSModel, getgravc
 
 
@@ -43,15 +42,17 @@ class SGP4InitOutput:
 class TypeRun(Enum):
     """Character for mode of SGP4 Execution."""
 
-    Catalog = "c"  # +/- 1 day from epoch, 20 min steps
+    # fmt: off
+    Catalog = "c"       # +/- 1 day from epoch, 20 min steps
     Verification = "v"  # start/stop/timestep from TLE input (Line 2)
-    FromJD = "j"  # start/stop/timestep provided from start and stop Julian dates
-    Manual = "m"  # custom start/stop/timestep provided
+    FromJD = "j"        # start/stop/timestep provided from start and stop Julian dates
+    Manual = "m"        # custom start/stop/timestep provided
 
 
 class Classification(Enum):
     """Classification of the satellite."""
 
+    # fmt: off
     Unclassified = "U"
     Classified = "C"
 
@@ -126,10 +127,6 @@ class SGP4:
 
     @staticmethod
     def preprocess_tle(tle_line1: str, tle_line2: str) -> Tuple[str, str]:
-        # Ensure correct lengths
-        # tle_line1 = tle_line1.ljust(69)
-        # tle_line2 = tle_line2.ljust(69)
-
         # Fix line 1 issues
         tle_line1 = list(tle_line1)
         for j in range(10, 16):
@@ -222,17 +219,15 @@ class SGP4:
         self.satrec.revnum = int(tle_line2[63:68].strip())
 
         # Convert epoch year to full year
-        self.satrec.epochyr += 2000 if self.satrec.epochyr < 57 else 1900
+        year = self.satrec.epochyr + 2000 if self.satrec.epochyr < 57 else 1900
 
         # Adjust ndot and nddot units
         self.satrec.ndot /= xpdotp * const.DAY2MIN  # rad/min^2
         self.satrec.nddot /= xpdotp * const.DAY2MIN**2  # rad/min^3
 
         # Compute Julian date of the epoch
-        mdhms = days_to_mdh(self.satrec.epochyr, self.satrec.epochdays)
-        self.satrec.jdsatepoch, self.satrec.jdsatepochf = jday(
-            self.satrec.epochyr, *mdhms
-        )
+        mdhms = days_to_mdh(year, self.satrec.epochdays)
+        self.satrec.jdsatepoch, self.satrec.jdsatepochf = jday(year, *mdhms)
 
         # Default values for start, stop, and step
         startmfe, stopmfe, deltamin = 0, const.DAY2MIN, 1
@@ -244,9 +239,12 @@ class SGP4:
 
         # Verification - use TLE start/stop/step values
         elif typerun == TypeRun.Verification:
-            startmfe = float(tle_line2[69:81].strip())
-            stopmfe = float(tle_line2[82:96].strip())
-            deltamin = float(tle_line2[96:105].strip())
+            try:
+                startmfe = float(tle_line2[69:81].strip())
+                stopmfe = float(tle_line2[82:96].strip())
+                deltamin = float(tle_line2[96:105].strip())
+            except ValueError:
+                raise ValueError("Input TLE does not support verification mode.")
 
         # From Julian dates (these must be set before calling this function)
         elif typerun == TypeRun.FromJD:
@@ -262,8 +260,9 @@ class SGP4:
 
         # Manual mode - use provided start/stop/step values
         elif typerun == TypeRun.Manual:
-            if any(value is None for value in (start, stop, step)):
-                raise ValueError("Manual mode requires start, stop, and step values.")
+            startmfe = start or startmfe
+            stopmfe = stop or stopmfe
+            deltamin = step or deltamin
 
         # Invalid mode
         else:
