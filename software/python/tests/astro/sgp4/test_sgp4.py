@@ -142,4 +142,30 @@ def test_sgp4(oe_params, monkeypatch):
     # Call method
     sgp4_obj.sgp4init(epoch)
 
-    assert True
+    # Check results
+    satrec_expected = {
+        "a": 4.165136398215488,
+        "alta": 6.0295615102596924,
+        "altp": 0.30071128617128307,
+        "aycof": 0.0010552861263719983,
+        "cc1": 1.9425158347208908e-13,
+        "cc4": 1.2056623400361753e-09,
+        "cc5": 2.0662701271427242e-07,
+        "delmo": 6.3571512831144235,
+        "eta": 0.9085028530232736,
+        "argpdot": -7.437009265331242e-08,
+        "omgcof": -3.510477365586775e-21,
+        "sinmao": 0.3457191249346113,
+        "t2cof": 2.9137737520813363e-13,
+        "x1mth2": 0.8100072955438793,
+        "x7thm1": 0.3299489311928454,
+        "xlcof": 0.0019032757631354295,
+        "xmcof": -2.4105286259805916e-15,
+        "mdot": 0.008748086886633134,
+        "nodedot": -1.2845672158012387e-06,
+        "nodecf": -4.604617513547723e-19,
+    }
+
+    assert sgp4_obj.use_deep_space
+    for key in satrec_expected:
+        assert custom_isclose(getattr(sgp4_obj.satrec, key), satrec_expected[key])

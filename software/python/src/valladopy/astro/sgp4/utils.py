@@ -2,6 +2,69 @@ from dataclasses import dataclass
 from enum import Enum
 
 import numpy as np
+from pydantic import BaseModel
+
+
+class Classification(Enum):
+    # fmt: off
+    """Classification of the satellite."""
+    Unclassified = "U"
+    Classified = "C"
+
+
+class SatRec(BaseModel):
+    a: float = 0.0
+    alta: float = 0.0
+    altp: float = 0.0
+    mo: float = 0.0
+    mdot: float = 0.0
+    argpo: float = 0.0
+    argpdot: float = 0.0
+    nodeo: float = 0.0
+    nodedot: float = 0.0
+    nodecf: float = 0.0
+    cc1: float = 0.0
+    cc4: float = 0.0
+    cc5: float = 0.0
+    omgcof: float = 0.0
+    xmcof: float = 0.0
+    eta: float = 0.0
+    sinmao: float = 0.0
+    delmo: float = 0.0
+    d2: float = 0.0
+    d3: float = 0.0
+    d4: float = 0.0
+    t2cof: float = 0.0
+    t3cof: float = 0.0
+    t4cof: float = 0.0
+    t5cof: float = 0.0
+    no: float = 0.0
+    ecco: float = 0.0
+    inclo: float = 0.0
+    isimp: int = 0
+    bstar: float = 0.0
+    xfact: float = 0.0
+    xlamo: float = 0.0
+    atime: float = 0.0
+    error: int = 0
+    t: float = 0.0
+    aycof: float = 0.0
+    xlcof: float = 0.0
+    x1mth2: float = 0.0
+    x7thm1: float = 0.0
+    satnum: int = 0
+    intldesg: str = ""
+    epochyr: int = 0
+    epochdays: float = 0.0
+    ndot: float = 0.0
+    nddot: float = 0.0
+    elnum: int = 0
+    revnum: int = 0
+    no_kozai: float = 0.0
+    jdsatepoch: float = 0.0
+    jdsatepochf: float = 0.0
+    init: bool = True
+    classification: Classification = None
 
 
 class WGSModel(Enum):

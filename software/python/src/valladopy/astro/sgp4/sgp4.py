@@ -11,14 +11,17 @@ from enum import Enum
 from typing import Tuple
 
 import numpy as np
-from pydantic import BaseModel
 
 from ... import constants as const
 from ...mathtime.julian_date import jday
 from ...mathtime.calendar import days_to_mdh
 from ..time.sidereal import gstime
 from .deep_space import DeepSpace
-from .utils import WGSModel, GravitationalConstants, getgravc
+from .utils import SatRec, WGSModel, getgravc
+
+
+# Constants
+JD_EPOCH_1950 = 2433281.5
 
 
 @dataclass
@@ -55,63 +58,6 @@ class Classification(Enum):
     Classified = "C"
 
 
-class SatRec(BaseModel):
-    grav_const: GravitationalConstants = None
-    sgp4init_out: SGP4InitOutput = None
-    a: float = 0.0
-    alta: float = 0.0
-    altp: float = 0.0
-    mo: float = 0.0
-    mdot: float = 0.0
-    argpo: float = 0.0
-    argpdot: float = 0.0
-    nodeo: float = 0.0
-    nodedot: float = 0.0
-    nodecf: float = 0.0
-    cc1: float = 0.0
-    cc4: float = 0.0
-    cc5: float = 0.0
-    omgcof: float = 0.0
-    xmcof: float = 0.0
-    eta: float = 0.0
-    sinmao: float = 0.0
-    delmo: float = 0.0
-    d2: float = 0.0
-    d3: float = 0.0
-    d4: float = 0.0
-    t2cof: float = 0.0
-    t3cof: float = 0.0
-    t4cof: float = 0.0
-    t5cof: float = 0.0
-    no: float = 0.0
-    ecco: float = 0.0
-    inclo: float = 0.0
-    isimp: int = 0
-    bstar: float = 0.0
-    xfact: float = 0.0
-    xlamo: float = 0.0
-    atime: float = 0.0
-    error: int = 0
-    t: float = 0.0
-    aycof: float = 0.0
-    xlcof: float = 0.0
-    x1mth2: float = 0.0
-    x7thm1: float = 0.0
-    satnum: int = 0
-    intldesg: str = ""
-    epochyr: int = 0
-    epochdays: float = 0.0
-    ndot: float = 0.0
-    nddot: float = 0.0
-    elnum: int = 0
-    revnum: int = 0
-    no_kozai: float = 0.0
-    jdsatepoch: float = 0.0
-    jdsatepochf: float = 0.0
-    init: bool = True
-    classification: Classification = None
-
-
 class SGP4:
     def __init__(
         self, wgs_model: WGSModel = WGSModel.WGS_84, use_afspc_mode: bool = True
@@ -126,6 +72,9 @@ class SGP4:
         # TLE attributes
         self.jdstart_full = None
         self.jdstop_full = None
+
+        # SGP4 attributes
+        self.sgp4init_out = None
 
         # Deep space variables
         self.ds = None
@@ -303,7 +252,7 @@ class SGP4:
             raise ValueError(f"Invalid mode: {typerun}")
 
         # Initialize SGP4
-        epoch = self.satrec.jdsatepoch + self.satrec.jdsatepochf - 2433281.5
+        epoch = self.satrec.jdsatepoch + self.satrec.jdsatepochf - JD_EPOCH_1950
         self.sgp4init(epoch)
 
         return startmfe, stopmfe, deltamin
@@ -362,7 +311,7 @@ class SGP4:
 
         # Calculate Greenwich Sidereal Time
         if self.use_afspc_mode:
-            sgp4init_output.gsto = gstime(epoch + 2433281.5) % const.TWOPI
+            sgp4init_output.gsto = gstime(epoch + JD_EPOCH_1950) % const.TWOPI
         else:
             # SGP4 fix - use old way of finding GST
             # Count integer number of days from 0 Jan 1970
@@ -392,21 +341,21 @@ class SGP4:
 
         # Initialize epoch-dependent values
         self.satrec.t = 0
-        self.satrec.sgp4init_out = self.initl(epoch)
-        self.satrec.no = self.satrec.sgp4init_out.no_unkozai
+        self.sgp4init_out = self.initl(epoch)
+        self.satrec.no = self.sgp4init_out.no_unkozai
 
         # Calculate derived orbital parameters
         self.satrec.a = (self.satrec.no * self.grav_const.tumin) ** (-2 / 3)
         self.satrec.alta = self.satrec.a * (1 + self.satrec.ecco) - 1
         self.satrec.altp = self.satrec.a * (1 - self.satrec.ecco) - 1
 
-        if self.satrec.sgp4init_out.omeosq >= 0 and self.satrec.no >= 0:
+        if self.sgp4init_out.omeosq >= 0 and self.satrec.no >= 0:
             self.satrec.isimp = 0
-            if self.satrec.sgp4init_out.rp < (220 / self.grav_const.radiusearthkm + 1):
+            if self.sgp4init_out.rp < (220 / self.grav_const.radiusearthkm + 1):
                 self.satrec.isimp = 1
             sfour = ss
             qzms24 = qzms2t
-            perigee = (self.satrec.sgp4init_out.rp - 1) * self.grav_const.radiusearthkm
+            perigee = (self.sgp4init_out.rp - 1) * self.grav_const.radiusearthkm
 
             # Adjust sfour and qzms24 for perigees below 156 km
             if perigee < 156:
@@ -414,9 +363,9 @@ class SGP4:
                 qzms24 = ((120 - sfour) / self.grav_const.radiusearthkm) ** 4
                 sfour /= self.grav_const.radiusearthkm + 1
 
-            pinvsq = 1 / self.satrec.sgp4init_out.posq
-            tsi = 1 / (self.satrec.sgp4init_out.ao - sfour)
-            self.satrec.eta = self.satrec.sgp4init_out.ao * self.satrec.ecco * tsi
+            pinvsq = 1 / self.sgp4init_out.posq
+            tsi = 1 / (self.sgp4init_out.ao - sfour)
+            self.satrec.eta = self.sgp4init_out.ao * self.satrec.ecco * tsi
             etasq = self.satrec.eta**2
             eeta = self.satrec.ecco * self.satrec.eta
             psisq = abs(1 - etasq)
@@ -428,12 +377,12 @@ class SGP4:
                 coef1
                 * self.satrec.no
                 * (
-                    self.satrec.sgp4init_out.ao * (1 + 1.5 * etasq + eeta * (4 + etasq))
+                    self.sgp4init_out.ao * (1 + 1.5 * etasq + eeta * (4 + etasq))
                     + 0.375
                     * self.grav_const.j2
                     * tsi
                     / psisq
-                    * self.satrec.sgp4init_out.con41
+                    * self.sgp4init_out.con41
                     * (8 + 3 * etasq * (8 + etasq))
                 )
             )
@@ -448,27 +397,27 @@ class SGP4:
                     * tsi
                     * self.grav_const.j3oj2
                     * self.satrec.no
-                    * self.satrec.sgp4init_out.sinio
+                    * self.sgp4init_out.sinio
                     / self.satrec.ecco
                 )
 
             # Additional short-periodics parameters
-            self.satrec.x1mth2 = 1 - self.satrec.sgp4init_out.cosio2
+            self.satrec.x1mth2 = 1 - self.sgp4init_out.cosio2
             self.satrec.cc4 = (
                 2
                 * self.satrec.no
                 * coef1
-                * self.satrec.sgp4init_out.ao
-                * self.satrec.sgp4init_out.omeosq
+                * self.sgp4init_out.ao
+                * self.sgp4init_out.omeosq
                 * (
                     self.satrec.eta * (2 + 0.5 * etasq)
                     + self.satrec.ecco * (0.5 + 2 * etasq)
                     - self.grav_const.j2
                     * tsi
-                    / (self.satrec.sgp4init_out.ao * psisq)
+                    / (self.sgp4init_out.ao * psisq)
                     * (
                         -3
-                        * self.satrec.sgp4init_out.con41
+                        * self.sgp4init_out.con41
                         * (1 - 2 * eeta + etasq * (1.5 - 0.5 * eeta))
                         + 0.75
                         * self.satrec.x1mth2
@@ -480,13 +429,13 @@ class SGP4:
             self.satrec.cc5 = (
                 2
                 * coef1
-                * self.satrec.sgp4init_out.ao
-                * self.satrec.sgp4init_out.omeosq
+                * self.sgp4init_out.ao
+                * self.sgp4init_out.omeosq
                 * (1 + 2.75 * (etasq + eeta) + eeta * etasq)
             )
 
             # Compute higher-order terms
-            cosio4 = self.satrec.sgp4init_out.cosio2**2
+            cosio4 = self.sgp4init_out.cosio2**2
             temp1 = 1.5 * self.grav_const.j2 * pinvsq * self.satrec.no
             temp2 = 0.5 * temp1 * self.grav_const.j2 * pinvsq
             temp3 = -0.46875 * self.grav_const.j4 * pinvsq**2 * self.satrec.no
@@ -496,29 +445,29 @@ class SGP4:
                 self.satrec.no
                 + 0.5
                 * temp1
-                * self.satrec.sgp4init_out.rteosq
-                * self.satrec.sgp4init_out.con41
+                * self.sgp4init_out.rteosq
+                * self.sgp4init_out.con41
                 + 0.0625
                 * temp2
-                * self.satrec.sgp4init_out.rteosq
-                * (13 - 78 * self.satrec.sgp4init_out.cosio2 + 137 * cosio4)
+                * self.sgp4init_out.rteosq
+                * (13 - 78 * self.sgp4init_out.cosio2 + 137 * cosio4)
             )
             self.satrec.argpdot = (
-                -0.5 * temp1 * self.satrec.sgp4init_out.con42
+                -0.5 * temp1 * self.sgp4init_out.con42
                 + 0.0625
                 * temp2
-                * (7 - 114 * self.satrec.sgp4init_out.cosio2 + 395 * cosio4)
-                + temp3 * (3 - 36 * self.satrec.sgp4init_out.cosio2 + 49 * cosio4)
+                * (7 - 114 * self.sgp4init_out.cosio2 + 395 * cosio4)
+                + temp3 * (3 - 36 * self.sgp4init_out.cosio2 + 49 * cosio4)
             )
 
-            xhdot1 = -temp1 * self.satrec.sgp4init_out.cosio
+            xhdot1 = -temp1 * self.sgp4init_out.cosio
             self.satrec.nodedot = (
                 xhdot1
                 + (
-                    0.5 * temp2 * (4 - 19 * self.satrec.sgp4init_out.cosio2)
-                    + 2 * temp3 * (3 - 7 * self.satrec.sgp4init_out.cosio2)
+                    0.5 * temp2 * (4 - 19 * self.sgp4init_out.cosio2)
+                    + 2 * temp3 * (3 - 7 * self.sgp4init_out.cosio2)
                 )
-                * self.satrec.sgp4init_out.cosio
+                * self.sgp4init_out.cosio
             )
             xpidot = self.satrec.argpdot + self.satrec.nodedot
 
@@ -528,32 +477,34 @@ class SGP4:
             if self.satrec.ecco > 1e-4:
                 self.satrec.xmcof = -self.x2o3 * coef * self.satrec.bstar / eeta
             self.satrec.nodecf = (
-                3.5 * self.satrec.sgp4init_out.omeosq * xhdot1 * self.satrec.cc1
+                3.5 * self.sgp4init_out.omeosq * xhdot1 * self.satrec.cc1
             )
             self.satrec.t2cof = 1.5 * self.satrec.cc1
 
             # Handle divide-by-zero for xinco = 180 degrees
-            if abs(self.satrec.sgp4init_out.cosio + 1) > tol:
-                den = 1.0 + self.satrec.sgp4init_out.cosio
+            if abs(self.sgp4init_out.cosio + 1) > tol:
+                den = 1.0 + self.sgp4init_out.cosio
             else:
                 den = tol
             self.satrec.xlcof = (
                 -0.25
                 * self.grav_const.j3oj2
-                * self.satrec.sgp4init_out.sinio
-                * (3 + 5 * self.satrec.sgp4init_out.cosio)
+                * self.sgp4init_out.sinio
+                * (3 + 5 * self.sgp4init_out.cosio)
                 / den
             )
 
             self.satrec.aycof = (
-                -0.5 * self.grav_const.j3oj2 * self.satrec.sgp4init_out.sinio
+                -0.5 * self.grav_const.j3oj2 * self.sgp4init_out.sinio
             )
             self.satrec.delmo = (1 + self.satrec.eta * np.cos(self.satrec.mo)) ** 3
             self.satrec.sinmao = np.sin(self.satrec.mo)
-            self.satrec.x7thm1 = 7 * self.satrec.sgp4init_out.cosio2 - 1
+            self.satrec.x7thm1 = 7 * self.sgp4init_out.cosio2 - 1
 
             # Deep space initialization
             if (const.TWOPI / self.satrec.no) >= 225:
+
+                # Initialize deep space object
                 self.ds = DeepSpace(
                     epoch,
                     self.satrec.ecco,
@@ -564,9 +515,11 @@ class SGP4:
                     self.satrec.mo,
                     self.use_afspc_mode,
                 )
+
+                # Set attributes and define variables
                 self.use_deep_space = True
                 self.satrec.isimp = 1
-                tc = 0
+                tc = argpm = nodem = mm = 0
                 inclm = self.satrec.inclo
 
                 # Call dscom function to compute deep-space common variables
@@ -581,16 +534,13 @@ class SGP4:
                     self.satrec.argpo = self.ds.argpp
                     self.satrec.mo = self.ds.mp
 
-                # Initialize additional parameters for dsinit
-                argpm = nodem = mm = 0
-
                 # Call dsinit function for further deep-space initialization
                 self.ds.dsinit(
                     self.grav_const.xke,
                     self.satrec.argpo,
                     self.satrec.t,
                     tc,
-                    self.satrec.sgp4init_out.gsto,
+                    self.sgp4init_out.gsto,
                     self.satrec.mo,
                     self.satrec.mdot,
                     self.satrec.no,
@@ -598,7 +548,7 @@ class SGP4:
                     self.satrec.nodedot,
                     xpidot,
                     self.satrec.ecco,
-                    self.satrec.sgp4init_out.eccsq,
+                    self.sgp4init_out.eccsq,
                     inclm,
                     nodem,
                     argpm,
@@ -606,17 +556,17 @@ class SGP4:
                 )
 
             # Non-deep space initialization
-            if self.satrec.isimp != 1:
+            else:
                 cc1sq = self.satrec.cc1**2
-                self.satrec.d2 = 4 * self.satrec.sgp4init_out.ao * tsi * cc1sq
+                self.satrec.d2 = 4 * self.sgp4init_out.ao * tsi * cc1sq
                 temp = self.satrec.d2 * tsi * self.satrec.cc1 / 3
-                self.satrec.d3 = (17 * self.satrec.sgp4init_out.ao + sfour) * temp
+                self.satrec.d3 = (17 * self.sgp4init_out.ao + sfour) * temp
                 self.satrec.d4 = (
                     0.5
                     * temp
-                    * self.satrec.sgp4init_out.ao
+                    * self.sgp4init_out.ao
                     * tsi
-                    * (221 * self.satrec.sgp4init_out.ao + 31 * sfour)
+                    * (221 * self.sgp4init_out.ao + 31 * sfour)
                     * self.satrec.cc1
                 )
                 self.satrec.t3cof = self.satrec.d2 + 2 * cc1sq
