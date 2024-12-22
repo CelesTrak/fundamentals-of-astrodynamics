@@ -129,48 +129,41 @@ def dsinit_data():
     )
 
 
-def test_dscom(epoch, oe_params, dscom_data):
-    # Initialize class
-    ds = deep_space.DeepSpace()
+@pytest.fixture
+def ds(epoch, oe_params):
+    """Return an instance of the DeepSpace class"""
+    return deep_space.DeepSpace(epoch, *oe_params)
 
-    # Inputs
-    tc = 0
 
+def test_dscom(ds, dscom_data):
     # Call method
-    ds.dscom(epoch, tc, *oe_params[:-1])
+    ds.dscom(tc=0)
 
     # Check results
     for key in dscom_data.__dataclass_fields__:
         assert custom_isclose(getattr(ds.dscom_out, key), getattr(dscom_data, key))
 
 
-def test_dpper(oe_params, dscom_data):
-    # Initialize class and set dscom_out
-    ds = deep_space.DeepSpace()
+def test_dpper(ds, dscom_data):
+    # Set dscom_out
     ds.dscom_out = dscom_data
-
-    # Inputs
-    t = 0
-    ecc, incl, node, argp, _, m = oe_params
 
     # Call method
-    ep, inclp, nodep, argpp, mp = ds.dpper(t, ecc, incl, node, argp, m)
+    ds.dpper(t=0)
 
     # Check results
-    assert custom_isclose(ep, 0.6871280305587458)
-    assert custom_isclose(inclp, 1.1200831160846698)
-    assert custom_isclose(nodep, 4.869997828497486)
-    assert custom_isclose(argpp, 4.62188106182903)
-    assert custom_isclose(mp, 0.35183574006201346)
+    assert custom_isclose(ds.ep, 0.6871280305587458)
+    assert custom_isclose(ds.inclp, 1.1200831160846698)
+    assert custom_isclose(ds.nodep, 4.869997828497486)
+    assert custom_isclose(ds.argpp, 4.62188106182903)
+    assert custom_isclose(ds.mp, 0.35183574006201346)
 
 
-def test_dsinit(oe_params, dscom_data, dsinit_data):
-    # Initialize class and set dscom_out
-    ds = deep_space.DeepSpace()
+def test_dsinit(ds, dscom_data, dsinit_data):
+    # Set dscom_out
     ds.dscom_out = dscom_data
 
     # Inputs
-    ecco, inclm, nodeo, argpo, no, mo = oe_params
     t = tc = 0
     xke = 0.0743669161331734
     gsto = 0.574180126924752
@@ -183,19 +176,19 @@ def test_dsinit(oe_params, dscom_data, dsinit_data):
     # Call method
     ds.dsinit(
         xke,
-        argpo,
+        ds.argpp,
         t,
         tc,
         gsto,
-        mo,
+        ds.mp,
         mdot,
-        no,
-        nodeo,
+        ds.np_,
+        ds.nodep,
         nodedot,
         xpidot,
-        ecco,
+        ds.ep,
         eccsq,
-        inclm,
+        ds.inclp,
         nodem,
         argpm,
         mm,

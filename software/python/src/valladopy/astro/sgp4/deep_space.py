@@ -7,7 +7,6 @@
 # --------------------------------------------------------------------------------------
 
 from dataclasses import dataclass
-from typing import Tuple
 
 import numpy as np
 
@@ -136,20 +135,43 @@ class DsInitOutput:
 
 
 class DeepSpace:
-    def __init__(self):
-        self.dscom_out = None
-        self.dsinit_out = None
-
-    def dscom(
+    def __init__(
         self,
         epoch: float,
-        tc: float,
         ep: float,
         inclp: float,
         nodep: float,
         argpp: float,
         np_: float,
+        mp: float = 0,
+        use_afspc_mode: bool = True,
     ):
+        """Initializes the DeepSpace class.
+
+        Args:
+            epoch (float): Epoch time (units = ?)  # TODO: check units
+            ep (float): Eccentricity
+            inclp (float): Inclination in radians
+            nodep (float): RAAN (right ascension of ascending node) in radians
+            argpp (float): Argument of perigee in radians
+            np_ (float): Mean motion in rad/s
+            mp (float): Mean anomaly in radians (default = 0)
+            use_afspc_mode (bool): Flag to use AFSPC mode (default = True)
+        """
+        self.epoch = epoch
+        self.ep = ep
+        self.inclp = inclp
+        self.nodep = nodep
+        self.argpp = argpp
+        self.np_ = np_
+        self.mp = mp
+        self.use_afspc_mode = use_afspc_mode
+
+        # Initialize output dataclasses
+        self.dscom_out = None
+        self.dsinit_out = None
+
+    def dscom(self, tc: float):
         """Computes deep space common terms for SGP4 (used by both the secular and
         periodics subroutines).
 
@@ -160,13 +182,7 @@ class DeepSpace:
             - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
-            epoch (float): Epoch time (units = ?)  # TODO: check units
-            tc (float): Time since epoch (units = ?)  # TODO: check units
-            ep (float): Eccentricity
-            inclp (float): Inclination in radians
-            nodep (float): RAAN (right ascension of ascending node) in radians
-            argpp (float): Argument of perigee in radians
-            np_ (float): Mean motion in rad/s  # TODO: check units
+            tc (float): Time correction in minutes
 
         Returns:
             None (sets dscom_out attribute)
@@ -183,16 +199,16 @@ class DeepSpace:
         zcosgs, zsings = 0.1945905, -0.98088458
 
         # Initialize variables
-        out.nm, out.em = np_, ep
-        out.snodm, out.cnodm = np.sin(nodep), np.cos(nodep)
-        out.sinomm, out.cosomm = np.sin(argpp), np.cos(argpp)
-        out.sinim, out.cosim = np.sin(inclp), np.cos(inclp)
+        out.nm, out.em = self.np_, self.ep
+        out.snodm, out.cnodm = np.sin(self.nodep), np.cos(self.nodep)
+        out.sinomm, out.cosomm = np.sin(self.argpp), np.cos(self.argpp)
+        out.sinim, out.cosim = np.sin(self.inclp), np.cos(self.inclp)
         out.emsq = out.em**2
         betasq = 1.0 - out.emsq
         out.rtemsq = np.sqrt(betasq)
 
         # Initialize lunar solar terms
-        out.day = epoch + 18261.5 + tc / const.DAY2MIN
+        out.day = self.epoch + 18261.5 + tc / const.DAY2MIN
         xnodce = np.remainder(4.5236020 - 9.2422029e-4 * out.day, const.TWOPI)
         stem, ctem = np.sin(xnodce), np.cos(xnodce)
         zcosil = 0.91375164 - 0.03568096 * ctem
@@ -210,7 +226,6 @@ class DeepSpace:
         zcosi, zsini = zcosis, zsinis
         zcosh, zsinh = out.cnodm, out.snodm
         cc = c1ss
-        xnoi = 1.0 / out.nm
 
         # Loop for solar and lunar terms
         for lsflg in range(2):
@@ -260,7 +275,7 @@ class DeepSpace:
             out.z3 += out.z3 + betasq * out.z33
 
             # S coefficients
-            out.s3 = cc * xnoi
+            out.s3 = cc * 1 / out.nm
             out.s2 = -0.5 * out.s3 / out.rtemsq
             out.s4 = out.s3 * out.rtemsq
             out.s1 = -15 * out.em * out.s4
@@ -329,17 +344,7 @@ class DeepSpace:
 
         self.dscom_out = out
 
-    def dpper(
-        self,
-        t: float,
-        ep: float,
-        inclp: float,
-        nodep: float,
-        argpp: float,
-        mp: float,
-        use_afspc_mode: bool = True,
-        incl_tol: float = 0.2,
-    ) -> Tuple[float, float, float, float, float]:
+    def dpper(self, t: float, incl_tol: float = 0.2):
         """Deep space long period periodic contributions to mean elements.
 
         References:
@@ -349,22 +354,11 @@ class DeepSpace:
             - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
-            t (float): Time since epoch (units = ?)  # TODO: check units
-            ep (float): Eccentricity
-            inclp (float): Inclination in radians
-            nodep (float): RAAN (right ascension of ascending node) in radians
-            argpp (float): Argument of perigee in radians
-            mp (float): Mean anomaly in radians
-            use_afspc_mode (bool): Flag to use AFSPC mode (default = True)
+            t (float): Elapsed time since epoch in minutes
             incl_tol (float): Inclination tolerance for periodics (default = 0.2)
 
         Returns:
-            tuple: (ep, inclp, nodep, argpp, mp)
-                ep (float): Updated eccentricity
-                inclp (float): Updated inclination in radians
-                nodep (float): Updated right ascension of ascending node in radians
-                argpp (float): Updated argument of perigee in radians
-                mp (float): Updated mean anomaly in radians
+            None (updates class attributes)
 
         Notes:
             - These periodics are zero at epoch by design.
@@ -432,22 +426,22 @@ class DeepSpace:
         ph -= self.dscom_out.pho
 
         # Update inclination and eccentricity
-        inclp += pinc
-        ep += pe
-        sinip = np.sin(inclp)
-        cosip = np.cos(inclp)
+        self.inclp += pinc
+        self.ep += pe
+        sinip = np.sin(self.inclp)
+        cosip = np.cos(self.inclp)
 
         # Apply periodics based on inclination
-        if inclp >= incl_tol:
+        if self.inclp >= incl_tol:
             # Apply periodics directly
             ph /= sinip
             pgh -= cosip * ph
-            argpp += pgh
-            nodep += ph
-            mp += pl
+            self.argpp += pgh
+            self.nodep += ph
+            self.mp += pl
         else:
             # Apply periodics with Lyddane modification
-            sinop, cosop = np.sin(nodep), np.cos(nodep)
+            sinop, cosop = np.sin(self.nodep), np.cos(self.nodep)
             alfdp = sinip * sinop
             betdp = sinip * cosop
             dalf = ph * cosop + pinc * cosip * sinop
@@ -456,27 +450,25 @@ class DeepSpace:
             betdp += dbet
 
             # SGP4 fix for AFSPC-written intrinsic functions
-            nodep = np.remainder(nodep, const.TWOPI)
-            if nodep < 0.0 and use_afspc_mode:
-                nodep += const.TWOPI
+            self.nodep = np.remainder(self.nodep, const.TWOPI)
+            if self.nodep < 0.0 and self.use_afspc_mode:
+                self.nodep += const.TWOPI
 
-            xls = mp + argpp + cosip * nodep
-            dls = pl + pgh - pinc * nodep * sinip
+            xls = self.mp + self.argpp + cosip * self.nodep
+            dls = pl + pgh - pinc * self.nodep * sinip
             xls += dls
-            xnoh = nodep
-            nodep = np.arctan2(alfdp, betdp)
+            xnoh = self.nodep
+            self.nodep = np.arctan2(alfdp, betdp)
 
             # SGP4 fix for AFSPC-written intrinsic functions
-            if nodep < 0.0 and use_afspc_mode:
-                nodep += const.TWOPI
+            if self.nodep < 0.0 and self.use_afspc_mode:
+                self.nodep += const.TWOPI
 
-            if np.abs(xnoh - nodep) > np.pi:
-                nodep += const.TWOPI if nodep < xnoh else -const.TWOPI
+            if np.abs(xnoh - self.nodep) > np.pi:
+                self.nodep += const.TWOPI if self.nodep < xnoh else -const.TWOPI
 
-            mp += pl
-            argpp = xls - mp - cosip * nodep
-
-        return ep, inclp, nodep, argpp, mp
+            self.mp += pl
+            self.argpp = xls - self.mp - cosip * self.nodep
 
     def dsinit(
         self,

@@ -554,39 +554,32 @@ class SGP4:
 
             # Deep space initialization
             if (const.TWOPI / self.satrec.no) >= 225:
-                self.ds = DeepSpace()
+                self.ds = DeepSpace(
+                    epoch,
+                    self.satrec.ecco,
+                    self.satrec.inclo,
+                    self.satrec.nodeo,
+                    self.satrec.argpo,
+                    self.satrec.no,
+                    self.satrec.mo,
+                    self.use_afspc_mode,
+                )
                 self.use_deep_space = True
                 self.satrec.isimp = 1
                 tc = 0
                 inclm = self.satrec.inclo
 
                 # Call dscom function to compute deep-space common variables
-                self.ds.dscom(
-                    epoch,
-                    tc,
-                    self.satrec.ecco,
-                    self.satrec.inclo,
-                    self.satrec.nodeo,
-                    self.satrec.argpo,
-                    self.satrec.no,
-                )
+                self.ds.dscom(tc)
 
                 # Call dpper function to adjust for perturbations
                 if not self.satrec.init:
-                    (
-                        self.satrec.ecco,
-                        self.satrec.inclo,
-                        self.satrec.nodeo,
-                        self.satrec.argpo,
-                        self.satrec.mo,
-                    ) = self.ds.dpper(
-                        self.satrec.t,
-                        self.satrec.ecco,
-                        self.satrec.inclo,
-                        self.satrec.nodeo,
-                        self.satrec.argpo,
-                        self.satrec.mo,
-                    )
+                    self.ds.dpper(self.satrec.t)
+                    self.satrec.ecco = self.ds.ep
+                    self.satrec.inclo = self.ds.inclp
+                    self.satrec.nodeo = self.ds.nodep
+                    self.satrec.argpo = self.ds.argpp
+                    self.satrec.mo = self.ds.mp
 
                 # Initialize additional parameters for dsinit
                 argpm = nodem = mm = 0
