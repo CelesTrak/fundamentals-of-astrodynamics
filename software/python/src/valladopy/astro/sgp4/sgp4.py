@@ -17,7 +17,7 @@ from ... import constants as const
 from ...mathtime.julian_date import jday
 from ...mathtime.calendar import days_to_mdh
 from ..time.sidereal import gstime
-from .deep_space import dscom, dsinit, dpper
+from .deep_space import DeepSpace
 from .utils import WGSModel, GravitationalConstants, getgravc
 
 
@@ -126,6 +126,9 @@ class SGP4:
         # TLE attributes
         self.jdstart_full = None
         self.jdstop_full = None
+
+        # Deep space variables
+        self.ds = None
 
     @staticmethod
     def preprocess_tle(tle_line1: str, tle_line2: str) -> Tuple[str, str]:
@@ -551,13 +554,14 @@ class SGP4:
 
             # Deep space initialization
             if (const.TWOPI / self.satrec.no) >= 225:
+                self.ds = DeepSpace()
                 self.use_deep_space = True
                 self.satrec.isimp = 1
                 tc = 0
                 inclm = self.satrec.inclo
 
                 # Call dscom function to compute deep-space common variables
-                dscom_out = dscom(
+                self.ds.dscom(
                     epoch,
                     tc,
                     self.satrec.ecco,
@@ -575,8 +579,7 @@ class SGP4:
                         self.satrec.nodeo,
                         self.satrec.argpo,
                         self.satrec.mo,
-                    ) = dpper(
-                        dscom_out,
+                    ) = self.ds.dpper(
                         self.satrec.t,
                         self.satrec.ecco,
                         self.satrec.inclo,
@@ -589,9 +592,8 @@ class SGP4:
                 argpm = nodem = mm = 0
 
                 # Call dsinit function for further deep-space initialization
-                dsinit_out = dsinit(
-                    dscom_out,
-                    self.satrec.xke,
+                self.ds.dsinit(
+                    self.grav_const.xke,
                     self.satrec.argpo,
                     self.satrec.t,
                     tc,
