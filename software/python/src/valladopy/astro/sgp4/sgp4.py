@@ -443,10 +443,7 @@ class SGP4:
             # Update motion rates
             self.satrec.mdot = (
                 self.satrec.no
-                + 0.5
-                * temp1
-                * self.sgp4init_out.rteosq
-                * self.sgp4init_out.con41
+                + 0.5 * temp1 * self.sgp4init_out.rteosq * self.sgp4init_out.con41
                 + 0.0625
                 * temp2
                 * self.sgp4init_out.rteosq
@@ -454,9 +451,7 @@ class SGP4:
             )
             self.satrec.argpdot = (
                 -0.5 * temp1 * self.sgp4init_out.con42
-                + 0.0625
-                * temp2
-                * (7 - 114 * self.sgp4init_out.cosio2 + 395 * cosio4)
+                + 0.0625 * temp2 * (7 - 114 * self.sgp4init_out.cosio2 + 395 * cosio4)
                 + temp3 * (3 - 36 * self.sgp4init_out.cosio2 + 49 * cosio4)
             )
 
@@ -494,9 +489,7 @@ class SGP4:
                 / den
             )
 
-            self.satrec.aycof = (
-                -0.5 * self.grav_const.j3oj2 * self.sgp4init_out.sinio
-            )
+            self.satrec.aycof = -0.5 * self.grav_const.j3oj2 * self.sgp4init_out.sinio
             self.satrec.delmo = (1 + self.satrec.eta * np.cos(self.satrec.mo)) ** 3
             self.satrec.sinmao = np.sin(self.satrec.mo)
             self.satrec.x7thm1 = 7 * self.sgp4init_out.cosio2 - 1
