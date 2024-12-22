@@ -515,7 +515,13 @@ class SGP4:
 
         Args:
             epoch (float): Epoch time in days from Jan 0, 1950 0 hr.
-            tol (float, optional): Tolerance for small values (default = 1e-10)
+            tol (float, optional): Tolerance for small values (default = const.SMALL)
+
+        Returns:
+            None
+
+        TODO:
+            - Define magic numbers
         """
         # Earth constants
         ss = 78 / self.grav_const.radiusearthkm + 1
@@ -561,17 +567,16 @@ class SGP4:
 
         # Update other coefficients
         self.satrec.omgcof = self.satrec.bstar * cc3 * np.cos(self.satrec.argpo)
-        self.satrec.xmcof = 0
         if self.satrec.ecco > 1e-4:
             self.satrec.xmcof = -self.x2o3 * coef * self.satrec.bstar / eeta
         self.satrec.nodecf = 3.5 * self.sgp4init_out.omeosq * xhdot1 * self.satrec.cc1
         self.satrec.t2cof = 1.5 * self.satrec.cc1
 
         # Handle divide-by-zero for xinco = 180 degrees
+        den = tol
         if abs(self.sgp4init_out.cosio + 1) > tol:
-            den = 1.0 + self.sgp4init_out.cosio
-        else:
-            den = tol
+            den = 1 + self.sgp4init_out.cosio
+
         self.satrec.xlcof = (
             -0.25
             * self.grav_const.j3oj2
