@@ -440,36 +440,166 @@ class DeepSpace:
             self.argpp += pgh
             self.nodep += ph
             self.mp += pl
+            return
+
+        # Apply periodics with Lyddane modification
+        sinop, cosop = np.sin(self.nodep), np.cos(self.nodep)
+        alfdp = sinip * sinop
+        betdp = sinip * cosop
+        dalf = ph * cosop + pinc * cosip * sinop
+        dbet = -ph * sinop + pinc * cosip * cosop
+        alfdp += dalf
+        betdp += dbet
+
+        # SGP4 fix for AFSPC-written intrinsic functions
+        self.nodep = np.remainder(self.nodep, const.TWOPI)
+        if self.nodep < 0.0 and self.use_afspc_mode:
+            self.nodep += const.TWOPI
+
+        xls = self.mp + self.argpp + cosip * self.nodep
+        dls = pl + pgh - pinc * self.nodep * sinip
+        xls += dls
+        xnoh = self.nodep
+        self.nodep = np.arctan2(alfdp, betdp)
+
+        # SGP4 fix for AFSPC-written intrinsic functions
+        if self.nodep < 0.0 and self.use_afspc_mode:
+            self.nodep += const.TWOPI
+
+        if np.abs(xnoh - self.nodep) > np.pi:
+            self.nodep += const.TWOPI if self.nodep < xnoh else -const.TWOPI
+
+        self.mp += pl
+        self.argpp = xls - self.mp - cosip * self.nodep
+
+    def _calc_geopotential_resonance(
+        self,
+        satrec,
+        out,
+        aonv,
+        eccsq,
+        root22,
+        root32,
+        root44,
+        root52,
+        root54,
+        rptim,
+        theta,
+    ):
+        cosim, sinim = self.dscom_out.cosim, self.dscom_out.sinim
+        cosisq = self.dscom_out.cosim**2
+        emo, em, emsq = out.em, satrec.ecco, eccsq
+        eoc = em * emsq
+        g201 = -0.306 - (em - 0.64) * 0.440
+
+        if em <= 0.65:
+            g211 = 3.616 - 13.2470 * em + 16.2900 * emsq
+            g310 = -19.302 + 117.3900 * em - 228.4190 * emsq + 156.5910 * eoc
+            g322 = -18.9068 + 109.7927 * em - 214.6334 * emsq + 146.5816 * eoc
+            g410 = -41.122 + 242.6940 * em - 471.0940 * emsq + 313.9530 * eoc
+            g422 = -146.407 + 841.8800 * em - 1629.014 * emsq + 1083.4350 * eoc
+            g520 = -532.114 + 3017.977 * em - 5740.032 * emsq + 3708.2760 * eoc
         else:
-            # Apply periodics with Lyddane modification
-            sinop, cosop = np.sin(self.nodep), np.cos(self.nodep)
-            alfdp = sinip * sinop
-            betdp = sinip * cosop
-            dalf = ph * cosop + pinc * cosip * sinop
-            dbet = -ph * sinop + pinc * cosip * cosop
-            alfdp += dalf
-            betdp += dbet
+            g211 = -72.099 + 331.819 * em - 508.738 * emsq + 266.724 * eoc
+            g310 = -346.844 + 1582.851 * em - 2415.925 * emsq + 1246.113 * eoc
+            g322 = -342.585 + 1554.908 * em - 2366.899 * emsq + 1215.972 * eoc
+            g410 = -1052.797 + 4758.686 * em - 7193.992 * emsq + 3651.957 * eoc
+            g422 = -3581.690 + 16178.110 * em - 24462.770 * emsq + 12422.520 * eoc
+            if em > 0.715:
+                g520 = -5149.66 + 29936.92 * em - 54087.36 * emsq + 31324.56 * eoc
+            else:
+                g520 = 1464.74 - 4664.75 * em + 3763.64 * emsq
 
-            # SGP4 fix for AFSPC-written intrinsic functions
-            self.nodep = np.remainder(self.nodep, const.TWOPI)
-            if self.nodep < 0.0 and self.use_afspc_mode:
-                self.nodep += const.TWOPI
+        if em < 0.7:
+            g533 = -919.22770 + 4988.6100 * em - 9064.7700 * emsq + 5542.21 * eoc
+            g521 = -822.71072 + 4568.6173 * em - 8491.4146 * emsq + 5337.524 * eoc
+            g532 = -853.66600 + 4690.2500 * em - 8624.7700 * emsq + 5341.4 * eoc
+        else:
+            g533 = -37995.780 + 161616.52 * em - 229838.20 * emsq + 109377.94 * eoc
+            g521 = -51752.104 + 218913.95 * em - 309468.16 * emsq + 146349.42 * eoc
+            g532 = -40023.880 + 170470.89 * em - 242699.48 * emsq + 115605.82 * eoc
 
-            xls = self.mp + self.argpp + cosip * self.nodep
-            dls = pl + pgh - pinc * self.nodep * sinip
-            xls += dls
-            xnoh = self.nodep
-            self.nodep = np.arctan2(alfdp, betdp)
+        out.em = em
+        sini2 = sinim**2
+        f220 = 0.75 * (1.0 + 2.0 * cosim + cosisq)
+        f221 = 1.5 * sini2
+        f321 = 1.875 * sinim * (1 - 2 * cosim - 3 * cosisq)
+        f322 = -1.875 * sinim * (1 + 2 * cosim - 3 * cosisq)
+        f441 = 35 * sini2 * f220
+        f442 = 39.3750 * sini2**2
+        f522 = (
+            9.84375
+            * sinim
+            * (
+                sini2 * (1 - 2 * cosim - 5 * cosisq)
+                + 0.33333333 * (-2 + 4 * cosim + 6 * cosisq)
+            )
+        )
+        f523 = sinim * (
+            4.92187512 * sini2 * (-2 - 4 * cosim + 10 * cosisq)
+            + 6.56250012 * (1 + 2 * cosim - 3 * cosisq)
+        )
+        f542 = (
+            29.53125
+            * sinim
+            * (2 - 8 * cosim + cosisq * (-12 + 8 * cosim + 10 * cosisq))
+        )
+        f543 = (
+            29.53125
+            * sinim
+            * (-2 - 8 * cosim + cosisq * (12 + 8 * cosim - 10 * cosisq))
+        )
 
-            # SGP4 fix for AFSPC-written intrinsic functions
-            if self.nodep < 0.0 and self.use_afspc_mode:
-                self.nodep += const.TWOPI
+        temp1 = 3 * out.nm**2 * aonv**2
+        temp = temp1 * root22
+        out.d2201 = temp * f220 * g201
+        out.d2211 = temp * f221 * g211
+        temp1 *= aonv
+        temp = temp1 * root32
+        out.d3210 = temp * f321 * g310
+        out.d3222 = temp * f322 * g322
+        temp1 *= aonv
+        temp = 2 * temp1 * root44
+        out.d4410 = temp * f441 * g410
+        out.d4422 = temp * f442 * g422
+        temp1 *= aonv
+        temp = temp1 * root52
+        out.d5220 = temp * f522 * g520
+        out.d5232 = temp * f523 * g532
+        temp = 2 * temp1 * root54
+        out.d5421 = temp * f542 * g521
+        out.d5433 = temp * f543 * g533
+        out.xlamo = (
+            satrec.mo + satrec.nodeo + satrec.nodeo - theta - theta
+        ) % const.TWOPI
+        out.xfact = (
+            satrec.mdot
+            + out.dmdt
+            + 2 * (satrec.nodedot + out.dnodt - rptim)
+            - satrec.no
+        )
+        out.em = emo
 
-            if np.abs(xnoh - self.nodep) > np.pi:
-                self.nodep += const.TWOPI if self.nodep < xnoh else -const.TWOPI
-
-            self.mp += pl
-            self.argpp = xls - self.mp - cosip * self.nodep
+    def _calc_synchronous_resonance(
+        self, satrec, out, emsq, q22, q33, q31, aonv, theta, xpidot, rptim
+    ):
+        g200 = 1 + emsq * (-2.5 + 0.8125 * emsq)
+        g310 = 1 + 2 * emsq
+        g300 = 1 + emsq * (-6 + 6.60937 * emsq)
+        f220 = 0.75 * (1 + self.dscom_out.cosim) ** 2
+        f311 = 0.9375 * self.dscom_out.sinim**2 * (
+            1 + 3 * self.dscom_out.cosim
+        ) - 0.75 * (1 + self.dscom_out.cosim)
+        f330 = 1 + self.dscom_out.cosim
+        f330 = 1.875 * f330**3
+        out.del1 = 3 * out.nm**2 * aonv**2
+        out.del2 = 2 * out.del1 * f220 * g200 * q22
+        out.del3 = 3 * out.del1 * f330 * g300 * q33 * aonv
+        out.del1 *= f311 * g310 * q31 * aonv
+        out.xlamo = (satrec.mo + satrec.nodeo + satrec.argpo - theta) % const.TWOPI
+        out.xfact = (
+            satrec.mdot + xpidot - rptim + out.dmdt + out.domdt + out.dnodt - satrec.no
+        )
 
     def dsinit(
         self,
@@ -583,144 +713,24 @@ class DeepSpace:
 
         # Geopotential resonance for 12-hour orbits
         if out.irez == 2:
-            cosisq = self.dscom_out.cosim**2
-            emo = out.em
-            em = satrec.ecco
-            emsqo = self.dscom_out.emsq
-            emsq = eccsq
-            eoc = em * emsq
-            g201 = -0.306 - (em - 0.64) * 0.440
-
-            if em <= 0.65:
-                g211 = 3.616 - 13.2470 * em + 16.2900 * emsq
-                g310 = -19.302 + 117.3900 * em - 228.4190 * emsq + 156.5910 * eoc
-                g322 = -18.9068 + 109.7927 * em - 214.6334 * emsq + 146.5816 * eoc
-                g410 = -41.122 + 242.6940 * em - 471.0940 * emsq + 313.9530 * eoc
-                g422 = -146.407 + 841.8800 * em - 1629.014 * emsq + 1083.4350 * eoc
-                g520 = -532.114 + 3017.977 * em - 5740.032 * emsq + 3708.2760 * eoc
-            else:
-                g211 = -72.099 + 331.819 * em - 508.738 * emsq + 266.724 * eoc
-                g310 = -346.844 + 1582.851 * em - 2415.925 * emsq + 1246.113 * eoc
-                g322 = -342.585 + 1554.908 * em - 2366.899 * emsq + 1215.972 * eoc
-                g410 = -1052.797 + 4758.686 * em - 7193.992 * emsq + 3651.957 * eoc
-                g422 = -3581.690 + 16178.110 * em - 24462.770 * emsq + 12422.520 * eoc
-                if em > 0.715:
-                    g520 = -5149.66 + 29936.92 * em - 54087.36 * emsq + 31324.56 * eoc
-                else:
-                    g520 = 1464.74 - 4664.75 * em + 3763.64 * emsq
-
-            if em < 0.7:
-                g533 = -919.22770 + 4988.6100 * em - 9064.7700 * emsq + 5542.21 * eoc
-                g521 = -822.71072 + 4568.6173 * em - 8491.4146 * emsq + 5337.524 * eoc
-                g532 = -853.66600 + 4690.2500 * em - 8624.7700 * emsq + 5341.4 * eoc
-            else:
-                g533 = -37995.780 + 161616.52 * em - 229838.20 * emsq + 109377.94 * eoc
-                g521 = -51752.104 + 218913.95 * em - 309468.16 * emsq + 146349.42 * eoc
-                g532 = -40023.880 + 170470.89 * em - 242699.48 * emsq + 115605.82 * eoc
-
-            out.em = em
-            sini2 = self.dscom_out.sinim**2
-            f220 = 0.75 * (1.0 + 2.0 * self.dscom_out.cosim + cosisq)
-            f221 = 1.5 * sini2
-            f321 = (
-                1.875
-                * self.dscom_out.sinim
-                * (1 - 2 * self.dscom_out.cosim - 3 * cosisq)
+            self._calc_geopotential_resonance(
+                satrec,
+                out,
+                aonv,
+                eccsq,
+                root22,
+                root32,
+                root44,
+                root52,
+                root54,
+                rptim,
+                theta,
             )
-            f322 = (
-                -1.875
-                * self.dscom_out.sinim
-                * (1 + 2 * self.dscom_out.cosim - 3 * cosisq)
-            )
-            f441 = 35 * sini2 * f220
-            f442 = 39.3750 * sini2**2
-            f522 = (
-                9.84375
-                * self.dscom_out.sinim
-                * (
-                    sini2 * (1 - 2 * self.dscom_out.cosim - 5 * cosisq)
-                    + 0.33333333 * (-2 + 4 * self.dscom_out.cosim + 6 * cosisq)
-                )
-            )
-            f523 = self.dscom_out.sinim * (
-                4.92187512 * sini2 * (-2 - 4 * self.dscom_out.cosim + 10 * cosisq)
-                + 6.56250012 * (1 + 2 * self.dscom_out.cosim - 3 * cosisq)
-            )
-            f542 = (
-                29.53125
-                * self.dscom_out.sinim
-                * (
-                    2
-                    - 8 * self.dscom_out.cosim
-                    + cosisq * (-12 + 8 * self.dscom_out.cosim + 10 * cosisq)
-                )
-            )
-            f543 = (
-                29.53125
-                * self.dscom_out.sinim
-                * (
-                    -2
-                    - 8 * self.dscom_out.cosim
-                    + cosisq * (12 + 8 * self.dscom_out.cosim - 10 * cosisq)
-                )
-            )
-
-            xno2 = out.nm**2
-            ainv2 = aonv**2
-            temp1 = 3 * xno2 * ainv2
-            temp = temp1 * root22
-            out.d2201 = temp * f220 * g201
-            out.d2211 = temp * f221 * g211
-            temp1 *= aonv
-            temp = temp1 * root32
-            out.d3210 = temp * f321 * g310
-            out.d3222 = temp * f322 * g322
-            temp1 *= aonv
-            temp = 2 * temp1 * root44
-            out.d4410 = temp * f441 * g410
-            out.d4422 = temp * f442 * g422
-            temp1 *= aonv
-            temp = temp1 * root52
-            out.d5220 = temp * f522 * g520
-            out.d5232 = temp * f523 * g532
-            temp = 2 * temp1 * root54
-            out.d5421 = temp * f542 * g521
-            out.d5433 = temp * f543 * g533
-            out.xlamo = (
-                satrec.mo + satrec.nodeo + satrec.nodeo - theta - theta
-            ) % const.TWOPI
-            out.xfact = (
-                satrec.mdot
-                + out.dmdt
-                + 2 * (satrec.nodedot + out.dnodt - rptim)
-                - satrec.no
-            )
-            out.em, emsq = emo, emsqo
 
         # Synchronous resonance terms
         if out.irez == 1:
-            g200 = 1 + emsq * (-2.5 + 0.8125 * emsq)
-            g310 = 1 + 2 * emsq
-            g300 = 1 + emsq * (-6 + 6.60937 * emsq)
-            f220 = 0.75 * (1 + self.dscom_out.cosim) ** 2
-            f311 = 0.9375 * self.dscom_out.sinim**2 * (
-                1 + 3 * self.dscom_out.cosim
-            ) - 0.75 * (1 + self.dscom_out.cosim)
-            f330 = 1 + self.dscom_out.cosim
-            f330 = 1.875 * f330**3
-            out.del1 = 3 * out.nm**2 * aonv**2
-            out.del2 = 2 * out.del1 * f220 * g200 * q22
-            out.del3 = 3 * out.del1 * f330 * g300 * q33 * aonv
-            out.del1 *= f311 * g310 * q31 * aonv
-            out.xlamo = (satrec.mo + satrec.nodeo + satrec.argpo - theta) % const.TWOPI
-            out.xfact = (
-                satrec.mdot
-                + xpidot
-                - rptim
-                + out.dmdt
-                + out.domdt
-                + out.dnodt
-                - satrec.no
+            self._calc_synchronous_resonance(
+                satrec, out, emsq, q22, q33, q31, aonv, theta, xpidot, rptim
             )
 
         # Initialize the integrator for SGP4
