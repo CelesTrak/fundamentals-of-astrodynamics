@@ -1,6 +1,7 @@
 import pytest
 
 import src.valladopy.astro.sgp4.deep_space as deep_space
+from src.valladopy.astro.sgp4.utils import SatRec
 
 from ...conftest import custom_isclose
 
@@ -164,35 +165,25 @@ def test_dsinit(ds, dscom_data, dsinit_data):
     ds.dscom_out = dscom_data
 
     # Inputs
-    t = tc = 0
+    satrec = SatRec(
+        ecco=ds.ep,
+        nodeo=ds.nodep,
+        argpo=ds.argpp,
+        no=ds.np_,
+        mo=ds.mp,
+        nodedot=-1.28456721580123e-06,
+        mdot=0.00874808688663313,
+    )
+    tc = 0
     xke = 0.0743669161331734
     gsto = 0.574180126924752
-    mdot = 0.00874808688663313
-    nodedot = -1.28456721580123e-06
     xpidot = -1.35893730845456e-06
     eccsq = dscom_data.emsq
     nodem = argpm = mm = 0
+    inclm = ds.inclp
 
     # Call method
-    ds.dsinit(
-        xke,
-        ds.argpp,
-        t,
-        tc,
-        gsto,
-        ds.mp,
-        mdot,
-        ds.np_,
-        ds.nodep,
-        nodedot,
-        xpidot,
-        ds.ep,
-        eccsq,
-        ds.inclp,
-        nodem,
-        argpm,
-        mm,
-    )
+    ds.dsinit(satrec, xke, tc, gsto, xpidot, eccsq, inclm, nodem, argpm, mm)
 
     # Check results
     for key in dsinit_data.__dataclass_fields__:

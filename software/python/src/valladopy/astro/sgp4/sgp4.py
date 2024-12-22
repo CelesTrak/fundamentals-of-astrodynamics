@@ -529,18 +529,11 @@ class SGP4:
 
                 # Call dsinit function for further deep-space initialization
                 self.ds.dsinit(
+                    self.satrec,
                     self.grav_const.xke,
-                    self.satrec.argpo,
-                    self.satrec.t,
                     tc,
                     self.sgp4init_out.gsto,
-                    self.satrec.mo,
-                    self.satrec.mdot,
-                    self.satrec.no,
-                    self.satrec.nodeo,
-                    self.satrec.nodedot,
                     xpidot,
-                    self.satrec.ecco,
                     self.sgp4init_out.eccsq,
                     inclm,
                     nodem,

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ... import constants as const
+from .utils import SatRec
 
 
 @dataclass
@@ -472,18 +473,11 @@ class DeepSpace:
 
     def dsinit(
         self,
+        satrec: SatRec,
         xke: float,
-        argpo: float,
-        t: float,
         tc: float,
         gsto: float,
-        mo: float,
-        mdot: float,
-        no: float,
-        nodeo: float,
-        nodedot: float,
         xpidot: float,
-        ecco: float,
         eccsq: float,
         inclm: float,
         nodem: float,
@@ -503,18 +497,11 @@ class DeepSpace:
             - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
+            satrec (SatRec): Satellite record dataclass
             xke (float): SGP4 constant
-            argpo (float): Argument of perigee in radians
-            t (float): Time since epoch (units = ?)  # TODO: check units
-            tc (float): Time since epoch (units = ?)  # TODO: check units
+            tc (float): Time correction in minutes
             gsto (float): GST at epoch in radians
-            mo (float): Mean anomaly in radians
-            mdot (float): Mean anomaly dot in rad/s
-            no (float): Mean motion in rad/s  # TODO: check units
-            nodeo (float): RAAN at epoch in radians
-            nodedot (float): RAAN dot in rad/s
             xpidot (float): RAAN dot in rad/s
-            ecco (float): Eccentricity
             eccsq (float): Eccentricity squared
             inclm (float): Inclination in radians
             nodem (float): RAAN in radians
@@ -582,11 +569,11 @@ class DeepSpace:
 
         # Deep space resonance effects
         theta = np.remainder(gsto + tc * rptim, const.TWOPI)
-        out.em += out.dedt * t
-        out.inclm = inclm + out.didt * t
-        out.argpm = argpm + out.domdt * t
-        out.nodem = nodem + out.dnodt * t
-        out.mm = mm + out.dmdt * t
+        out.em += out.dedt * satrec.t
+        out.inclm = inclm + out.didt * satrec.t
+        out.argpm = argpm + out.domdt * satrec.t
+        out.nodem = nodem + out.dnodt * satrec.t
+        out.mm = mm + out.dmdt * satrec.t
 
         # Return if no resonance
         if out.irez == 0:
@@ -598,7 +585,7 @@ class DeepSpace:
         if out.irez == 2:
             cosisq = self.dscom_out.cosim**2
             emo = out.em
-            em = ecco
+            em = satrec.ecco
             emsqo = self.dscom_out.emsq
             emsq = eccsq
             eoc = em * emsq
@@ -699,8 +686,15 @@ class DeepSpace:
             temp = 2 * temp1 * root54
             out.d5421 = temp * f542 * g521
             out.d5433 = temp * f543 * g533
-            out.xlamo = (mo + nodeo + nodeo - theta - theta) % const.TWOPI
-            out.xfact = mdot + out.dmdt + 2 * (nodedot + out.dnodt - rptim) - no
+            out.xlamo = (
+                satrec.mo + satrec.nodeo + satrec.nodeo - theta - theta
+            ) % const.TWOPI
+            out.xfact = (
+                satrec.mdot
+                + out.dmdt
+                + 2 * (satrec.nodedot + out.dnodt - rptim)
+                - satrec.no
+            )
             out.em, emsq = emo, emsqo
 
         # Synchronous resonance terms
@@ -718,11 +712,19 @@ class DeepSpace:
             out.del2 = 2 * out.del1 * f220 * g200 * q22
             out.del3 = 3 * out.del1 * f330 * g300 * q33 * aonv
             out.del1 *= f311 * g310 * q31 * aonv
-            out.xlamo = (mo + nodeo + argpo - theta) % const.TWOPI
-            out.xfact = mdot + xpidot - rptim + out.dmdt + out.domdt + out.dnodt - no
+            out.xlamo = (satrec.mo + satrec.nodeo + satrec.argpo - theta) % const.TWOPI
+            out.xfact = (
+                satrec.mdot
+                + xpidot
+                - rptim
+                + out.dmdt
+                + out.domdt
+                + out.dnodt
+                - satrec.no
+            )
 
         # Initialize the integrator for SGP4
-        out.xli, out.xni = out.xlamo, no
+        out.xli, out.xni = out.xlamo, satrec.no
         out.nm += out.dndt
 
         self.dsinit_out = out
