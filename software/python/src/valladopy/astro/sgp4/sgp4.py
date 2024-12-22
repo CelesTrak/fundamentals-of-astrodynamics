@@ -56,7 +56,6 @@ class Classification(Enum):
 
 
 class SatRec(BaseModel):
-    radiusearthkm: float = const.RE
     grav_const: GravitationalConstants = None
     sgp4init_out: SGP4InitOutput = None
     a: float = 0.0
@@ -377,19 +376,21 @@ class SGP4:
 
         return sgp4init_output
 
-    def sgp4init(self, epoch: float):
+    def sgp4init(self, epoch: float, tol: float = const.SMALL):
         """Initializes variables for SGP4.
 
         Args:
             epoch (float): Epoch time in days from Jan 0, 1950 0 hr.
+            tol (float, optional): Tolerance for small values (default = 1e-10)
         """
         # Earth constants
-        ss = 78 / self.satrec.radiusearthkm + 1
-        qzms2t = ((120 - 78) / self.satrec.radiusearthkm) ** 4
+        ss = 78 / self.grav_const.radiusearthkm + 1
+        qzms2t = ((120 - 78) / self.grav_const.radiusearthkm) ** 4
 
         # Initialize epoch-dependent values
         self.satrec.t = 0
         self.satrec.sgp4init_out = self.initl(epoch)
+        self.satrec.no = self.satrec.sgp4init_out.no_unkozai
 
         # Calculate derived orbital parameters
         self.satrec.a = (self.satrec.no * self.grav_const.tumin) ** (-2 / 3)
@@ -398,18 +399,17 @@ class SGP4:
 
         if self.satrec.sgp4init_out.omeosq >= 0 and self.satrec.no >= 0:
             self.satrec.isimp = 0
-            if self.satrec.sgp4init_out.rp < (220 / self.satrec.radiusearthkm + 1):
+            if self.satrec.sgp4init_out.rp < (220 / self.grav_const.radiusearthkm + 1):
                 self.satrec.isimp = 1
-
             sfour = ss
             qzms24 = qzms2t
-            perige = (self.satrec.sgp4init_out.rp - 1) * self.satrec.radiusearthkm
+            perigee = (self.satrec.sgp4init_out.rp - 1) * self.grav_const.radiusearthkm
 
             # Adjust sfour and qzms24 for perigees below 156 km
-            if perige < 156:
-                sfour = max(perige - 78, 20)  # cap sfour at 20 for very low perigees
-                qzms24 = ((120 - sfour) / self.satrec.radiusearthkm) ** 4
-                sfour /= self.satrec.radiusearthkm + 1
+            if perigee < 156:
+                sfour = 20 if perigee < 98 else perigee - 78
+                qzms24 = ((120 - sfour) / self.grav_const.radiusearthkm) ** 4
+                sfour /= self.grav_const.radiusearthkm + 1
 
             pinvsq = 1 / self.satrec.sgp4init_out.posq
             tsi = 1 / (self.satrec.sgp4init_out.ao - sfour)
@@ -430,7 +430,7 @@ class SGP4:
                     * self.grav_const.j2
                     * tsi
                     / psisq
-                    * self.satrec.con41
+                    * self.satrec.sgp4init_out.con41
                     * (8 + 3 * etasq * (8 + etasq))
                 )
             )
@@ -465,7 +465,7 @@ class SGP4:
                     / (self.satrec.sgp4init_out.ao * psisq)
                     * (
                         -3
-                        * self.satrec.con41
+                        * self.satrec.sgp4init_out.con41
                         * (1 - 2 * eeta + etasq * (1.5 - 0.5 * eeta))
                         + 0.75
                         * self.satrec.x1mth2
@@ -530,10 +530,10 @@ class SGP4:
             self.satrec.t2cof = 1.5 * self.satrec.cc1
 
             # Handle divide-by-zero for xinco = 180 degrees
-            if abs(self.satrec.sgp4init_out.cosio + 1) > const.SMALL:
+            if abs(self.satrec.sgp4init_out.cosio + 1) > tol:
                 den = 1.0 + self.satrec.sgp4init_out.cosio
             else:
-                den = const.SMALL
+                den = tol
             self.satrec.xlcof = (
                 -0.25
                 * self.grav_const.j3oj2

@@ -109,3 +109,37 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp, monkeypatc
         # Float comparisons
         else:
             assert custom_isclose(getattr(sgp4_obj.satrec, key), expected[key])
+
+
+def test_sgp4(oe_params, monkeypatch):
+    # Patch SGP4 propagation method
+    monkeypatch.setattr(sgp4.SGP4, "propagate", lambda *args: None)
+
+    # Initialize SGP4 class
+    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
+
+    # Inputs
+    ecc, incl, node, argp, _, m = oe_params
+    epoch = 20630.332154440228
+
+    # Update `satrec` attributes
+    sgp4_obj.satrec.satnum = 8195
+    sgp4_obj.satrec.jdsatepoch = 2453911
+    sgp4_obj.satrec.jdsatepochf = 0.8321544402
+    sgp4_obj.satrec.no_kozai = 0.00874808688806747
+    sgp4_obj.satrec.ecco = ecc
+    sgp4_obj.satrec.inclo = incl
+    sgp4_obj.satrec.nodeo = node
+    sgp4_obj.satrec.argpo = argp
+    sgp4_obj.satrec.mo = m
+    sgp4_obj.satrec.bstar = 0.00011873
+    sgp4_obj.satrec.ndot = 2.99978465186525e-12
+    sgp4_obj.satrec.elnum = 813
+    sgp4_obj.satrec.revnum = 22565
+    sgp4_obj.satrec.classification = sgp4.Classification.Unclassified
+    sgp4_obj.satrec.intldesg = "75081A"
+
+    # Call method
+    sgp4_obj.sgp4init(epoch)
+
+    assert True
