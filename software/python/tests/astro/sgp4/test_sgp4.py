@@ -207,3 +207,21 @@ def test_initialize_non_deep_space():
     }
     for key in satrec_expected:
         assert custom_isclose(getattr(sgp4_obj.satrec, key), satrec_expected[key])
+
+
+def test_adjust_perigee():
+    # Initialize SGP4 class and sgp4init_out
+    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
+    sgp4_obj.sgp4init_out = sgp4.SGP4InitOutput()
+
+    # Update periapsis radius
+    sgp4_obj.sgp4init_out.rp = 0.054164814075659616
+
+    # Call method
+    sfour, qzms24 = sgp4_obj._adjust_perigee(
+        ss=1.0122292801892716, qzms2t=1.880279159015271e-09
+    )
+
+    # Check results
+    assert np.isclose(sfour, 1.003135712869044, rtol=DEFAULT_TOL)
+    assert np.isclose(qzms24, 6.042618427427583e-08, rtol=DEFAULT_TOL)
