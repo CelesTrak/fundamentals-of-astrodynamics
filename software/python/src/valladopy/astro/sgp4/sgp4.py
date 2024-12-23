@@ -506,12 +506,18 @@ class SGP4:
     def sgp4init(self, epoch: float, tol: float = const.SMALL):
         """Initializes variables for SGP4.
 
+        References:
+            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
+            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
+            - Hoots, Schumacher, and Glover, 2004
+            - Vallado, Crawford, Hujsak, Kelso, 2006
+
         Args:
-            epoch (float): Epoch time in days from Jan 0, 1950 0 hr.
+            epoch (float): Epoch time in days from Jan 0, 1950 0 hr
             tol (float, optional): Tolerance for small values (default = const.SMALL)
 
         Returns:
-            None
+            None (updates self.satrec)
 
         TODO:
             - Define magic numbers
