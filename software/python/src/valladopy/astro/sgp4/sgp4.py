@@ -273,45 +273,38 @@ class SGP4:
             None
         """
         # Initialize output dataclass
-        sgp4init_output = SGP4InitOutput()
+        out = SGP4InitOutput()
 
         # Calculate auxiliary epoch quantities
-        sgp4init_output.eccsq = self.satrec.ecco**2
-        sgp4init_output.omeosq = 1.0 - sgp4init_output.eccsq
-        sgp4init_output.rteosq = np.sqrt(sgp4init_output.omeosq)
-        sgp4init_output.cosio = np.cos(self.satrec.inclo)
-        sgp4init_output.cosio2 = sgp4init_output.cosio**2
+        out.eccsq = self.satrec.ecco**2
+        out.omeosq = 1.0 - out.eccsq
+        out.rteosq = np.sqrt(out.omeosq)
+        out.cosio = np.cos(self.satrec.inclo)
+        out.cosio2 = out.cosio**2
 
         # Un-Kozai the mean motion
         ak = (self.grav_const.xke / self.satrec.no_kozai) ** self.x2o3
         d1 = (
-            0.75
-            * self.grav_const.j2
-            * (3 * sgp4init_output.cosio2 - 1)
-            / (sgp4init_output.rteosq * sgp4init_output.omeosq)
+            0.75 * self.grav_const.j2 * (3 * out.cosio2 - 1) / (out.rteosq * out.omeosq)
         )
         delta = d1 / (ak**2)
         adel = ak * (1 - delta**2 - delta * (1 / 3 + 134 * delta**2 / 81))
         delta = d1 / (adel**2)
-        sgp4init_output.no_unkozai = self.satrec.no_kozai / (1 + delta)
+        out.no_unkozai = self.satrec.no_kozai / (1 + delta)
 
         # Calculate other terms
-        sgp4init_output.ao = (
-            self.grav_const.xke / sgp4init_output.no_unkozai
-        ) ** self.x2o3
-        sgp4init_output.sinio = np.sin(self.satrec.inclo)
-        po = sgp4init_output.ao * sgp4init_output.omeosq
-        sgp4init_output.con42 = 1 - 5 * sgp4init_output.cosio2
-        sgp4init_output.con41 = (
-            -sgp4init_output.con42 - sgp4init_output.cosio2 - sgp4init_output.cosio2
-        )
-        sgp4init_output.ainv = 1 / sgp4init_output.ao
-        sgp4init_output.posq = po**2
-        sgp4init_output.rp = sgp4init_output.ao * (1 - self.satrec.ecco)
+        out.ao = (self.grav_const.xke / out.no_unkozai) ** self.x2o3
+        out.sinio = np.sin(self.satrec.inclo)
+        po = out.ao * out.omeosq
+        out.con42 = 1 - 5 * out.cosio2
+        out.con41 = -out.con42 - out.cosio2 - out.cosio2
+        out.ainv = 1 / out.ao
+        out.posq = po**2
+        out.rp = out.ao * (1 - self.satrec.ecco)
 
         # Calculate Greenwich Sidereal Time
         if self.use_afspc_mode:
-            sgp4init_output.gsto = gstime(epoch + JD_EPOCH_1950) % const.TWOPI
+            out.gsto = gstime(epoch + JD_EPOCH_1950) % const.TWOPI
         else:
             # SGP4 fix - use old way of finding GST
             # Count integer number of days from 0 Jan 1970
@@ -322,11 +315,11 @@ class SGP4:
             thgr70 = 1.7321343856509374
             fk5r = 5.07551419432269442e-15
             c1p2p = c1 + const.TWOPI
-            sgp4init_output.gsto = np.mod(
+            out.gsto = np.mod(
                 thgr70 + c1 * ids70 + c1p2p * tfrac + ts70 * ts70 * fk5r, const.TWOPI
             )
 
-        self.sgp4init_out = sgp4init_output
+        self.sgp4init_out = out
 
     def _adjust_perigee(self, ss, qzms2t):
         """Adjusts sfour and qzms24 for perigees below 156 km."""
