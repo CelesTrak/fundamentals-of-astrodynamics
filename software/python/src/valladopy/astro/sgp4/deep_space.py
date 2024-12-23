@@ -150,7 +150,7 @@ class DeepSpace:
         """Initializes the DeepSpace class.
 
         Args:
-            epoch (float): Epoch time (units = ?)  # TODO: check units
+            epoch (float): Epoch time in days from 0 Jan 1950 0:00:00 UTC
             ep (float): Eccentricity
             inclp (float): Inclination in radians
             nodep (float): RAAN (right ascension of ascending node) in radians
@@ -347,6 +347,8 @@ class DeepSpace:
 
     def dpper(self, t: float, incl_tol: float = 0.2):
         """Deep space long period periodic contributions to mean elements.
+
+        The method `dscom()` must be called prior to running this method!
 
         References:
             - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
@@ -620,6 +622,8 @@ class DeepSpace:
         This function provides deep space contributions to mean motion dot due to
         geopotential resonance with half day and one day orbits.
 
+        The method `dscom()` must be called prior to running this method!
+
         References:
             - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
             - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
@@ -643,6 +647,10 @@ class DeepSpace:
         Returns:
             None (sets dsinit_out attribute)
         """
+        # Check if dscom_out is set
+        if not self.dscom_out:
+            raise ValueError("dscom_out not set. Run dscom() first.")
+
         # Initialize output dataclass
         out = DsInitOutput()
 
@@ -742,14 +750,30 @@ class DeepSpace:
     def dspace(self, satrec: SatRec, tc: float, gsto: float):
         """Provides deep space contributions to mean elements for perturbing third body.
 
+        These effects have been averaged over one revolution of the sun and moon. For
+        Earth resonance effects, the effects have been averaged over no revolutions of
+        the satellite (mean motion).
+
+        The method `dsinit()` must be called prior to running this method!
+
+        References:
+            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
+            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
+            - Hoots, Schumacher, and Glover, 2004
+            - Vallado, Crawford, Hujsak, Kelso, 2006
+
         Args:
             satrec (SatRec): Satellite record dataclass
             tc (float): Time correction in minutes
             gsto (float): GST at epoch in radians
 
         Returns:
-            None
+            None (updates dsinit_out attribute)
         """
+        # Check if dsinit_out is set
+        if not self.dsinit_out:
+            raise ValueError("dsinit_out not set. Run dsinit() first.")
+
         # Constants
         fasx2, fasx4, fasx6 = 0.13130908, 2.8843198, 0.37448087
         g22, g32, g44, g52, g54 = 5.7686396, 0.95240898, 1.8014998, 1.0508330, 4.4108898
