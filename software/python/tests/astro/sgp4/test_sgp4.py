@@ -142,8 +142,13 @@ def test_sgp4(oe_params, monkeypatch):
     # Call method
     sgp4_obj.sgp4init(epoch)
 
-    # Check results
+    # Check results (OEs do not change)
     satrec_expected = {
+        "ecco": ecc,
+        "inclo": incl,
+        "nodeo": node,
+        "argpo": argp,
+        "mo": m,
         "a": 4.165136398215488,
         "alta": 6.0295615102596924,
         "altp": 0.30071128617128307,
