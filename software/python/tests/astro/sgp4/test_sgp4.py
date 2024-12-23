@@ -142,7 +142,7 @@ def test_sgp4(oe_params, monkeypatch):
     # Call method
     sgp4_obj.sgp4init(epoch)
 
-    # Check results (OEs do not change)
+    # Expected values (OEs do not change)
     satrec_expected = {
         "ecco": ecc,
         "inclo": incl,
@@ -180,3 +180,30 @@ def test_sgp4(oe_params, monkeypatch):
     sgp4_obj.satrec.no_kozai = 1
     with pytest.raises(ValueError):
         sgp4_obj.sgp4init(epoch)
+
+
+def test_initialize_non_deep_space():
+    # Initialize SGP4 class and sgp4init_out
+    sgp4_obj = sgp4.SGP4()
+    sgp4_obj.sgp4init_out = sgp4.SGP4InitOutput()
+
+    # Update some fields
+    sgp4_obj.satrec.cc1 = 1.8730784787793202e-12
+    sgp4_obj.sgp4init_out.ao = 0.1734465142323644
+
+    # Call method
+    sgp4_obj._initialize_non_deep_space(
+        tsi=-1.2052706021039807, sfour=1.003135712869044
+    )
+
+    # Check results
+    satrec_expected = {
+        "d2": -2.9337430867525674e-24,
+        "d3": 8.72425270068883e-36,
+        "d4": -3.0009425550003753e-47,
+        "t3cof": 4.083102888579937e-24,
+        "t4cof": 6.486675392955838e-36,
+        "t5cof": 6.711692282239235e-48,
+    }
+    for key in satrec_expected:
+        assert custom_isclose(getattr(sgp4_obj.satrec, key), satrec_expected[key])
