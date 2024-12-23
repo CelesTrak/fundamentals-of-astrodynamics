@@ -171,6 +171,12 @@ def test_sgp4(oe_params, monkeypatch):
         "nodecf": -4.604617513547723e-19,
     }
 
+    # Check results for default case
     assert sgp4_obj.use_deep_space
     for key in satrec_expected:
         assert custom_isclose(getattr(sgp4_obj.satrec, key), satrec_expected[key])
+
+    # Check results for forced non-deep space case with mismatched inputs
+    sgp4_obj.satrec.no_kozai = 1
+    with pytest.raises(ValueError):
+        sgp4_obj.sgp4init(epoch)

@@ -330,7 +330,7 @@ class SGP4:
         if perigee < 156:
             sfour = 20 if perigee < 98 else perigee - 78
             qzms24 = ((120 - sfour) / self.grav_const.radiusearthkm) ** 4
-            sfour /= self.grav_const.radiusearthkm + 1
+            sfour = sfour / self.grav_const.radiusearthkm + 1
 
         return sfour, qzms24
 
@@ -586,9 +586,16 @@ class SGP4:
         if (const.TWOPI / self.satrec.no) >= 225:
             # Deep space initialization
             self._initialize_deep_space(epoch, xpidot)
-        else:
+        elif self.satrec.isimp != 1:
             # Non-deep space initialization
             self._initialize_non_deep_space(tsi, sfour)
+        else:
+            # Handle unexpected cases
+            # TODO: Check if it really makes sense to raise an error here
+            raise ValueError(
+                "Initialization skipped: Satellite is neither deep-space nor"
+                "non-deep-space. Check input parameters for inconsistencies."
+            )
 
         # Propagate to zero epoch
         self.propagate(0)
