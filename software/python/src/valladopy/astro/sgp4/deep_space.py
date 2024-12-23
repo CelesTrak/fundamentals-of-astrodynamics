@@ -102,14 +102,14 @@ class DscomOutput:
 
 @dataclass
 class DsInitOutput:
-    em: float = 0.0
-    argpm: float = 0.0
-    inclm: float = 0.0
-    mm: float = 0.0
-    nm: float = 0.0
-    nodem: float = 0.0
-    irez: int = 0
     atime: float = 0.0
+    em: float = 0.0
+    inclm: float = 0.0
+    nodem: float = 0.0
+    argpm: float = 0.0
+    nm: float = 0.0
+    mm: float = 0.0
+    irez: int = 0
     d2201: float = 0.0
     d2211: float = 0.0
     d3210: float = 0.0
@@ -738,3 +738,164 @@ class DeepSpace:
         out.nm += out.dndt
 
         self.dsinit_out = out
+
+    def dspace(self, satrec: SatRec, tc: float, gsto: float):
+        """Provides deep space contributions to mean elements for perturbing third body.
+
+        Args:
+            satrec (SatRec): Satellite record dataclass
+            tc (float): Time correction in minutes
+            gsto (float): GST at epoch in radians
+
+        Returns:
+            None
+        """
+        # Constants
+        fasx2, fasx4, fasx6 = 0.13130908, 2.8843198, 0.37448087
+        g22, g32, g44, g52, g54 = 5.7686396, 0.95240898, 1.8014998, 1.0508330, 4.4108898
+        rptim = 4.37526908801129966e-3
+        stepp, stepn, step2 = 720, -720, 259200
+
+        # Extract existing variables
+        out = self.dsinit_out
+        atime, em, inclm, argpm, nm, mm, nodem, xli, xni = (
+            out.atime,
+            out.em,
+            out.inclm,
+            out.argpm,
+            out.nm,
+            out.mm,
+            out.nodem,
+            out.xli,
+            out.xni,
+        )
+        d2201, d2211, d3210, d3222 = out.d2201, out.d2211, out.d3210, out.d3222
+        d4410, d4422, d5220, d5232 = out.d4410, out.d4422, out.d5220, out.d5232
+        d5421, d5433 = out.d5421, out.d5433
+        dedt, didt, dmdt, dnodt, domdt = (
+            out.dedt,
+            out.didt,
+            out.dmdt,
+            out.dnodt,
+            out.domdt,
+        )
+        irez, xfact, xlamo = out.irez, out.xfact, out.xlamo
+
+        # Initialize variables for deep space resonance effects calculation
+        dndt = 0
+        theta = np.remainder(gsto + tc * rptim, const.TWOPI)
+        em += dedt * satrec.t
+        inclm += didt * satrec.t
+        argpm += domdt * satrec.t
+        nodem += dnodt * satrec.t
+        mm += dmdt * satrec.t
+
+        # Return if no resonance
+        if irez == 0:
+            vars(self.dsinit_out).update(
+                {
+                    "em": em,
+                    "inclm": inclm,
+                    "nodem": nodem,
+                    "argpm": argpm,
+                    "nm": nm,
+                    "mm": mm,
+                    "dndt": dndt,
+                }
+            )
+            return
+
+        # Update resonances: numerical (Euler-Maclaurin) integration
+        # The following integration works for negative time steps and periods
+        # The specific changes are unknown because the original code was so convoluted
+
+        # SGP4 fix streamline check
+        if atime == 0 or satrec.t * atime <= 0 or abs(satrec.t) < abs(atime):
+            atime, xni, xli = 0, satrec.no, xlamo
+        delt = stepp if satrec.t >= 0 else stepn
+
+        while True:
+            # Near-synchronous resonance terms
+            if irez != 2:
+                xndt = (
+                    out.del1 * np.sin(xli - fasx2)
+                    + out.del2 * np.sin(2 * (xli - fasx4))
+                    + out.del3 * np.sin(3 * (xli - fasx6))
+                )
+                xldot = xni + xfact
+                xnddt = (
+                    out.del1 * np.cos(xli - fasx2)
+                    + 2 * out.del2 * np.cos(2 * (xli - fasx4))
+                    + 3 * out.del3 * np.cos(3 * (xli - fasx6))
+                )
+                xnddt *= xldot
+
+            # Near half-day resonance terms
+            else:
+                xomi = satrec.argpo + satrec.argpdot * atime
+                x2omi, x2li = xomi + xomi, xli + xli
+                xndt = (
+                    d2201 * np.sin(x2omi + xli - g22)
+                    + d2211 * np.sin(xli - g22)
+                    + d3210 * np.sin(xomi + xli - g32)
+                    + d3222 * np.sin(-xomi + xli - g32)
+                    + d4410 * np.sin(x2omi + x2li - g44)
+                    + d4422 * np.sin(x2li - g44)
+                    + d5220 * np.sin(xomi + xli - g52)
+                    + d5232 * np.sin(-xomi + xli - g52)
+                    + d5421 * np.sin(xomi + x2li - g54)
+                    + d5433 * np.sin(-xomi + x2li - g54)
+                )
+                xldot = xni + xfact
+                xnddt = (
+                    d2201 * np.cos(x2omi + xli - g22)
+                    + d2211 * np.cos(xli - g22)
+                    + d3210 * np.cos(xomi + xli - g32)
+                    + d3222 * np.cos(-xomi + xli - g32)
+                    + d5220 * np.cos(xomi + xli - g52)
+                    + d5232 * np.cos(-xomi + xli - g52)
+                    + 2
+                    * (
+                        d4410 * np.cos(x2omi + x2li - g44)
+                        + d4422 * np.cos(x2li - g44)
+                        + d5421 * np.cos(xomi + x2li - g54)
+                        + d5433 * np.cos(-xomi + x2li - g54)
+                    )
+                )
+                xnddt *= xldot
+
+            # Integrator
+            if abs(satrec.t - atime) < stepp:
+                ft = satrec.t - atime
+                break
+
+            xli += xldot * delt + xndt * step2
+            xni += xndt * delt + xnddt * step2
+            atime += delt
+
+        # Update elements
+        nm = xni + xndt * ft + xnddt * ft**2 * 0.5
+        xl = xli + xldot * ft + xndt * ft**2 * 0.5
+        if irez != 1:
+            mm = xl - 2 * nodem + 2 * theta
+            dndt = nm - satrec.no
+        else:
+            mm = xl - nodem - argpm + theta
+            dndt = nm - satrec.no
+        nm = satrec.no + dndt
+
+        # Update `dsinit_out` with the final computed values
+        vars(self.dsinit_out).update(
+            {
+                "atime": atime,
+                "em": em,
+                "inclm": inclm,
+                "nodem": nodem,
+                "argpm": argpm,
+                "nm": nm,
+                "mm": mm,
+                "dndt": dndt,
+                "xli": xli,
+                "xni": xni,
+            }
+        )

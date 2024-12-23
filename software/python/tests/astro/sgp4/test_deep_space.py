@@ -188,3 +188,67 @@ def test_dsinit(ds, dscom_data, dsinit_data):
     # Check results
     for key in dsinit_data.__dataclass_fields__:
         assert custom_isclose(getattr(ds.dsinit_out, key), getattr(dsinit_data, key))
+
+
+@pytest.mark.parametrize(
+    "irez, nm_expected, mm_expected, dndt_expected",
+    [
+        (0, 0.00874854701963024, 1.4027866098606812, 0),
+        (1, 0.00874854701963024, -5.730064714256859, 0),
+        (2, 0.008748547084955744, -4.880398693573535, 6.532550368698598e-11),
+    ],
+)
+def test_dspace(ds, irez, nm_expected, mm_expected, dndt_expected):
+    # Inputs
+    tc, gsto = 120, 0.574180126924752
+    satrec = SatRec(
+        t=tc,  # *
+        argpo=4.62102273937204,
+        argpdot=-7.43700926533354e-08,  # *
+        no=0.00874854701963024,
+    )
+
+    # Update DeepSpace object with more inputs
+    ds.dsinit_out = deep_space.DsInitOutput(
+        irez=irez,
+        em=0.6877146,
+        argpm=4.62101381496092,  # *
+        inclm=1.11977881347003,
+        nodem=4.87056586607196,  # *
+        nm=0.00874854701963024,
+        mm=1.40277548491659,  # *
+        d2201=-1.19735955162311e-11,
+        d2211=6.45321383412148e-11,
+        d3210=-3.89372273813105e-12,
+        d3222=-7.36485753802328e-12,
+        d4410=2.57696014094634e-12,
+        d4422=4.36145559271435e-12,
+        d5220=-2.52878946595284e-12,
+        d5232=6.76771256855121e-13,
+        d5421=-2.28069804656197e-12,
+        d5433=-1.65957082149142e-12,
+        dedt=-2.88854762346107e-08,
+        didt=-9.78410826921414e-09,
+        dmdt=9.27078674252696e-08,
+        dnodt=-6.12432348969527e-08,
+        domdt=-1.41552107338369e-08,
+        xfact=-0.00875359722205368,
+        xlamo=2.66289952576725,
+        xli=2.66289952576725,
+        xni=0.00874854701963024,
+    )
+
+    # Call method
+    ds.dspace(satrec, tc, gsto)
+
+    # Check results
+    assert custom_isclose(ds.dsinit_out.atime, 0)
+    assert custom_isclose(ds.dsinit_out.em, 0.6877111337428518)
+    assert custom_isclose(ds.dsinit_out.inclm, 1.1197776393770376)
+    assert custom_isclose(ds.dsinit_out.argpm, 4.621012116335631)
+    assert custom_isclose(ds.dsinit_out.nodem, 4.870558516883772)
+    assert custom_isclose(ds.dsinit_out.nm, nm_expected)
+    assert custom_isclose(ds.dsinit_out.mm, mm_expected)
+    assert custom_isclose(ds.dsinit_out.dndt, dndt_expected)
+    assert custom_isclose(ds.dsinit_out.xli, 2.66289952576725)
+    assert custom_isclose(ds.dsinit_out.xni, 0.00874854701963024)
