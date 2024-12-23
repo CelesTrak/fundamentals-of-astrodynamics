@@ -449,7 +449,7 @@ class SGP4:
 
         # Set attributes and define variables
         self.use_deep_space = True
-        self.satrec.isimp = 1
+        self.satrec.isimp = True
         tc = argpm = nodem = mm = 0
         inclm = self.satrec.inclo
 
@@ -536,7 +536,7 @@ class SGP4:
 
         # Determine if perigee is less than 220 km
         if self.sgp4init_out.rp < (220 / self.grav_const.radiusearthkm + 1):
-            self.satrec.isimp = 1
+            self.satrec.isimp = True
 
         # Adjust constants for perigee below 156 km
         sfour, qzms24 = self._adjust_perigee(ss, qzms2t)
@@ -586,7 +586,7 @@ class SGP4:
         if (const.TWOPI / self.satrec.no) >= 225:
             # Deep space initialization
             self._initialize_deep_space(epoch, xpidot)
-        elif self.satrec.isimp != 1:
+        elif not self.satrec.isimp:
             # Non-deep space initialization
             self._initialize_non_deep_space(tsi, sfour)
         else:

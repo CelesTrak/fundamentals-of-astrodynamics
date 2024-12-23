@@ -41,7 +41,7 @@ class SatRec(BaseModel):
     no: float = 0.0
     ecco: float = 0.0
     inclo: float = 0.0
-    isimp: int = 0
+    isimp: bool = False
     bstar: float = 0.0
     xfact: float = 0.0
     xlamo: float = 0.0
