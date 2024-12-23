@@ -376,43 +376,40 @@ class DeepSpace:
         znl = 1.5835218e-4
         zel = 0.05490
 
+        # Extract variables
+        ee2, e3 = self.dscom_out.ee2, self.dscom_out.e3
+        se2, se3 = self.dscom_out.se2, self.dscom_out.se3
+        si2, si3 = self.dscom_out.si2, self.dscom_out.si3
+        sl2, sl3, sl4 = self.dscom_out.sl2, self.dscom_out.sl3, self.dscom_out.sl4
+        sgh2, sgh3, sgh4 = self.dscom_out.sgh2, self.dscom_out.sgh3, self.dscom_out.sgh4
+        sh2, sh3 = self.dscom_out.sh2, self.dscom_out.sh3
+        xi2, xi3 = self.dscom_out.xi2, self.dscom_out.xi3
+        xl2, xl3, xl4 = self.dscom_out.xl2, self.dscom_out.xl3, self.dscom_out.xl4
+        xgh2, xgh3, xgh4 = self.dscom_out.xgh2, self.dscom_out.xgh3, self.dscom_out.xgh4
+        xh2, xh3 = self.dscom_out.xh2, self.dscom_out.xh3
+        zmol, zmos = self.dscom_out.zmol, self.dscom_out.zmos
+
         # Calculate time-varying periodics
-        zm = self.dscom_out.zmos + zns * t
+        zm = zmos + zns * t
         zf = zm + 2.0 * zes * np.sin(zm)
         sinzf = np.sin(zf)
         f2 = 0.5 * sinzf**2 - 0.25
         f3 = -0.5 * sinzf * np.cos(zf)
-        ses = self.dscom_out.se2 * f2 + self.dscom_out.se3 * f3
-        sis = self.dscom_out.si2 * f2 + self.dscom_out.si3 * f3
-        sls = (
-            self.dscom_out.sl2 * f2
-            + self.dscom_out.sl3 * f3
-            + self.dscom_out.sl4 * sinzf
-        )
-        sghs = (
-            self.dscom_out.sgh2 * f2
-            + self.dscom_out.sgh3 * f3
-            + self.dscom_out.sgh4 * sinzf
-        )
-        shs = self.dscom_out.sh2 * f2 + self.dscom_out.sh3 * f3
-        zm = self.dscom_out.zmol + znl * t
+        ses = se2 * f2 + se3 * f3
+        sis = si2 * f2 + si3 * f3
+        sls = sl2 * f2 + sl3 * f3 + sl4 * sinzf
+        sghs = sgh2 * f2 + sgh3 * f3 + sgh4 * sinzf
+        shs = sh2 * f2 + sh3 * f3
+        zm = zmol + znl * t
         zf = zm + 2.0 * zel * np.sin(zm)
         sinzf = np.sin(zf)
         f2 = 0.5 * sinzf**2 - 0.25
         f3 = -0.5 * sinzf * np.cos(zf)
-        sel = self.dscom_out.ee2 * f2 + self.dscom_out.e3 * f3
-        sil = self.dscom_out.xi2 * f2 + self.dscom_out.xi3 * f3
-        sll = (
-            self.dscom_out.xl2 * f2
-            + self.dscom_out.xl3 * f3
-            + self.dscom_out.xl4 * sinzf
-        )
-        sghl = (
-            self.dscom_out.xgh2 * f2
-            + self.dscom_out.xgh3 * f3
-            + self.dscom_out.xgh4 * sinzf
-        )
-        shll = self.dscom_out.xh2 * f2 + self.dscom_out.xh3 * f3
+        sel = ee2 * f2 + e3 * f3
+        sil = xi2 * f2 + xi3 * f3
+        sll = xl2 * f2 + xl3 * f3 + xl4 * sinzf
+        sghl = xgh2 * f2 + xgh3 * f3 + xgh4 * sinzf
+        shll = xh2 * f2 + xh3 * f3
 
         # Initialize periodics
         pe = ses + sel
@@ -668,42 +665,45 @@ class DeepSpace:
             out.irez = 1
         if 8.26e-3 <= out.nm <= 9.24e-3 and out.em >= 0.5:
             out.irez = 2
+
+        # Extract exising variables
         emsq = self.dscom_out.emsq
+        sinim, cosim = self.dscom_out.sinim, self.dscom_out.cosim
+        s1, s2, s3 = self.dscom_out.s1, self.dscom_out.s2, self.dscom_out.s3
+        s4, s5 = self.dscom_out.s4, self.dscom_out.s5
+        ss1, ss2, ss3 = self.dscom_out.ss1, self.dscom_out.ss2, self.dscom_out.ss3
+        ss4, ss5 = self.dscom_out.ss4, self.dscom_out.ss5
+        sz1, sz3, sz11 = self.dscom_out.sz1, self.dscom_out.sz3, self.dscom_out.sz11
+        sz13, sz21, sz23 = self.dscom_out.sz13, self.dscom_out.sz21, self.dscom_out.sz23
+        sz31, sz33 = self.dscom_out.sz31, self.dscom_out.sz33
+        z1, z3, z11 = self.dscom_out.z1, self.dscom_out.z3, self.dscom_out.z11
+        z13, z21, z23 = self.dscom_out.z13, self.dscom_out.z21, self.dscom_out.z23
+        z31, z33 = self.dscom_out.z31, self.dscom_out.z33
 
         # Solar terms
-        ses = self.dscom_out.ss1 * zns * self.dscom_out.ss5
-        sis = self.dscom_out.ss2 * zns * (self.dscom_out.sz11 + self.dscom_out.sz13)
-        sls = (
-            -zns
-            * self.dscom_out.ss3
-            * (self.dscom_out.sz1 + self.dscom_out.sz3 - 14 - 6 * self.dscom_out.emsq)
-        )
-        sghs = (
-            self.dscom_out.ss4 * zns * (self.dscom_out.sz31 + self.dscom_out.sz33 - 6)
-        )
-        shs = -zns * self.dscom_out.ss2 * (self.dscom_out.sz21 + self.dscom_out.sz23)
+        ses = ss1 * zns * ss5
+        sis = ss2 * zns * (sz11 + sz13)
+        sls = -zns * ss3 * (sz1 + sz3 - 14 - 6 * emsq)
+        sghs = ss4 * zns * (sz31 + sz33 - 6)
+        shs = -zns * ss2 * (sz21 + sz23)
         if inclm < incl_tol or inclm > np.pi - incl_tol:
             shs = 0
-        if self.dscom_out.sinim != 0:
-            shs /= self.dscom_out.sinim
-        sgs = sghs - self.dscom_out.cosim * shs
+        if sinim != 0:
+            shs /= sinim
+        sgs = sghs - cosim * shs
 
         # Lunar terms
-        out.dedt = ses + self.dscom_out.s1 * znl * self.dscom_out.s5
-        out.didt = sis + self.dscom_out.s2 * znl * (
-            self.dscom_out.z11 + self.dscom_out.z13
-        )
-        out.dmdt = sls - znl * self.dscom_out.s3 * (
-            self.dscom_out.z1 + self.dscom_out.z3 - 14 - 6 * self.dscom_out.emsq
-        )
-        sghl = self.dscom_out.s4 * znl * (self.dscom_out.z31 + self.dscom_out.z33 - 6)
-        shll = -znl * self.dscom_out.s2 * (self.dscom_out.z21 + self.dscom_out.z23)
+        out.dedt = ses + s1 * znl * s5
+        out.didt = sis + s2 * znl * (z11 + z13)
+        out.dmdt = sls - znl * s3 * (z1 + z3 - 14 - 6 * emsq)
+        sghl = s4 * znl * (z31 + z33 - 6)
+        shll = -znl * s2 * (z21 + z23)
         if inclm < incl_tol or inclm > np.pi - incl_tol:
             shll = 0
         out.domdt, out.dnodt = sgs + sghl, shs
-        if self.dscom_out.sinim != 0:
-            out.domdt -= self.dscom_out.cosim / self.dscom_out.sinim * shll
-            out.dnodt += shll / self.dscom_out.sinim
+        if sinim != 0:
+            out.domdt -= cosim / sinim * shll
+            out.dnodt += shll / sinim
 
         # Deep space resonance effects
         theta = np.remainder(gsto + tc * rptim, const.TWOPI)
