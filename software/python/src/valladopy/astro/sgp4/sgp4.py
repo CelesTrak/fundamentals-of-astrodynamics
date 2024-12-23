@@ -257,7 +257,7 @@ class SGP4:
 
         return startmfe, stopmfe, deltamin
 
-    def initl(self, epoch: float) -> SGP4InitOutput:
+    def initl(self, epoch: float):
         """Initialize parameters for the SPG4 propagator.
 
         References:
@@ -270,7 +270,7 @@ class SGP4:
             epoch (float): Epoch time in days from Jan 0, 1950, 0 hr
 
         Returns:
-            SGP4InitOutput: Dataclass encapsulating the initialized values
+            None
         """
         # Initialize output dataclass
         sgp4init_output = SGP4InitOutput()
@@ -326,7 +326,7 @@ class SGP4:
                 thgr70 + c1 * ids70 + c1p2p * tfrac + ts70 * ts70 * fk5r, const.TWOPI
             )
 
-        return sgp4init_output
+        self.sgp4init_out = sgp4init_output
 
     def _adjust_perigee(self, ss, qzms2t):
         """Adjusts sfour and qzms24 for perigees below 156 km."""
@@ -527,12 +527,11 @@ class SGP4:
         ss = 78 / self.grav_const.radiusearthkm + 1
         qzms2t = ((120 - 78) / self.grav_const.radiusearthkm) ** 4
 
-        # Initialize epoch-dependent values
-        self.satrec.t = 0
-        self.sgp4init_out = self.initl(epoch)
-        self.satrec.no = self.sgp4init_out.no_unkozai
+        # Initialize SGP4 variables
+        self.initl(epoch)
 
         # Calculate derived orbital parameters
+        self.satrec.no = self.sgp4init_out.no_unkozai
         self.satrec.a = (self.satrec.no * self.grav_const.tumin) ** (-2 / 3)
         self.satrec.alta = self.satrec.a * (1 + self.satrec.ecco) - 1
         self.satrec.altp = self.satrec.a * (1 - self.satrec.ecco) - 1

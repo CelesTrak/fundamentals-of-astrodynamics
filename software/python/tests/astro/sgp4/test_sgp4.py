@@ -38,11 +38,11 @@ def test_initl(epoch, oe_params):
     }
 
     # Call method
-    sgp4init_out = sgp4_obj.initl(epoch)
+    sgp4_obj.initl(epoch)
 
     # Check results
     for key in expected:
-        assert custom_isclose(getattr(sgp4init_out, key), expected[key])
+        assert custom_isclose(getattr(sgp4_obj.sgp4init_out, key), expected[key])
 
 
 @pytest.mark.parametrize(
