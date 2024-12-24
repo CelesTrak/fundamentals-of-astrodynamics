@@ -4,7 +4,7 @@ import pytest
 import src.valladopy.astro.sgp4.sgp4 as sgp4
 from src.valladopy.astro.sgp4.utils import WGSModel
 
-from ...conftest import DEFAULT_TOL, custom_isclose
+from ...conftest import DEFAULT_TOL, custom_isclose, custom_allclose
 
 
 def set_jd_startstop(sgp4_obj):
@@ -256,6 +256,7 @@ def test_propagate(ds, dscom_data, dsinit_data):
     sgp4_obj.satrec.cc4 = 1.20566234003616e-09
     sgp4_obj.satrec.t2cof = 2.91377375208131e-13
     # sgp4_obj.satrec.omgcof = -3.51047736558681e-21
+    sgp4_obj.satrec.xlcof = 0.00190327576313543
     # sgp4_obj.satrec.xmcof = -2.41052862598059e-15
     # sgp4_obj.satrec.x1mth2 = 0.810007295543882
     # sgp4_obj.satrec.x7thm1 = 0.329948931192823
@@ -273,4 +274,7 @@ def test_propagate(ds, dscom_data, dsinit_data):
     r, v = sgp4_obj.propagate(tsince=120)
 
     # Check results
-    assert True
+    r_expected = [15223.917136637867, -17852.958817081857, 25280.395582370667]
+    v_expected = [1.0790417322823393, 0.8751873723939548, 2.485682812729583]
+    assert custom_allclose(r, r_expected)
+    assert custom_allclose(v, v_expected)

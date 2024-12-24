@@ -833,13 +833,8 @@ class SGP4:
         vz = sini * cossu
 
         # Position and velocity vectors
-        r = np.array([mrt * ux, mrt * uy, mrt * uz]) * self.grav_const.radiusearthkm
-        v = (
-            np.array(
-                [mvt * ux + rvdot * vx, mvt * uy + rvdot * vy, mvt * uz + rvdot * vz]
-            )
-            * vkmpersec
-        )
+        r = np.array([ux, uy, uz]) * mrt * self.grav_const.radiusearthkm
+        v = (np.array([ux, uy, uz]) * mvt + np.array([vx, vy, vz]) * rvdot) * vkmpersec
 
         # Check for decay condition
         if mrt < 1:
