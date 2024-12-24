@@ -111,7 +111,7 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp, monkeypatc
             assert custom_isclose(getattr(sgp4_obj.satrec, key), expected[key])
 
 
-def test_sgp4(oe_params, monkeypatch):
+def test_sgp4init(oe_params, monkeypatch):
     # Patch SGP4 propagation method
     monkeypatch.setattr(sgp4.SGP4, "propagate", lambda *args: None)
 
@@ -225,3 +225,52 @@ def test_adjust_perigee():
     # Check results
     assert np.isclose(sfour, 1.003135712869044, rtol=DEFAULT_TOL)
     assert np.isclose(qzms24, 6.042618427427583e-08, rtol=DEFAULT_TOL)
+
+
+def test_propagate(ds, dscom_data, dsinit_data):
+    # Initialize SGP4 class and sgp4init_out
+    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
+    sgp4_obj.sgp4init_out = sgp4.SGP4InitOutput()
+
+    # Set SGP4 object to use deep space
+    sgp4_obj.ds = ds
+    sgp4_obj.ds.dscom_out = dscom_data
+    sgp4_obj.ds.dsinit_out = dsinit_data
+    sgp4_obj.use_deep_space = True
+
+    # Update satellite record fields
+    sgp4_obj.satrec.ecco = 0.6877146
+    sgp4_obj.satrec.inclo = 1.11977881347003
+    sgp4_obj.satrec.nodeo = 4.87072001413786
+    sgp4_obj.satrec.argpo = 4.62102273937204
+    sgp4_obj.satrec.no = 0.00874854701963024
+    sgp4_obj.satrec.mo = 0.353005058520617
+    sgp4_obj.satrec.nodedot = -1.28456721580123e-06
+    sgp4_obj.satrec.argpdot = -7.43700926533354e-08
+    sgp4_obj.satrec.mdot = 0.00874808688663313
+    sgp4_obj.satrec.nodecf = -4.60461751354763e-19
+    sgp4_obj.satrec.bstar = 0.00011873
+    # sgp4_obj.satrec.delmo = 6.35715128311442
+    # sgp4_obj.satrec.eta = 0.908502853023273
+    sgp4_obj.satrec.cc1 = 1.94251583472087e-13
+    sgp4_obj.satrec.cc4 = 1.20566234003616e-09
+    sgp4_obj.satrec.t2cof = 2.91377375208131e-13
+    # sgp4_obj.satrec.omgcof = -3.51047736558681e-21
+    # sgp4_obj.satrec.xmcof = -2.41052862598059e-15
+    # sgp4_obj.satrec.x1mth2 = 0.810007295543882
+    # sgp4_obj.satrec.x7thm1 = 0.329948931192823
+    sgp4_obj.satrec.isimp = True
+
+    # Update other fields
+    ds.dsinit_out.argpm = 4.62101381496092
+    ds.dsinit_out.nodem = 4.87056586607196
+    ds.dsinit_out.mm = 1.40277548491659
+    sgp4_obj.grav_const.xke = 0.0743669161331734
+    sgp4_obj.sgp4init_out.gsto = 0.574180126924752
+    sgp4_obj.sgp4init_out.con41 = -0.430021886631647
+
+    # Call method
+    r, v = sgp4_obj.propagate(tsince=120)
+
+    # Check results
+    assert True

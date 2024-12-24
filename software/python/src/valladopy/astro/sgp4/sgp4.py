@@ -606,18 +606,21 @@ class SGP4:
         # Propagate to zero epoch
         self.propagate(0)
 
-    def sgp4(self, tsince: float, n_iter: int = 10, tol: float = const.SMALL):
+    def propagate(
+        self, tsince: float, n_iter: int = 10, tol: float = const.SMALL
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Simplified General Perturbations 4 (SGP4) model.
 
         Args:
             tsince (float): Time since epoch in minutes.
-            n_iter (int, optional): Number of iterations for Kepler's equation (default = 10)
+            n_iter (int, optional): Number of iterations for solving Kepler's equation
+                                    (default = 10)
             tol (float, optional): Tolerance for small values (default = const.SMALL)
 
         Returns:
-            satrec (Satrec): Updated satellite record.
-            r (np.ndarray): Position vector in km.
-            v (np.ndarray): Velocity vector in km/s.
+            tuple: (r, v)
+                r (np.ndarray): ECI position vector in km.
+                v (np.ndarray): ECI Velocity vector in km/s.
         """
         # Initialize position and velocity vectors
         r, v = np.zeros(3), np.zeros(3)
@@ -664,7 +667,19 @@ class SGP4:
 
         nm, em, inclm = self.satrec.no, self.satrec.ecco, self.satrec.inclo
         if self.use_deep_space:
+            self.ds.dsinit_out.em = em
+            self.ds.dsinit_out.inclm = inclm
+            self.ds.dsinit_out.nm = nm
             self.ds.dspace(self.satrec, self.satrec.t, self.sgp4init_out.gsto)
+            out = self.ds.dsinit_out
+            em, inclm, nodem, argpm, nm, mm = (
+                out.em,
+                out.inclm,
+                out.nodem,
+                out.argpm,
+                out.nm,
+                out.mm,
+            )
 
         if nm <= 0:
             # Return early with error
@@ -673,7 +688,7 @@ class SGP4:
 
         am = (self.grav_const.xke / nm) ** self.x2o3 * tempa * tempa
         nm = self.grav_const.xke / am**1.5
-        em = em - tempe
+        em -= tempe
 
         if (em >= 1) or (em < -0.001) or (am < 0.95):
             # Return early with error
@@ -697,7 +712,21 @@ class SGP4:
 
         if self.use_deep_space:
             # Add lunar-solar periodics
+            self.ds.ep = ep
+            self.ds.inclp = xincp
+            self.ds.nodep = nodep
+            self.ds.argpp = argpp
+            self.ds.mp = mp
+
             self.ds.dpper(self.satrec.t)
+
+            ep, xincp, nodep, argpp, mp = (
+                self.ds.ep,
+                self.ds.inclp,
+                self.ds.nodep,
+                self.ds.argpp,
+                self.ds.mp,
+            )
 
             if xincp < 0:
                 xincp = -xincp
@@ -762,7 +791,7 @@ class SGP4:
         temp = esine / (1 + betal)
         sinu = am / rl * (sineo1 - aynl - axnl * temp)
         cosu = am / rl * (coseo1 - axnl + aynl * temp)
-        su = np.atan2(sinu, cosu)
+        su = np.arctan2(sinu, cosu)
         sin2u, cos2u = 2 * sinu * cosu, 1 - 2 * sinu**2
         temp = 1 / pl
         temp1 = 0.5 * self.grav_const.j2 * temp
@@ -817,9 +846,3 @@ class SGP4:
             self.satrec.error = 6
 
         return r, v
-
-    def propagate(self, t: float):
-        """
-        Perform the propagation for the satellite at time t.
-        """
-        pass
