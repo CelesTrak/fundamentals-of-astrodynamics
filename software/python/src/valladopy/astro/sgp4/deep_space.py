@@ -782,27 +782,13 @@ class DeepSpace:
 
         # Extract existing variables
         out = self.dsinit_out
-        atime, em, inclm, argpm, nm, mm, nodem, xli, xni = (
-            out.atime,
-            out.em,
-            out.inclm,
-            out.argpm,
-            out.nm,
-            out.mm,
-            out.nodem,
-            out.xli,
-            out.xni,
-        )
+        atime, em, inclm, argpm = out.atime, out.em, out.inclm, out.argpm
+        nm, mm, nodem, xli, xni = out.nm, out.mm, out.nodem, out.xli, out.xni
         d2201, d2211, d3210, d3222 = out.d2201, out.d2211, out.d3210, out.d3222
         d4410, d4422, d5220, d5232 = out.d4410, out.d4422, out.d5220, out.d5232
         d5421, d5433 = out.d5421, out.d5433
-        dedt, didt, dmdt, dnodt, domdt = (
-            out.dedt,
-            out.didt,
-            out.dmdt,
-            out.dnodt,
-            out.domdt,
-        )
+        dedt, didt, dmdt = out.dedt, out.didt, out.dmdt
+        dnodt, domdt = out.dnodt, out.domdt
         irez, xfact, xlamo = out.irez, out.xfact, out.xlamo
 
         # Initialize variables for deep space resonance effects calculation
