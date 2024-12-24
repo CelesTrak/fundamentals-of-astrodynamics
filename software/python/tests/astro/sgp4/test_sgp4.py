@@ -233,16 +233,14 @@ def test_adjust_perigee():
 
 
 @pytest.mark.parametrize(
-    "use_deep_space, isimp, r_expected, v_expected",
+    "use_deep_space, r_expected, v_expected",
     [
         (
-            True,
             True,
             [15223.917136637867, -17852.958817081857, 25280.395582370667],
             [1.0790417322823393, 0.8751873723939548, 2.485682812729583],
         ),
         (
-            False,
             False,
             [15258.747732593562, -17842.408055528413, 25305.446672098853],
             [1.0779326175214992, 0.8749235951487931, 2.482444210397105],
@@ -255,7 +253,6 @@ def test_propagate(
     dsinit_data,
     satrec_coeffs_nonds,
     use_deep_space,
-    isimp,
     r_expected,
     v_expected,
 ):
@@ -294,7 +291,7 @@ def test_propagate(
     sgp4_obj.satrec.xmcof = -2.41052862598059e-15
     sgp4_obj.satrec.x1mth2 = 0.810007295543882
     sgp4_obj.satrec.x7thm1 = 0.329948931192823
-    sgp4_obj.satrec.isimp = isimp
+    sgp4_obj.satrec.isimp = use_deep_space
 
     # Update other fields
     ds.dsinit_out.argpm = 4.62101381496092
