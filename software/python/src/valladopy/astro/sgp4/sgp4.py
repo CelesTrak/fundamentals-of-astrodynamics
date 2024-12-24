@@ -6,6 +6,7 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
@@ -19,6 +20,9 @@ from ..time.sidereal import gstime
 from .deep_space import DeepSpace
 from .utils import SatRec, WGSModel, getgravc
 
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Constants
 JD_EPOCH_1950 = 2433281.5
@@ -607,12 +611,12 @@ class SGP4:
         self.propagate(0)
 
     def propagate(
-        self, tsince: float, n_iter: int = 10, tol: float = const.SMALL
+        self, t: float, n_iter: int = 10, tol: float = const.SMALL
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Simplified General Perturbations 4 (SGP4) model.
 
         Args:
-            tsince (float): Time since epoch in minutes.
+            t (float): Time since epoch in minutes.
             n_iter (int, optional): Number of iterations for solving Kepler's equation
                                     (default = 10)
             tol (float, optional): Tolerance for small values (default = const.SMALL)
@@ -628,57 +632,59 @@ class SGP4:
         # Compute vkmpersec
         vkmpersec = self.grav_const.radiusearthkm * self.grav_const.xke / 60
 
-        # Clear sgp4 error flag
-        self.satrec.t = tsince
+        # Clear error flag and compute time-based quantities
+        self.satrec.t = t
         self.satrec.error = 0
+        xmdf = self.satrec.mo + self.satrec.mdot * t
+        argpdf = self.satrec.argpo + self.satrec.argpdot * t
+        nodedf = self.satrec.nodeo + self.satrec.nodedot * t
+        t2 = t**2
 
-        # Update for secular gravity and atmospheric drag
-        xmdf = self.satrec.mo + self.satrec.mdot * self.satrec.t
-        argpdf = self.satrec.argpo + self.satrec.argpdot * self.satrec.t
-        nodedf = self.satrec.nodeo + self.satrec.nodedot * self.satrec.t
-        argpm, mm = argpdf, xmdf
-        t2 = self.satrec.t**2
-        nodem = nodedf + self.satrec.nodecf * t2
-        tempa = 1 - self.satrec.cc1 * self.satrec.t
-        tempe = self.satrec.bstar * self.satrec.cc4 * self.satrec.t
+        # Initialize secular terms
+        argpm, mm, nodem = argpdf, xmdf, nodedf + self.satrec.nodecf * t2
+        tempa = 1 - self.satrec.cc1 * t
+        tempe = self.satrec.bstar * self.satrec.cc4 * t
         templ = self.satrec.t2cof * t2
 
         if not self.satrec.isimp:
-            delomg = self.satrec.omgcof * self.satrec.t
+            t3, t4 = t**3, t**4
+            d2, d3, d4 = self.satrec.d2, self.satrec.d3, self.satrec.d4
+            delomg = self.satrec.omgcof * t
             delm = self.satrec.xmcof * (
                 (1 + self.satrec.eta * np.cos(xmdf)) ** 3 - self.satrec.delmo
             )
             temp = delomg + delm
-            mm = xmdf + temp
-            argpm = argpdf - temp
-            t3 = t2 * self.satrec.t
-            t4 = t3 * self.satrec.t
-            tempa = (
-                tempa - self.satrec.d2 * t2 - self.satrec.d3 * t3 - self.satrec.d4 * t4
-            )
+            mm, argpm = xmdf + temp, argpdf - temp
+            tempa = tempa - d2 * t2 - d3 * t3 - d4 * t4
             tempe = tempe + self.satrec.bstar * self.satrec.cc5 * (
                 np.sin(mm) - self.satrec.sinmao
             )
             templ = (
                 templ
                 + self.satrec.t3cof * t3
-                + t4 * (self.satrec.t4cof + self.satrec.t * self.satrec.t5cof)
+                + t4 * (self.satrec.t4cof + t * self.satrec.t5cof)
             )
 
         nm, em, inclm = self.satrec.no, self.satrec.ecco, self.satrec.inclo
         if self.use_deep_space:
-            self.ds.dsinit_out.em = em
-            self.ds.dsinit_out.inclm = inclm
-            self.ds.dsinit_out.nm = nm
-            self.ds.dspace(self.satrec, self.satrec.t, self.sgp4init_out.gsto)
-            out = self.ds.dsinit_out
+            # Update `dsinit_out` inputs
+            self.ds.dsinit_out.em, self.ds.dsinit_out.inclm, self.ds.dsinit_out.nm = (
+                em,
+                inclm,
+                nm,
+            )
+
+            # Add deep space contributions to mean elements for perturbing 3rd body
+            self.ds.dspace(self.satrec, t, self.sgp4init_out.gsto)
+
+            # Unpack updated values directly from `dsinit_out`
             em, inclm, nodem, argpm, nm, mm = (
-                out.em,
-                out.inclm,
-                out.nodem,
-                out.argpm,
-                out.nm,
-                out.mm,
+                self.ds.dsinit_out.em,
+                self.ds.dsinit_out.inclm,
+                self.ds.dsinit_out.nodem,
+                self.ds.dsinit_out.argpm,
+                self.ds.dsinit_out.nm,
+                self.ds.dsinit_out.mm,
             )
 
         if nm <= 0:
@@ -686,10 +692,12 @@ class SGP4:
             self.satrec.error = 2
             return np.zeros(3), np.zeros(3)
 
-        am = (self.grav_const.xke / nm) ** self.x2o3 * tempa * tempa
+        # Compute some orbital elements
+        am = (self.grav_const.xke / nm) ** self.x2o3 * tempa**2
         nm = self.grav_const.xke / am**1.5
         em -= tempe
 
+        # Check if elements are within valid ranges
         if (em >= 1) or (em < -0.001) or (am < 0.95):
             # Return early with error
             self.satrec.error = 1
@@ -718,7 +726,7 @@ class SGP4:
             self.ds.argpp = argpp
             self.ds.mp = mp
 
-            self.ds.dpper(self.satrec.t)
+            self.ds.dpper(t)
 
             ep, xincp, nodep, argpp, mp = (
                 self.ds.ep,
@@ -776,7 +784,7 @@ class SGP4:
         # Short period preliminary quantities
         ecose = axnl * coseo1 + aynl * sineo1
         esine = axnl * sineo1 - aynl * coseo1
-        el2 = axnl * axnl + aynl * aynl
+        el2 = axnl**2 + aynl**2
         pl = am * (1 - el2)
 
         if pl < 0:
