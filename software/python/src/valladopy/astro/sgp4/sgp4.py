@@ -606,6 +606,218 @@ class SGP4:
         # Propagate to zero epoch
         self.propagate(0)
 
+    def sgp4(self, tsince: float, n_iter: int = 10, tol: float = const.SMALL):
+        """Simplified General Perturbations 4 (SGP4) model.
+
+        Args:
+            tsince (float): Time since epoch in minutes.
+            n_iter (int, optional): Number of iterations for Kepler's equation (default = 10)
+            tol (float, optional): Tolerance for small values (default = const.SMALL)
+
+        Returns:
+            satrec (Satrec): Updated satellite record.
+            r (np.ndarray): Position vector in km.
+            v (np.ndarray): Velocity vector in km/s.
+        """
+        # Initialize position and velocity vectors
+        r, v = np.zeros(3), np.zeros(3)
+
+        # Compute vkmpersec
+        vkmpersec = self.grav_const.radiusearthkm * self.grav_const.xke / 60
+
+        # Clear sgp4 error flag
+        self.satrec.t = tsince
+        self.satrec.error = 0
+
+        # Update for secular gravity and atmospheric drag
+        xmdf = self.satrec.mo + self.satrec.mdot * self.satrec.t
+        argpdf = self.satrec.argpo + self.satrec.argpdot * self.satrec.t
+        nodedf = self.satrec.nodeo + self.satrec.nodedot * self.satrec.t
+        argpm, mm = argpdf, xmdf
+        t2 = self.satrec.t**2
+        nodem = nodedf + self.satrec.nodecf * t2
+        tempa = 1 - self.satrec.cc1 * self.satrec.t
+        tempe = self.satrec.bstar * self.satrec.cc4 * self.satrec.t
+        templ = self.satrec.t2cof * t2
+
+        if not self.satrec.isimp:
+            delomg = self.satrec.omgcof * self.satrec.t
+            delm = self.satrec.xmcof * (
+                (1 + self.satrec.eta * np.cos(xmdf)) ** 3 - self.satrec.delmo
+            )
+            temp = delomg + delm
+            mm = xmdf + temp
+            argpm = argpdf - temp
+            t3 = t2 * self.satrec.t
+            t4 = t3 * self.satrec.t
+            tempa = (
+                tempa - self.satrec.d2 * t2 - self.satrec.d3 * t3 - self.satrec.d4 * t4
+            )
+            tempe = tempe + self.satrec.bstar * self.satrec.cc5 * (
+                np.sin(mm) - self.satrec.sinmao
+            )
+            templ = (
+                templ
+                + self.satrec.t3cof * t3
+                + t4 * (self.satrec.t4cof + self.satrec.t * self.satrec.t5cof)
+            )
+
+        nm, em, inclm = self.satrec.no, self.satrec.ecco, self.satrec.inclo
+        if self.use_deep_space:
+            self.ds.dspace(self.satrec, self.satrec.t, self.sgp4init_out.gsto)
+
+        if nm <= 0:
+            # Return early with error
+            self.satrec.error = 2
+            return np.zeros(3), np.zeros(3)
+
+        am = (self.grav_const.xke / nm) ** self.x2o3 * tempa * tempa
+        nm = self.grav_const.xke / am**1.5
+        em = em - tempe
+
+        if (em >= 1) or (em < -0.001) or (am < 0.95):
+            # Return early with error
+            self.satrec.error = 1
+            return r, v
+
+        em = max(em, 1e-6)
+        mm = mm + self.satrec.no * templ
+        xlm = mm + argpm + nodem
+        nodem = np.remainder(nodem, const.TWOPI)
+        argpm = np.remainder(argpm, const.TWOPI)
+        xlm = np.remainder(xlm, const.TWOPI)
+        mm = np.remainder(xlm - argpm - nodem, const.TWOPI)
+
+        # Compute extra mean quantities
+        sinim, cosim = np.sin(inclm), np.cos(inclm)
+
+        # Add lunar-solar periodics
+        ep, xincp, argpp, nodep, mp = em, inclm, argpm, nodem, mm
+        sinip, cosip = sinim, cosim
+
+        if self.use_deep_space:
+            # Add lunar-solar periodics
+            self.ds.dpper(self.satrec.t)
+
+            if xincp < 0:
+                xincp = -xincp
+                nodep += np.pi
+                argpp -= np.pi
+
+            if (ep < 0) or (ep > 1):
+                # Return early with error
+                self.satrec.error = 3
+                return r, v
+
+            # Long period periodics
+            sinip, cosip = np.sin(xincp), np.cos(xincp)
+            self.satrec.aycof = -0.5 * self.grav_const.j3oj2 * sinip
+            den = 1 + cosip if abs(cosip + 1) > tol else const.SMALL
+            self.satrec.xlcof = (
+                -0.25 * self.grav_const.j3oj2 * sinip * (3 + 5 * cosip) / den
+            )
+
+        axnl = ep * np.cos(argpp)
+        temp = 1 / (am * (1 - ep**2))
+        aynl = ep * np.sin(argpp) + temp * self.satrec.aycof
+        xl = mp + argpp + nodep + temp * self.satrec.xlcof * axnl
+
+        # Solve Kepler's equation
+        u = np.remainder(xl - nodep, const.TWOPI)
+        eo1, tem5, ktr = u, np.inf, 1
+        sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
+
+        while (abs(tem5) >= tol) and (ktr <= n_iter):
+            # Upate sine and cosine values for eo1
+            # TODO: this should be done at the end of the loop instead?
+            sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
+
+            # Compute correction
+            tem5 = 1 - coseo1 * axnl - sineo1 * aynl
+            tem5 = (u - aynl * coseo1 + axnl * sineo1 - eo1) / tem5
+
+            # Limit correction to avoid divergence
+            lim = 0.95
+            if abs(tem5) >= lim:
+                tem5 = lim if tem5 > 0 else -lim
+
+            eo1 += tem5
+            ktr += 1
+
+        # Short period preliminary quantities
+        ecose = axnl * coseo1 + aynl * sineo1
+        esine = axnl * sineo1 - aynl * coseo1
+        el2 = axnl * axnl + aynl * aynl
+        pl = am * (1 - el2)
+
+        if pl < 0:
+            # Return early with error
+            self.satrec.error = 4
+            return r, v
+
+        rl = am * (1 - ecose)
+        rdotl = np.sqrt(am) * esine / rl
+        rvdotl = np.sqrt(pl) / rl
+        betal = np.sqrt(1 - el2)
+        temp = esine / (1 + betal)
+        sinu = am / rl * (sineo1 - aynl - axnl * temp)
+        cosu = am / rl * (coseo1 - axnl + aynl * temp)
+        su = np.atan2(sinu, cosu)
+        sin2u, cos2u = 2 * sinu * cosu, 1 - 2 * sinu**2
+        temp = 1 / pl
+        temp1 = 0.5 * self.grav_const.j2 * temp
+        temp2 = temp1 * temp
+
+        # Update for short period periodics
+        if self.use_deep_space:
+            cosisq = cosip**2
+            self.sgp4init_out.con41 = 3 * cosisq - 1
+            self.satrec.x1mth2 = 1 - cosisq
+            self.satrec.x7thm1 = 7 * cosisq - 1
+
+        mrt = (
+            rl * (1 - 1.5 * temp2 * betal * self.sgp4init_out.con41)
+            + 0.5 * temp1 * self.satrec.x1mth2 * cos2u
+        )
+        su -= 0.25 * temp2 * self.satrec.x7thm1 * sin2u
+        xnode = nodep + 1.5 * temp2 * cosip * sin2u
+        xinc = xincp + 1.5 * temp2 * cosip * sinip * cos2u
+        mvt = rdotl - nm * temp1 * self.satrec.x1mth2 * sin2u / self.grav_const.xke
+        rvdot = (
+            rvdotl
+            + nm
+            * temp1
+            * (self.satrec.x1mth2 * cos2u + 1.5 * self.sgp4init_out.con41)
+            / self.grav_const.xke
+        )
+
+        # Orientation vectors
+        sinsu, cossu = np.sin(su), np.cos(su)
+        snod, cnod = np.sin(xnode), np.cos(xnode)
+        sini, cosi = np.sin(xinc), np.cos(xinc)
+        xmx, xmy = -snod * cosi, cnod * cosi
+        ux = xmx * sinsu + cnod * cossu
+        uy = xmy * sinsu + snod * cossu
+        uz = sini * sinsu
+        vx = xmx * cossu - cnod * sinsu
+        vy = xmy * cossu - snod * sinsu
+        vz = sini * cossu
+
+        # Position and velocity vectors
+        r = np.array([mrt * ux, mrt * uy, mrt * uz]) * self.grav_const.radiusearthkm
+        v = (
+            np.array(
+                [mvt * ux + rvdot * vx, mvt * uy + rvdot * vy, mvt * uz + rvdot * vz]
+            )
+            * vkmpersec
+        )
+
+        # Check for decay condition
+        if mrt < 1:
+            self.satrec.error = 6
+
+        return r, v
+
     def propagate(self, t: float):
         """
         Perform the propagation for the satellite at time t.
