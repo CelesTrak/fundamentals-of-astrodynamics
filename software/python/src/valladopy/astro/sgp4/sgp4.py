@@ -600,11 +600,8 @@ class SGP4:
             # Non-deep space initialization
             self._initialize_non_deep_space(tsi, sfour)
         else:
-            # Handle unexpected cases
-            # TODO: Check if it really makes sense to raise an error here
-            raise ValueError(
-                "Initialization skipped: Satellite is neither deep-space nor"
-                "non-deep-space. Check input parameters for inconsistencies."
+            logger.warning(
+                "Neither deep space nor non-deep space coefficients were initialized."
             )
 
         # Propagate to zero epoch
@@ -767,7 +764,7 @@ class SGP4:
         while (abs(tem5) >= tol) and (ktr <= n_iter):
             # Upate sine and cosine values for eo1
             # TODO: this should be done at the end of the loop instead?
-            sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
+            # sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
 
             # Compute correction
             tem5 = 1 - coseo1 * axnl - sineo1 * aynl
@@ -779,6 +776,7 @@ class SGP4:
                 tem5 = lim if tem5 > 0 else -lim
 
             eo1 += tem5
+            sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
             ktr += 1
 
         # Short period preliminary quantities

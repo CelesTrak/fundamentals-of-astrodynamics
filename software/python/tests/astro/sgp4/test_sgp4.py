@@ -124,7 +124,7 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp, monkeypatc
             assert custom_isclose(getattr(sgp4_obj.satrec, key), expected[key])
 
 
-def test_sgp4init(oe_params, monkeypatch):
+def test_sgp4init(oe_params, monkeypatch, caplog):
     # Patch SGP4 propagation method
     monkeypatch.setattr(sgp4.SGP4, "propagate", lambda *args: None)
 
@@ -189,10 +189,13 @@ def test_sgp4init(oe_params, monkeypatch):
     for key in satrec_expected:
         assert custom_isclose(getattr(sgp4_obj.satrec, key), satrec_expected[key])
 
-    # Check results for forced non-deep space case with mismatched inputs
+    # Check results for bypassing both deep space and non-deep space initialization
     sgp4_obj.satrec.no_kozai = 1
-    with pytest.raises(ValueError):
-        sgp4_obj.sgp4init(epoch)
+    sgp4_obj.sgp4init(epoch)
+    assert (
+        caplog.messages[0]
+        == "Neither deep space nor non-deep space coefficients were initialized."
+    )
 
 
 def test_initialize_non_deep_space(satrec_coeffs_nonds):
@@ -237,13 +240,13 @@ def test_adjust_perigee():
     [
         (
             True,
-            [15223.917136637867, -17852.958817081857, 25280.395582370667],
-            [1.0790417322823393, 0.8751873723939548, 2.485682812729583],
+            [15223.91713658215, -17852.95881712704, 25280.39558224235],
+            [1.0790417322899726, 0.8751873723850033, 2.4856828127422608],
         ),
         (
             False,
-            [15258.747732593562, -17842.408055528413, 25305.446672098853],
-            [1.0779326175214992, 0.8749235951487931, 2.482444210397105],
+            [15258.747732537906, -17842.40805557358, 25305.446671970716],
+            [1.0779326175291304, 0.8749235951398697, 2.4824442104097635],
         ),
     ],
 )
