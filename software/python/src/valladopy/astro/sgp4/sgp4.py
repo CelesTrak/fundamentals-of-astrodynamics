@@ -614,6 +614,7 @@ class SGP4:
         self.propagate(0)
 
     def _apply_secular_gravity_drag(self, t):
+        """Apply updates for secular gravity and atmospheric drag."""
         # Initialize secular terms
         t2 = t**2
         xmdf = self.satrec.mo + self.satrec.mdot * t
@@ -671,6 +672,15 @@ class SGP4:
             logger.error("Mean elements are out of range!")
             self.satrec.error = PropagationError.INVALID_ELEMENTS
 
+        # Update mean elements
+        em = max(em, 1e-6)
+        mm += self.satrec.no * templ
+        xlm = mm + argpm + nodem
+        nodem = np.remainder(nodem, const.TWOPI)
+        argpm = np.remainder(argpm, const.TWOPI)
+        xlm = np.remainder(xlm, const.TWOPI)
+        mm = np.remainder(xlm - argpm - nodem, const.TWOPI)
+
         return nm, em, inclm, nodem, argpm, mm, am, templ
 
     def _compute_ds_periodics(self, t, ep, xincp, nodep, argpp, mp, tol):
@@ -727,6 +737,28 @@ class SGP4:
 
         return axnl, aynl, xl, xincp, nodep, sinip, cosip
 
+    @staticmethod
+    def _solve_keplers_equation(xl, nodep, axnl, aynl, n_iter, tol, lim=0.95):
+        """Solve Kepler's equation"""
+        u = np.remainder(xl - nodep, const.TWOPI)
+        eo1, tem5, ktr = u, np.inf, 1
+        sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
+
+        while (abs(tem5) >= tol) and (ktr <= n_iter):
+            # Compute correction
+            tem5 = 1 - coseo1 * axnl - sineo1 * aynl
+            tem5 = (u - aynl * coseo1 + axnl * sineo1 - eo1) / tem5
+
+            # Limit correction to avoid divergence
+            if abs(tem5) >= lim:
+                tem5 = lim if tem5 > 0 else -lim
+
+            eo1 += tem5
+            sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
+            ktr += 1
+
+        return sineo1, coseo1
+
     def propagate(
         self, t: float, n_iter: int = 10, tol: float = const.SMALL
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -778,42 +810,17 @@ class SGP4:
         # Update for secular gravity and atmospheric drag
         nm, em, inclm, nodem, argpm, mm, am, templ = self._apply_secular_gravity_drag(t)
 
-        # Update mean elements
-        em = max(em, 1e-6)
-        mm += self.satrec.no * templ
-        xlm = mm + argpm + nodem
-        nodem = np.remainder(nodem, const.TWOPI)
-        argpm = np.remainder(argpm, const.TWOPI)
-        xlm = np.remainder(xlm, const.TWOPI)
-        mm = np.remainder(xlm - argpm - nodem, const.TWOPI)
-
         # Add lunar-solar periodics
         axnl, aynl, xl, xincp, nodep, sinip, cosip = self._compute_periodics(
             t, em, inclm, nodem, argpm, mm, am, tol
         )
 
         # Solve Kepler's equation
-        u = np.remainder(xl - nodep, const.TWOPI)
-        eo1, tem5, ktr = u, np.inf, 1
-        sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
+        sineo1, coseo1 = self._solve_keplers_equation(
+            xl, nodep, axnl, aynl, n_iter, tol
+        )
 
-        while (abs(tem5) >= tol) and (ktr <= n_iter):
-            # Compute correction
-            tem5 = 1 - coseo1 * axnl - sineo1 * aynl
-            tem5 = (u - aynl * coseo1 + axnl * sineo1 - eo1) / tem5
-
-            # Limit correction to avoid divergence
-            lim = 0.95
-            if abs(tem5) >= lim:
-                tem5 = lim if tem5 > 0 else -lim
-
-            eo1 += tem5
-            sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
-            ktr += 1
-
-        # Short period preliminary quantities
-        ecose = axnl * coseo1 + aynl * sineo1
-        esine = axnl * sineo1 - aynl * coseo1
+        # Calculate semi-latus rectum
         el2 = axnl**2 + aynl**2
         pl = am * (1 - el2)
 
@@ -824,6 +831,8 @@ class SGP4:
             return r, v
 
         # More short period preliminary quantities
+        ecose = axnl * coseo1 + aynl * sineo1
+        esine = axnl * sineo1 - aynl * coseo1
         rl = am * (1 - ecose)
         rdotl = np.sqrt(am) * esine / rl
         rvdotl = np.sqrt(pl) / rl
