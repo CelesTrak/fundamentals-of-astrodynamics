@@ -46,7 +46,7 @@ class SatRec(BaseModel):
     xfact: float = 0.0
     xlamo: float = 0.0
     atime: float = 0.0
-    error: int = 0
+    error: Enum = None
     t: float = 0.0
     aycof: float = 0.0
     xlcof: float = 0.0

@@ -83,7 +83,7 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp, monkeypatc
 
     # Expected sgp4_obj.satrec attributes
     expected = {
-        "error": 0,
+        "error": None,
         "satnum": 5,
         "classification": sgp4.Classification.Unclassified,
         "intldesg": "58002B_",

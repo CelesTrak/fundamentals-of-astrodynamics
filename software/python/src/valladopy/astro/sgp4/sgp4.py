@@ -717,7 +717,7 @@ class SGP4:
 
         return ep, xincp, nodep, argpp, mp, sinip, cosip
 
-    def _compute_periodics(self, t, em, inclm, nodem, argpm, mm, am, tol):
+    def _compute_long_periodics(self, t, em, inclm, nodem, argpm, mm, am, tol):
         """Compute lunar-solar and long period periodics."""
         # Initialize periodics
         ep, xincp, argpp, nodep, mp = em, inclm, argpm, nodem, mm
@@ -758,6 +758,50 @@ class SGP4:
             ktr += 1
 
         return sineo1, coseo1
+
+    def _compute_short_periodics(
+        self, am, nm, pl, el2, axnl, aynl, coseo1, sineo1, sinip, cosip, nodep, xincp
+    ):
+        """Compute short period periodics."""
+        ecose = axnl * coseo1 + aynl * sineo1
+        esine = axnl * sineo1 - aynl * coseo1
+        rl = am * (1 - ecose)
+        rdotl = np.sqrt(am) * esine / rl
+        rvdotl = np.sqrt(pl) / rl
+        betal = np.sqrt(1 - el2)
+        temp = esine / (1 + betal)
+        sinu = am / rl * (sineo1 - aynl - axnl * temp)
+        cosu = am / rl * (coseo1 - axnl + aynl * temp)
+        su = np.arctan2(sinu, cosu)
+        sin2u, cos2u = 2 * sinu * cosu, 1 - 2 * sinu**2
+        temp = 1 / pl
+        temp1 = 0.5 * self.grav_const.j2 * temp
+        temp2 = temp1 * temp
+
+        # Deep space for short period periodics
+        if self.use_deep_space:
+            cosisq = cosip**2
+            self.sgp4init_out.con41 = 3 * cosisq - 1
+            self.satrec.x1mth2 = 1 - cosisq
+            self.satrec.x7thm1 = 7 * cosisq - 1
+
+        mrt = (
+            rl * (1 - 1.5 * temp2 * betal * self.sgp4init_out.con41)
+            + 0.5 * temp1 * self.satrec.x1mth2 * cos2u
+        )
+        su -= 0.25 * temp2 * self.satrec.x7thm1 * sin2u
+        xnode = nodep + 1.5 * temp2 * cosip * sin2u
+        xinc = xincp + 1.5 * temp2 * cosip * sinip * cos2u
+        mvt = rdotl - nm * temp1 * self.satrec.x1mth2 * sin2u / self.grav_const.xke
+        rvdot = (
+            rvdotl
+            + nm
+            * temp1
+            * (self.satrec.x1mth2 * cos2u + 1.5 * self.sgp4init_out.con41)
+            / self.grav_const.xke
+        )
+
+        return mrt, su, xnode, xinc, mvt, rvdot
 
     def propagate(
         self, t: float, n_iter: int = 10, tol: float = const.SMALL
@@ -805,13 +849,13 @@ class SGP4:
         vkmpersec = self.grav_const.radiusearthkm * self.grav_const.xke / const.MIN2SEC
 
         # Clear error flag and compute time-based quantities
-        self.satrec.t, self.satrec.error = t, 0
+        self.satrec.t, self.satrec.error = t, None
 
         # Update for secular gravity and atmospheric drag
         nm, em, inclm, nodem, argpm, mm, am, templ = self._apply_secular_gravity_drag(t)
 
         # Add lunar-solar periodics
-        axnl, aynl, xl, xincp, nodep, sinip, cosip = self._compute_periodics(
+        axnl, aynl, xl, xincp, nodep, sinip, cosip = self._compute_long_periodics(
             t, em, inclm, nodem, argpm, mm, am, tol
         )
 
@@ -820,7 +864,7 @@ class SGP4:
             xl, nodep, axnl, aynl, n_iter, tol
         )
 
-        # Calculate semi-latus rectum
+        # Short period preliminary quantities
         el2 = axnl**2 + aynl**2
         pl = am * (1 - el2)
 
@@ -830,43 +874,9 @@ class SGP4:
             self.satrec.error = PropagationError.NEGATIVE_SEMILATUS_RECTUM
             return r, v
 
-        # More short period preliminary quantities
-        ecose = axnl * coseo1 + aynl * sineo1
-        esine = axnl * sineo1 - aynl * coseo1
-        rl = am * (1 - ecose)
-        rdotl = np.sqrt(am) * esine / rl
-        rvdotl = np.sqrt(pl) / rl
-        betal = np.sqrt(1 - el2)
-        temp = esine / (1 + betal)
-        sinu = am / rl * (sineo1 - aynl - axnl * temp)
-        cosu = am / rl * (coseo1 - axnl + aynl * temp)
-        su = np.arctan2(sinu, cosu)
-        sin2u, cos2u = 2 * sinu * cosu, 1 - 2 * sinu**2
-        temp = 1 / pl
-        temp1 = 0.5 * self.grav_const.j2 * temp
-        temp2 = temp1 * temp
-
-        # Update for short period periodics
-        if self.use_deep_space:
-            cosisq = cosip**2
-            self.sgp4init_out.con41 = 3 * cosisq - 1
-            self.satrec.x1mth2 = 1 - cosisq
-            self.satrec.x7thm1 = 7 * cosisq - 1
-
-        mrt = (
-            rl * (1 - 1.5 * temp2 * betal * self.sgp4init_out.con41)
-            + 0.5 * temp1 * self.satrec.x1mth2 * cos2u
-        )
-        su -= 0.25 * temp2 * self.satrec.x7thm1 * sin2u
-        xnode = nodep + 1.5 * temp2 * cosip * sin2u
-        xinc = xincp + 1.5 * temp2 * cosip * sinip * cos2u
-        mvt = rdotl - nm * temp1 * self.satrec.x1mth2 * sin2u / self.grav_const.xke
-        rvdot = (
-            rvdotl
-            + nm
-            * temp1
-            * (self.satrec.x1mth2 * cos2u + 1.5 * self.sgp4init_out.con41)
-            / self.grav_const.xke
+        # Compute short period periodics
+        mrt, su, xnode, xinc, mvt, rvdot = self._compute_short_periodics(
+            am, nm, pl, el2, axnl, aynl, coseo1, sineo1, sinip, cosip, nodep, xincp
         )
 
         # Orientation vectors
@@ -887,6 +897,6 @@ class SGP4:
 
         # Check for decay condition
         if mrt < 1:
-            self.satrec.error = 5
+            self.satrec.error = PropagationError.ORBITAL_DECAY
 
         return r, v
