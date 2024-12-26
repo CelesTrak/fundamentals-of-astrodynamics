@@ -137,6 +137,40 @@ class DsInitOutput:
 
 
 class DeepSpace:
+    """Class to compute deep space common terms for SGP4.
+
+    References:
+        - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
+        - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
+        - Hoots, Schumacher, and Glover, 2004
+        - Vallado, Crawford, Hujsak, Kelso, 2006
+
+    Args:
+        epoch (float): Epoch in days from 0 Jan 1950 0:00:00 UTC
+        ep (float): Eccentricity
+        inclp (float): Inclination in radians
+        nodep (float): Right ascension of ascending node in radians
+        argpp (float): Argument of perigee in radians
+        np_ (float): Mean motion in radians per minute
+        mp (float, optional): Mean anomaly in radians (default = 0)
+        use_afspc_mode (bool, optional): Use AFSPC mode for nodep (default = True)
+
+    Attributes:
+        epoch (float): Epoch in days from 0 Jan 1950 0:00:00 UTC
+        ep (float): Eccentricity
+        inclp (float): Inclination in radians
+        nodep (float): Right ascension of ascending node in radians
+        argpp (float): Argument of perigee in radians
+        np_ (float): Mean motion in radians per minute
+        mp (float): Mean anomaly in radians
+        use_afspc_mode (bool): Use AFSPC mode for nodep
+        dscom_out (DscomOutput): Deep space common terms output
+        dsinit_out (DsInitOutput): Deep space initialization output
+
+    TODO:
+        - This class could be further refactored/cleaned up for better readability.
+    """
+
     def __init__(
         self,
         epoch: float,
@@ -148,18 +182,6 @@ class DeepSpace:
         mp: float = 0,
         use_afspc_mode: bool = True,
     ):
-        """Initializes the DeepSpace class.
-
-        Args:
-            epoch (float): Epoch time in days from 0 Jan 1950 0:00:00 UTC
-            ep (float): Eccentricity
-            inclp (float): Inclination in radians
-            nodep (float): RAAN (right ascension of ascending node) in radians
-            argpp (float): Argument of perigee in radians
-            np_ (float): Mean motion in rad/s
-            mp (float): Mean anomaly in radians (default = 0)
-            use_afspc_mode (bool): Flag to use AFSPC mode (default = True)
-        """
         self.epoch = epoch
         self.ep = ep
         self.inclp = inclp
@@ -209,12 +231,6 @@ class DeepSpace:
         """Computes deep space common terms for SGP4 (used by both the secular and
         periodics subroutines).
 
-        References:
-            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
-            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
-            - Hoots, Schumacher, and Glover, 2004
-            - Vallado, Crawford, Hujsak, Kelso, 2006
-
         Args:
             tc (float): Time correction in minutes
 
@@ -225,10 +241,8 @@ class DeepSpace:
         out = DscomOutput()
 
         # Constants
-        zes = 0.01675
-        zel = 0.05490
-        c1ss = 2.9864797e-6
-        c1l = 4.7968065e-7
+        zes, zel = 0.01675, 0.05490
+        c1ss, c1l = 2.9864797e-6, 4.7968065e-7
         zsinis, zcosis = 0.39785416, 0.91744867
         zcosgs, zsings = 0.1945905, -0.98088458
 
@@ -382,12 +396,6 @@ class DeepSpace:
         """Deep space long period periodic contributions to mean elements.
 
         The method `dscom()` must be called prior to running this method!
-
-        References:
-            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
-            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
-            - Hoots, Schumacher, and Glover, 2004
-            - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
             t (float): Elapsed time since epoch in minutes
@@ -654,12 +662,6 @@ class DeepSpace:
 
         The method `dscom()` must be called prior to running this method!
 
-        References:
-            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
-            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
-            - Hoots, Schumacher, and Glover, 2004
-            - Vallado, Crawford, Hujsak, Kelso, 2006
-
         Args:
             satrec (SatRec): Satellite record dataclass
             xke (float): SGP4 constant
@@ -788,12 +790,6 @@ class DeepSpace:
         the satellite (mean motion).
 
         The method `dsinit()` must be called prior to running this method!
-
-        References:
-            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
-            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
-            - Hoots, Schumacher, and Glover, 2004
-            - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
             satrec (SatRec): Satellite record dataclass

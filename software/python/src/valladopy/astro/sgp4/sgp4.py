@@ -69,6 +69,38 @@ class PropagationError(Enum):
 
 
 class SGP4:
+    """Class for running the SGP4 propagator.
+
+    This class provides the necessary functions to propagate a satellite's orbit using
+    the Simplified General Perturbations 4 (SGP4) model.
+
+    References:
+        - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
+        - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
+        - Hoots, Schumacher, and Glover, 2004
+        - Vallado, Crawford, Hujsak, Kelso, 2006
+
+    Args:
+        wgs_model (WGSModel): The WGS model to use (default = WGSModel.WGS_84)
+        use_afspc_mode (bool): Flag to use AFSPC mode for GST calculation
+                               (default = True)
+
+    Attributes:
+        wgs_model (WGSModel): The WGS model to use
+        use_afspc_mode (bool): Flag to use AFSPC mode for GST calculation
+        grav_const (GravitationalConstants): Gravitational constants for the Earth
+        satrec (SatRec): Dataclass for satellite elements
+        use_deep_space (bool): Flag to use deep space model
+        x2o3 (float): 2/3 constant for deep space model
+        jdstart_full (float): Start Julian date for TLE start time calculation
+        jdstop_full (float): Stop Julian date for TLE stop time calculation
+        sgp4init_out (SGP4InitOutput): Output dataclass for SGP4 initialization
+        ds (DeepSpace): Deep space object for deep space model
+
+    TODO:
+        - This class could be further refactored/cleaned up for better readability.
+    """
+
     def __init__(
         self, wgs_model: WGSModel = WGSModel.WGS_84, use_afspc_mode: bool = True
     ):
@@ -269,12 +301,6 @@ class SGP4:
 
     def initl(self, epoch: float):
         """Initialize parameters for the SPG4 propagator.
-
-        References:
-            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
-            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
-            - Hoots, Schumacher, and Glover, 2004
-            - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
             epoch (float): Epoch time in days from Jan 0, 1950, 0 hr
@@ -515,12 +541,6 @@ class SGP4:
 
     def sgp4init(self, epoch: float, tol: float = const.SMALL):
         """Initializes variables for SGP4.
-
-        References:
-            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
-            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
-            - Hoots, Schumacher, and Glover, 2004
-            - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
             epoch (float): Epoch time in days from Jan 0, 1950 0 hr
@@ -814,12 +834,6 @@ class SGP4:
         development of the algorithm.
 
         Note: `sgp4init` must be called prior to running this function!
-
-        References:
-            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
-            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
-            - Hoots, Schumacher, and Glover, 2004
-            - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
             t (float): Time since epoch in minutes
