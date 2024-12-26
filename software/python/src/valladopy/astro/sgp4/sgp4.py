@@ -880,16 +880,13 @@ class SGP4:
         )
 
         # Orientation vectors
-        sinsu, cossu = np.sin(su), np.cos(su)
-        snod, cnod = np.sin(xnode), np.cos(xnode)
-        sini, cosi = np.sin(xinc), np.cos(xinc)
-        xmx, xmy = -snod * cosi, cnod * cosi
-        ux = xmx * sinsu + cnod * cossu
-        uy = xmy * sinsu + snod * cossu
-        uz = sini * sinsu
-        vx = xmx * cossu - cnod * sinsu
-        vy = xmy * cossu - snod * sinsu
-        vz = sini * cossu
+        xmx, xmy = -np.sin(xnode) * np.cos(xinc), np.cos(xnode) * np.cos(xinc)
+        ux = xmx * np.sin(su) + np.cos(xnode) * np.cos(su)
+        uy = xmy * np.sin(su) + np.sin(xnode) * np.cos(su)
+        uz = np.sin(xinc) * np.sin(su)
+        vx = xmx * np.cos(su) - np.cos(xnode) * np.sin(su)
+        vy = xmy * np.cos(su) - np.sin(xnode) * np.sin(su)
+        vz = np.sin(xinc) * np.cos(su)
 
         # Position and velocity vectors
         r = np.array([ux, uy, uz]) * mrt * self.grav_const.radiusearthkm
