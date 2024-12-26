@@ -673,42 +673,53 @@ class SGP4:
 
         return nm, em, inclm, nodem, argpm, mm, am, templ
 
+    def _compute_ds_periodics(self, t, ep, xincp, nodep, argpp, mp, tol):
+        """Compute deep space long period periodic contributions"""
+        # Set input values
+        self.ds.set_attributes(ep=ep, inclp=xincp, nodep=nodep, argpp=argpp, mp=mp)
+
+        # Add deep space periodics
+        self.ds.dpper(t)
+
+        # Retrieve updated values
+        ep, xincp, nodep, argpp, mp = self.ds.get_attributes(
+            "ep", "inclp", "nodep", "argpp", "mp"
+        )
+
+        # Handle inclination and node adjustments
+        if xincp < 0:
+            xincp = -xincp
+            nodep += np.pi
+            argpp -= np.pi
+
+        # Check eccentricity range
+        if (ep < 0) or (ep > 1):
+            logger.error(f"Perturbed eccentricity is out of range!: {ep: .2f}")
+            self.satrec.error = PropagationError.ECCENTRICITY_OUT_OF_RANGE
+
+        # Compute long period periodics
+        sinip, cosip = np.sin(xincp), np.cos(xincp)
+        self.satrec.aycof = -0.5 * self.grav_const.j3oj2 * sinip
+        den = 1 + cosip if abs(cosip + 1) > tol else const.SMALL
+        self.satrec.xlcof = (
+            -0.25 * self.grav_const.j3oj2 * sinip * (3 + 5 * cosip) / den
+        )
+
+        return ep, xincp, nodep, argpp, mp, sinip, cosip
+
     def _compute_periodics(self, t, em, inclm, nodem, argpm, mm, am, tol):
+        """Compute lunar-solar and long period periodics."""
         # Initialize periodics
         ep, xincp, argpp, nodep, mp = em, inclm, argpm, nodem, mm
         sinip, cosip = np.sin(inclm), np.cos(inclm)
 
+        # Update for deep space periodics
         if self.use_deep_space:
-            # Set input values
-            self.ds.set_attributes(ep=ep, inclp=xincp, nodep=nodep, argpp=argpp, mp=mp)
-
-            # Add deep space periodics
-            self.ds.dpper(t)
-
-            # Retrieve updated values
-            ep, xincp, nodep, argpp, mp = self.ds.get_attributes(
-                "ep", "inclp", "nodep", "argpp", "mp"
+            ep, xincp, nodep, argpp, mp, sinip, cosip = self._compute_ds_periodics(
+                t, ep, xincp, nodep, argpp, mp, tol
             )
 
-            # Handle inclination and node adjustments
-            if xincp < 0:
-                xincp = -xincp
-                nodep += np.pi
-                argpp -= np.pi
-
-            # Check eccentricity range
-            if (ep < 0) or (ep > 1):
-                logger.error(f"Perturbed eccentricity is out of range!: {ep: .2f}")
-                self.satrec.error = PropagationError.ECCENTRICITY_OUT_OF_RANGE
-
-            # Compute long period periodics
-            sinip, cosip = np.sin(xincp), np.cos(xincp)
-            self.satrec.aycof = -0.5 * self.grav_const.j3oj2 * sinip
-            den = 1 + cosip if abs(cosip + 1) > tol else const.SMALL
-            self.satrec.xlcof = (
-                -0.25 * self.grav_const.j3oj2 * sinip * (3 + 5 * cosip) / den
-            )
-
+        # Additional periodics
         axnl = ep * np.cos(argpp)
         temp = 1 / (am * (1 - ep**2))
         aynl = ep * np.sin(argpp) + temp * self.satrec.aycof
@@ -767,7 +778,7 @@ class SGP4:
         # Update for secular gravity and atmospheric drag
         nm, em, inclm, nodem, argpm, mm, am, templ = self._apply_secular_gravity_drag(t)
 
-        # Update mean orbital elements
+        # Update mean elements
         em = max(em, 1e-6)
         mm += self.satrec.no * templ
         xlm = mm + argpm + nodem
