@@ -56,10 +56,16 @@ class TypeRun(Enum):
 
 
 class Classification(Enum):
-    # fmt: off
-    """Classification of the satellite."""
     Unclassified = "U"
     Classified = "C"
+
+
+class PropagationError(Enum):
+    INVALID_ELEMENTS = 1
+    NEGATIVE_MEAN_MOTION = 2
+    ECCENTRICITY_OUT_OF_RANGE = 3
+    NEGATIVE_SEMILATUS_RECTUM = 4
+    ORBITAL_DECAY = 5
 
 
 class SGP4:
@@ -610,28 +616,50 @@ class SGP4:
     def propagate(
         self, t: float, n_iter: int = 10, tol: float = const.SMALL
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Simplified General Perturbations 4 (SGP4) model.
+        """Simplified General Perturbations 4 (SGP4) model from Space Command.
+
+        This is an updated and combined version of SGP4 and SDP4 algorithms, which
+        were originally published separately in SpaceTrack Report #3. This version
+        follows the methodology from the AIAA 2006 paper describing the history and
+        development of the algorithm.
+
+        Note: `sgp4init` must be called prior to running this function!
+
+        References:
+            - Hoots, Roehrich, NORAD SpaceTrack Report #3, 1980
+            - Hoots, Roehrich, NORAD SpaceTrack Report #6, 1986
+            - Hoots, Schumacher, and Glover, 2004
+            - Vallado, Crawford, Hujsak, Kelso, 2006
 
         Args:
-            t (float): Time since epoch in minutes.
+            t (float): Time since epoch in minutes
             n_iter (int, optional): Number of iterations for solving Kepler's equation
                                     (default = 10)
             tol (float, optional): Tolerance for small values (default = const.SMALL)
 
         Returns:
             tuple: (r, v)
-                r (np.ndarray): ECI position vector in km.
-                v (np.ndarray): ECI Velocity vector in km/s.
+                r (np.ndarray): ECI position vector in km
+                v (np.ndarray): ECI Velocity vector in km/s
+
+        Return codes for `satrec.error` (non-zero indicates an error)
+            1 - Mean elements, ecc >= 1.0 or ecc < -0.001 or a < 0.95 er
+            2 - Mean motion < 0.0
+            3 - Pert elements, ecc < 0.0  or  ecc > 1.0
+            4 - Semi-latus rectum < 0.0
+            5 - Satellite has decayed
+
+        TODO:
+            - Decide whether to return early if `satrec.error` is non-zero
         """
         # Initialize position and velocity vectors
         r, v = np.zeros(3), np.zeros(3)
 
         # Compute vkmpersec
-        vkmpersec = self.grav_const.radiusearthkm * self.grav_const.xke / 60
+        vkmpersec = self.grav_const.radiusearthkm * self.grav_const.xke / const.MIN2SEC
 
         # Clear error flag and compute time-based quantities
-        self.satrec.t = t
-        self.satrec.error = 0
+        self.satrec.t, self.satrec.error = t, 0
         xmdf = self.satrec.mo + self.satrec.mdot * t
         argpdf = self.satrec.argpo + self.satrec.argpdot * t
         nodedf = self.satrec.nodeo + self.satrec.nodedot * t
@@ -684,10 +712,10 @@ class SGP4:
                 self.ds.dsinit_out.mm,
             )
 
+        # Check if mean motion is less than zero
         if nm <= 0:
-            # Return early with error
-            self.satrec.error = 2
-            return np.zeros(3), np.zeros(3)
+            logger.error("Mean motion is less than zero!")
+            self.satrec.error = PropagationError.NEGATIVE_MEAN_MOTION
 
         # Compute some orbital elements
         am = (self.grav_const.xke / nm) ** self.x2o3 * tempa**2
@@ -696,10 +724,10 @@ class SGP4:
 
         # Check if elements are within valid ranges
         if (em >= 1) or (em < -0.001) or (am < 0.95):
-            # Return early with error
-            self.satrec.error = 1
-            return r, v
+            logger.error("Mean elements are out of range!")
+            self.satrec.error = PropagationError.INVALID_ELEMENTS
 
+        # Update mean orbital elements
         em = max(em, 1e-6)
         mm = mm + self.satrec.no * templ
         xlm = mm + argpm + nodem
@@ -738,10 +766,10 @@ class SGP4:
                 nodep += np.pi
                 argpp -= np.pi
 
+            # Check eccentricity range
             if (ep < 0) or (ep > 1):
-                # Return early with error
-                self.satrec.error = 3
-                return r, v
+                logger.error(f"Perturbed eccentricity is out of range!: {ep: .2f}")
+                self.satrec.error = PropagationError.ECCENTRICITY_OUT_OF_RANGE
 
             # Long period periodics
             sinip, cosip = np.sin(xincp), np.cos(xincp)
@@ -762,10 +790,6 @@ class SGP4:
         sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
 
         while (abs(tem5) >= tol) and (ktr <= n_iter):
-            # Upate sine and cosine values for eo1
-            # TODO: this should be done at the end of the loop instead?
-            # sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
-
             # Compute correction
             tem5 = 1 - coseo1 * axnl - sineo1 * aynl
             tem5 = (u - aynl * coseo1 + axnl * sineo1 - eo1) / tem5
@@ -785,11 +809,13 @@ class SGP4:
         el2 = axnl**2 + aynl**2
         pl = am * (1 - el2)
 
+        # Check semi-latus rectum and return if negative
         if pl < 0:
-            # Return early with error
-            self.satrec.error = 4
+            logger.error("Semi-latus rectum is negative!")
+            self.satrec.error = PropagationError.NEGATIVE_SEMILATUS_RECTUM
             return r, v
 
+        # More short period preliminary quantities
         rl = am * (1 - ecose)
         rdotl = np.sqrt(am) * esine / rl
         rvdotl = np.sqrt(pl) / rl
@@ -844,6 +870,6 @@ class SGP4:
 
         # Check for decay condition
         if mrt < 1:
-            self.satrec.error = 6
+            self.satrec.error = 5
 
         return r, v
