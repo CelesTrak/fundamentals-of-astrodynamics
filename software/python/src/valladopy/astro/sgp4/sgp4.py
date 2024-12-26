@@ -613,6 +613,109 @@ class SGP4:
         # Propagate to zero epoch
         self.propagate(0)
 
+    def _apply_secular_gravity_drag(self, t):
+        # Initialize secular terms
+        t2 = t**2
+        xmdf = self.satrec.mo + self.satrec.mdot * t
+        argpdf = self.satrec.argpo + self.satrec.argpdot * t
+        nodedf = self.satrec.nodeo + self.satrec.nodedot * t
+        argpm, mm, nodem = argpdf, xmdf, nodedf + self.satrec.nodecf * t2
+        nm, em, inclm = self.satrec.no, self.satrec.ecco, self.satrec.inclo
+        tempa = 1 - self.satrec.cc1 * t
+        tempe = self.satrec.bstar * self.satrec.cc4 * t
+        templ = self.satrec.t2cof * t2
+
+        # Check if non-deep space application
+        if not self.satrec.isimp:
+            t3, t4 = t**3, t**4
+            d2, d3, d4 = self.satrec.d2, self.satrec.d3, self.satrec.d4
+            delomg = self.satrec.omgcof * t
+            delm = self.satrec.xmcof * (
+                (1 + self.satrec.eta * np.cos(xmdf)) ** 3 - self.satrec.delmo
+            )
+            temp = delomg + delm
+            mm, argpm = xmdf + temp, argpdf - temp
+            tempa = tempa - d2 * t2 - d3 * t3 - d4 * t4
+            tempe = tempe + self.satrec.bstar * self.satrec.cc5 * (
+                np.sin(mm) - self.satrec.sinmao
+            )
+            templ = (
+                templ
+                + self.satrec.t3cof * t3
+                + t4 * (self.satrec.t4cof + t * self.satrec.t5cof)
+            )
+
+        # Check if deep space application
+        if self.use_deep_space:
+            # Update orbital elements
+            self.ds.set_mean_elems(em=em, inclm=inclm, nm=nm)
+
+            # Add deep space contributions to mean elements for perturbing 3rd body
+            self.ds.dspace(self.satrec, t, self.sgp4init_out.gsto)
+
+            # Unpack updated values directly from `dsinit_out`
+            em, inclm, nodem, argpm, nm, mm = self.ds.get_mean_elems()
+
+        # Check if mean motion is less than zero
+        if nm <= 0:
+            logger.error("Mean motion is less than zero!")
+            self.satrec.error = PropagationError.NEGATIVE_MEAN_MOTION
+
+        # Compute some orbital elements
+        am = (self.grav_const.xke / nm) ** self.x2o3 * tempa**2
+        nm = self.grav_const.xke / am**1.5
+        em -= tempe
+
+        # Check if elements are within valid ranges
+        if (em >= 1) or (em < -0.001) or (am < 0.95):
+            logger.error("Mean elements are out of range!")
+            self.satrec.error = PropagationError.INVALID_ELEMENTS
+
+        return nm, em, inclm, nodem, argpm, mm, am, templ
+
+    def _compute_periodics(self, t, em, inclm, nodem, argpm, mm, am, tol):
+        # Initialize periodics
+        ep, xincp, argpp, nodep, mp = em, inclm, argpm, nodem, mm
+        sinip, cosip = np.sin(inclm), np.cos(inclm)
+
+        if self.use_deep_space:
+            # Set input values
+            self.ds.set_attributes(ep=ep, inclp=xincp, nodep=nodep, argpp=argpp, mp=mp)
+
+            # Add deep space periodics
+            self.ds.dpper(t)
+
+            # Retrieve updated values
+            ep, xincp, nodep, argpp, mp = self.ds.get_attributes(
+                "ep", "inclp", "nodep", "argpp", "mp"
+            )
+
+            # Handle inclination and node adjustments
+            if xincp < 0:
+                xincp = -xincp
+                nodep += np.pi
+                argpp -= np.pi
+
+            # Check eccentricity range
+            if (ep < 0) or (ep > 1):
+                logger.error(f"Perturbed eccentricity is out of range!: {ep: .2f}")
+                self.satrec.error = PropagationError.ECCENTRICITY_OUT_OF_RANGE
+
+            # Compute long period periodics
+            sinip, cosip = np.sin(xincp), np.cos(xincp)
+            self.satrec.aycof = -0.5 * self.grav_const.j3oj2 * sinip
+            den = 1 + cosip if abs(cosip + 1) > tol else const.SMALL
+            self.satrec.xlcof = (
+                -0.25 * self.grav_const.j3oj2 * sinip * (3 + 5 * cosip) / den
+            )
+
+        axnl = ep * np.cos(argpp)
+        temp = 1 / (am * (1 - ep**2))
+        aynl = ep * np.sin(argpp) + temp * self.satrec.aycof
+        xl = mp + argpp + nodep + temp * self.satrec.xlcof * axnl
+
+        return axnl, aynl, xl, xincp, nodep, sinip, cosip
+
     def propagate(
         self, t: float, n_iter: int = 10, tol: float = const.SMALL
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -660,129 +763,23 @@ class SGP4:
 
         # Clear error flag and compute time-based quantities
         self.satrec.t, self.satrec.error = t, 0
-        xmdf = self.satrec.mo + self.satrec.mdot * t
-        argpdf = self.satrec.argpo + self.satrec.argpdot * t
-        nodedf = self.satrec.nodeo + self.satrec.nodedot * t
-        t2 = t**2
 
-        # Initialize secular terms
-        argpm, mm, nodem = argpdf, xmdf, nodedf + self.satrec.nodecf * t2
-        tempa = 1 - self.satrec.cc1 * t
-        tempe = self.satrec.bstar * self.satrec.cc4 * t
-        templ = self.satrec.t2cof * t2
-
-        if not self.satrec.isimp:
-            t3, t4 = t**3, t**4
-            d2, d3, d4 = self.satrec.d2, self.satrec.d3, self.satrec.d4
-            delomg = self.satrec.omgcof * t
-            delm = self.satrec.xmcof * (
-                (1 + self.satrec.eta * np.cos(xmdf)) ** 3 - self.satrec.delmo
-            )
-            temp = delomg + delm
-            mm, argpm = xmdf + temp, argpdf - temp
-            tempa = tempa - d2 * t2 - d3 * t3 - d4 * t4
-            tempe = tempe + self.satrec.bstar * self.satrec.cc5 * (
-                np.sin(mm) - self.satrec.sinmao
-            )
-            templ = (
-                templ
-                + self.satrec.t3cof * t3
-                + t4 * (self.satrec.t4cof + t * self.satrec.t5cof)
-            )
-
-        nm, em, inclm = self.satrec.no, self.satrec.ecco, self.satrec.inclo
-        if self.use_deep_space:
-            # Update `dsinit_out` inputs
-            self.ds.dsinit_out.em, self.ds.dsinit_out.inclm, self.ds.dsinit_out.nm = (
-                em,
-                inclm,
-                nm,
-            )
-
-            # Add deep space contributions to mean elements for perturbing 3rd body
-            self.ds.dspace(self.satrec, t, self.sgp4init_out.gsto)
-
-            # Unpack updated values directly from `dsinit_out`
-            em, inclm, nodem, argpm, nm, mm = (
-                self.ds.dsinit_out.em,
-                self.ds.dsinit_out.inclm,
-                self.ds.dsinit_out.nodem,
-                self.ds.dsinit_out.argpm,
-                self.ds.dsinit_out.nm,
-                self.ds.dsinit_out.mm,
-            )
-
-        # Check if mean motion is less than zero
-        if nm <= 0:
-            logger.error("Mean motion is less than zero!")
-            self.satrec.error = PropagationError.NEGATIVE_MEAN_MOTION
-
-        # Compute some orbital elements
-        am = (self.grav_const.xke / nm) ** self.x2o3 * tempa**2
-        nm = self.grav_const.xke / am**1.5
-        em -= tempe
-
-        # Check if elements are within valid ranges
-        if (em >= 1) or (em < -0.001) or (am < 0.95):
-            logger.error("Mean elements are out of range!")
-            self.satrec.error = PropagationError.INVALID_ELEMENTS
+        # Update for secular gravity and atmospheric drag
+        nm, em, inclm, nodem, argpm, mm, am, templ = self._apply_secular_gravity_drag(t)
 
         # Update mean orbital elements
         em = max(em, 1e-6)
-        mm = mm + self.satrec.no * templ
+        mm += self.satrec.no * templ
         xlm = mm + argpm + nodem
         nodem = np.remainder(nodem, const.TWOPI)
         argpm = np.remainder(argpm, const.TWOPI)
         xlm = np.remainder(xlm, const.TWOPI)
         mm = np.remainder(xlm - argpm - nodem, const.TWOPI)
 
-        # Compute extra mean quantities
-        sinim, cosim = np.sin(inclm), np.cos(inclm)
-
         # Add lunar-solar periodics
-        ep, xincp, argpp, nodep, mp = em, inclm, argpm, nodem, mm
-        sinip, cosip = sinim, cosim
-
-        if self.use_deep_space:
-            # Add lunar-solar periodics
-            self.ds.ep = ep
-            self.ds.inclp = xincp
-            self.ds.nodep = nodep
-            self.ds.argpp = argpp
-            self.ds.mp = mp
-
-            self.ds.dpper(t)
-
-            ep, xincp, nodep, argpp, mp = (
-                self.ds.ep,
-                self.ds.inclp,
-                self.ds.nodep,
-                self.ds.argpp,
-                self.ds.mp,
-            )
-
-            if xincp < 0:
-                xincp = -xincp
-                nodep += np.pi
-                argpp -= np.pi
-
-            # Check eccentricity range
-            if (ep < 0) or (ep > 1):
-                logger.error(f"Perturbed eccentricity is out of range!: {ep: .2f}")
-                self.satrec.error = PropagationError.ECCENTRICITY_OUT_OF_RANGE
-
-            # Long period periodics
-            sinip, cosip = np.sin(xincp), np.cos(xincp)
-            self.satrec.aycof = -0.5 * self.grav_const.j3oj2 * sinip
-            den = 1 + cosip if abs(cosip + 1) > tol else const.SMALL
-            self.satrec.xlcof = (
-                -0.25 * self.grav_const.j3oj2 * sinip * (3 + 5 * cosip) / den
-            )
-
-        axnl = ep * np.cos(argpp)
-        temp = 1 / (am * (1 - ep**2))
-        aynl = ep * np.sin(argpp) + temp * self.satrec.aycof
-        xl = mp + argpp + nodep + temp * self.satrec.xlcof * axnl
+        axnl, aynl, xl, xincp, nodep, sinip, cosip = self._compute_periodics(
+            t, em, inclm, nodem, argpm, mm, am, tol
+        )
 
         # Solve Kepler's equation
         u = np.remainder(xl - nodep, const.TWOPI)

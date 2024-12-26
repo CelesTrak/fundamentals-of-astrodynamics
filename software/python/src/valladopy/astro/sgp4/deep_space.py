@@ -7,6 +7,7 @@
 # --------------------------------------------------------------------------------------
 
 from dataclasses import dataclass
+from typing import Tuple
 
 import numpy as np
 
@@ -171,6 +172,38 @@ class DeepSpace:
         # Initialize output dataclasses
         self.dscom_out = None
         self.dsinit_out = None
+
+    def set_attributes(self, **kwargs):
+        """Set multiple attributes dynamically."""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def get_attributes(self, *args):
+        """Get multiple attributes dynamically."""
+        return tuple(getattr(self, key) for key in args)
+
+    def set_mean_elems(self, **kwargs):
+        """Set mean elements in dsinit_out."""
+        if not self.dsinit_out:
+            raise ValueError("dsinit_out not set. Run dsinit() first.")
+        for key, value in kwargs.items():
+            if hasattr(self.dsinit_out, key):
+                setattr(self.dsinit_out, key, value)
+            else:
+                raise AttributeError(f"'DsInitOutput' object has no attribute '{key}'")
+
+    def get_mean_elems(self) -> Tuple[float, float, float, float, float, float]:
+        """Get the dsinit_out mean elements."""
+        if not self.dsinit_out:
+            raise ValueError("dsinit_out not set. Run dsinit() first.")
+        return (
+            self.dsinit_out.em,
+            self.dsinit_out.inclm,
+            self.dsinit_out.nodem,
+            self.dsinit_out.argpm,
+            self.dsinit_out.nm,
+            self.dsinit_out.mm,
+        )
 
     def dscom(self, tc: float):
         """Computes deep space common terms for SGP4 (used by both the secular and
