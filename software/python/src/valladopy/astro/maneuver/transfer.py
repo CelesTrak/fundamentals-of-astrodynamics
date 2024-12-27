@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 1 March 2001
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 from typing import Tuple
 
@@ -50,13 +50,13 @@ def hohmann(
     """
     # Semi-major axes of initial, transfer, and final orbits
     ainit = utils.semimajor_axis(rinit, einit, nuinit)
-    atran = (rinit + rfinal) / 2.0
+    atran = (rinit + rfinal) / 2
     afinal = utils.semimajor_axis(rfinal, efinal, nufinal)
 
     # Initialize outputs
-    deltava, deltavb, dtsec = 0.0, 0.0, 0.0
+    deltava, deltavb, dtsec = 0, 0, 0
 
-    if einit < 1.0 or efinal < 1.0:
+    if einit < 1 or efinal < 1:
         # Calculate delta-v at point A
         vinit = utils.velocity_mag(rinit, ainit)
         vtrana = utils.velocity_mag(rinit, atran)
@@ -111,10 +111,10 @@ def bielliptic(
     afinal = utils.semimajor_axis(rfinal, efinal, nufinal)
 
     # Initialize outputs
-    deltava, deltavb, deltavc, dtsec = 0.0, 0.0, 0.0, 0.0
+    deltava, deltavb, deltavc, dtsec = 0, 0, 0, 0
 
     # Check if inputs represent elliptical orbits
-    if einit < 1.0 and efinal < 1.0:
+    if einit < 1 and efinal < 1:
         # Calculate delta-v at point A
         vinit = utils.velocity_mag(rinit, ainit)
         vtran1a = utils.velocity_mag(rinit, atran1)
@@ -173,23 +173,23 @@ def one_tangent(
         ValueError: If the one-tangent burn is not possible for the given inputs
     """
     # Initialize transfer time
-    dtsec = 0.0
+    dtsec = 0
 
     # Ratio of initial to final orbit radii
     ratio = rinit / rfinal
 
     # Determine eccentricity of transfer orbit
     if abs(nuinit) < 0.01:  # near 0 or 180 degrees
-        etran = (ratio - 1.0) / (np.cos(nutran) - ratio)
+        etran = (ratio - 1) / (np.cos(nutran) - ratio)
     else:
-        etran = (ratio - 1.0) / (np.cos(nutran) + ratio)
+        etran = (ratio - 1) / (np.cos(nutran) + ratio)
 
     # Check if transfer orbit is valid
-    if etran >= 0.0:
+    if etran >= 0:
         # Semi-major axes of initial, final, and transfer orbits
         afinal = utils.semimajor_axis(rfinal, efinal, nutran)
 
-        if abs(etran - 1.0) > tol:
+        if abs(etran - 1) > tol:
             atran = utils.semimajor_axis(rinit, etran, nuinit)
         else:
             atran = np.inf  # parabolic orbit (infinite semi-major axis)
@@ -202,18 +202,18 @@ def one_tangent(
         # Calculate delta-V at point B
         vfinal = utils.velocity_mag(rfinal, afinal)
         vtranb = utils.velocity_mag(rfinal, atran)
-        fpatranb = np.arctan2(etran * np.sin(nutran), 1.0 + etran * np.cos(nutran))
-        fpafinal = np.arctan2(efinal * np.sin(nutran), 1.0 + efinal * np.cos(nutran))
+        fpatranb = np.arctan2(etran * np.sin(nutran), 1 + etran * np.cos(nutran))
+        fpafinal = np.arctan2(efinal * np.sin(nutran), 1 + efinal * np.cos(nutran))
         deltavb = utils.deltav(vfinal, vtranb, fpatranb - fpafinal)
 
         # Calculate time of flight
-        if etran < 1.0:
-            sinv = (np.sqrt(1.0 - etran**2) * np.sin(nutran)) / (
-                1.0 + etran * np.cos(nutran)
+        if etran < 1:
+            sinv = (np.sqrt(1 - etran**2) * np.sin(nutran)) / (
+                1 + etran * np.cos(nutran)
             )
-            cosv = (etran + np.cos(nutran)) / (1.0 + etran * np.cos(nutran))
+            cosv = (etran + np.cos(nutran)) / (1 + etran * np.cos(nutran))
             e = np.arctan2(sinv, cosv)
-            eainit = 0.0 if abs(nuinit) < 0.01 else np.pi
+            eainit = 0 if abs(nuinit) < 0.01 else np.pi
             dtsec = np.sqrt(atran**3 / const.MU) * (
                 e - etran * np.sin(e) - (eainit - etran * np.sin(eainit))
             )
@@ -245,7 +245,7 @@ def incl_only(deltai: float, vinit: float, fpa: float) -> float:
     Notes:
         - Units are flexible for `vinit` and the output will match its units
     """
-    return 2.0 * vinit * np.cos(fpa) * np.sin(0.5 * deltai)
+    return 2 * vinit * np.cos(fpa) * np.sin(0.5 * deltai)
 
 
 def node_only(
@@ -285,7 +285,7 @@ def node_only(
         # Elliptical orbit
         theta = np.arctan(np.sin(iinit) * np.tan(deltaraan))
         ifinal = np.arcsin(np.sin(theta) / np.sin(deltaraan))
-        deltav = 2.0 * vinit * np.cos(fpa) * np.sin(0.5 * theta)
+        deltav = 2 * vinit * np.cos(fpa) * np.sin(0.5 * theta)
 
         # Initial argument of latitude
         arglat_init = np.pi / 2  # set at 90 degrees
@@ -294,7 +294,7 @@ def node_only(
         # Circular orbit
         ifinal = incl
         theta = np.arccos(np.cos(iinit) ** 2 + np.sin(iinit) ** 2 * np.cos(deltaraan))
-        deltav = 2.0 * vinit * np.sin(0.5 * theta)
+        deltav = 2 * vinit * np.sin(0.5 * theta)
 
         # Initial argument of latitude
         arglat_init = np.arccos(
@@ -303,7 +303,7 @@ def node_only(
 
     # Final argument of latitude
     arglat_final = np.arccos(
-        (np.cos(incl) * np.sin(incl) * (1.0 - np.cos(deltaraan))) / np.sin(theta)
+        (np.cos(incl) * np.sin(incl) * (1 - np.cos(deltaraan))) / np.sin(theta)
     )
 
     return ifinal, deltav, arglat_init, arglat_final
@@ -399,9 +399,9 @@ def min_combined(
             dtsec (float): Time of flight for the transfer in seconds
     """
     # Compute semi-major axes
-    a1 = (rinit * (1.0 + einit * np.cos(nuinit))) / (1.0 - einit**2)
+    a1 = (rinit * (1 + einit * np.cos(nuinit))) / (1 - einit**2)
     a2 = 0.5 * (rinit + rfinal)
-    a3 = (rfinal * (1.0 + efinal * np.cos(nufinal))) / (1.0 - efinal**2)
+    a3 = (rfinal * (1 + efinal * np.cos(nufinal))) / (1 - efinal**2)
 
     # Compute velocities
     vinit = utils.velocity_mag(rinit, a1)
@@ -413,15 +413,15 @@ def min_combined(
     tdi = ifinal - iinit
 
     # Delta-Vs
-    temp = (1.0 / tdi) * np.arctan(
+    temp = (1 / tdi) * np.arctan(
         np.sin(tdi) / ((rfinal / rinit) ** 1.5 + np.cos(tdi))
     )
     deltava = utils.deltav(v1t, vinit, temp * tdi)
-    deltavb = utils.deltav(v3t, vfinal, tdi * (1.0 - temp))
+    deltavb = utils.deltav(v3t, vfinal, tdi * (1 - temp))
 
     # Inclination change
     deltai_init = temp * tdi
-    deltai_final = tdi * (1.0 - temp)
+    deltai_final = tdi * (1 - temp)
 
     # Compute transfer time of flight
     dtsec = utils.time_of_flight(a2)
@@ -430,7 +430,7 @@ def min_combined(
         return deltai_init, deltai_final, deltava, deltavb, dtsec
 
     # Iterative optimization
-    deltai_final_iter, n_iter = 100.0, 0
+    deltai_final_iter, n_iter = 100, 0
     while abs(deltai_init - deltai_final_iter) > tol:
         deltai_final_iter = deltai_init
         deltava = utils.deltav(v1t, vinit, deltai_final_iter)
@@ -485,9 +485,9 @@ def combined(
 
     # Proportions of inclination change
     ratio = rfinal / rinit
-    s = (1.0 / deltai) * np.arctan(np.sin(deltai) / (ratio**1.5 + np.cos(deltai)))
+    s = (1 / deltai) * np.arctan(np.sin(deltai) / (ratio**1.5 + np.cos(deltai)))
     deltai1 = s * deltai
-    deltai2 = (1.0 - s) * deltai
+    deltai2 = (1 - s) * deltai
 
     # Delta-v calculations
     deltava = utils.deltav(vinit, vtransa, deltai1)
@@ -497,8 +497,8 @@ def combined(
     dtsec = utils.time_of_flight(atran)
 
     # Firing angles
-    gama = np.arccos(-(vinit**2 + deltava**2 - vtransa**2) / (2.0 * vinit * deltava))
-    gamb = np.arccos(-(vtransb**2 + deltavb**2 - vfinal**2) / (2.0 * vtransb * deltavb))
+    gama = np.arccos(-(vinit**2 + deltava**2 - vtransa**2) / (2 * vinit * deltava))
+    gamb = np.arccos(-(vtransb**2 + deltavb**2 - vfinal**2) / (2 * vtransb * deltavb))
 
     return deltai1, deltai2, deltava, deltavb, dtsec, gama, gamb
 
@@ -551,16 +551,16 @@ def rendezvous_coplanar(
     # Same orbit case
     if abs(angvelint - angveltgt) < tol:
         periodtrans = (ktgt * const.TWOPI + phasei) / angveltgt
-        atrans = (const.MU * (periodtrans / (const.TWOPI * kint)) ** 2) ** (1.0 / 3.0)
+        atrans = (const.MU * (periodtrans / (const.TWOPI * kint)) ** 2) ** (1 / 3)
 
         # Check for intersection with Earth
-        rp = 2.0 * atrans - rcsint
-        if rp < 1.0:
+        rp = 2 * atrans - rcsint
+        if rp < 1:
             raise ValueError("Error: the transfer orbit intersects the Earth.")
 
         # Calculate delta-V
-        vtrans = np.sqrt((2.0 * const.MU / rcsint) - (const.MU / atrans))
-        deltav = 2.0 * (vtrans - vint)
+        vtrans = np.sqrt((2 * const.MU / rcsint) - (const.MU / atrans))
+        deltav = 2 * (vtrans - vint)
 
         # Calculate final phase angle and wait time
         phasef = phasei
@@ -568,21 +568,21 @@ def rendezvous_coplanar(
 
     else:
         # Different orbits
-        atrans = (rcsint + rcstgt) / 2.0
+        atrans = (rcsint + rcstgt) / 2
         dttutrans = np.pi * np.sqrt(atrans**3 / const.MU)
 
         # Calculate final phase angle
         leadang = angveltgt * dttutrans
         phasef = np.pi - leadang
-        if phasef < 0.0:
+        if phasef < 0:
             phasef += np.pi
 
         # Calculate wait time
-        waittime = (phasef - phasei + 2.0 * np.pi * ktgt) / (angvelint - angveltgt)
+        waittime = (phasef - phasei + const.TWOPI * ktgt) / (angvelint - angveltgt)
 
         # Semi-major axes
         a1 = utils.semimajor_axis(rcsint, einit, nuinit)
-        a2 = (rcsint + rcstgt) / 2.0
+        a2 = (rcsint + rcstgt) / 2
         a3 = utils.semimajor_axis(rcstgt, efinal, nufinal)
 
         # Delta-V at point A
