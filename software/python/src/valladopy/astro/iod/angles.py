@@ -56,7 +56,7 @@ def calculate_los_vectors(decl: list[float], rtasc: list[float]) -> list[np.ndar
     ]
 
 
-def anglesl(
+def laplace(
     decl1: float,
     decl2: float,
     decl3: float,
@@ -122,9 +122,9 @@ def anglesl(
     s1 = -tau32 / (tau12 * tau13)
     s2 = (tau12 + tau32) / (tau12 * tau32)
     s3 = -tau12 / (-tau13 * tau32)
-    s4 = 2.0 / (tau12 * tau13)
-    s5 = 2.0 / (tau12 * tau32)
-    s6 = 2.0 / (-tau13 * tau32)
+    s4 = 2 / (tau12 * tau13)
+    s5 = 2 / (tau12 * tau32)
+    s6 = 2 / (-tau13 * tau32)
 
     # First and second derivatives of los2
     ldot = s1 * los1 + s2 * los2 + s3 * los3
@@ -159,17 +159,17 @@ def anglesl(
     # Solve the 8th-order polynomial
     l2dotrs = np.dot(los2, rseci2)
     poly = np.zeros(9)
-    poly[0] = 1.0
-    poly[2] = l2dotrs * 4.0 * d1 / d - 4.0 * d1**2 / d**2 - np.linalg.norm(rseci2) ** 2
-    poly[5] = const.MU * (l2dotrs * 4.0 * d2 / d - 8.0 * d1 * d2 / d**2)
-    poly[8] = -4.0 * const.MU**2 * d2**2 / d**2
+    poly[0] = 1
+    poly[2] = l2dotrs * 4 * d1 / d - 4 * d1**2 / d**2 - np.linalg.norm(rseci2) ** 2
+    poly[5] = const.MU * (l2dotrs * 4 * d2 / d - 8 * d1 * d2 / d**2)
+    poly[8] = -4 * const.MU**2 * d2**2 / d**2
     roots = np.roots(poly)
 
     # Select the appropriate root
     bigr2 = max(root.real for root in roots if root.imag == 0 and root.real > 0)
 
     # Solve for rho and rho dot
-    rho = -2.0 * d1 / d - 2.0 * const.MU * d2 / (bigr2**3 * d)
+    rho = -2 * d1 / d - 2 * const.MU * d2 / (bigr2**3 * d)
     rhodot = -d3 / d - const.MU * d4 / (bigr2**3 * d)
 
     # Position and velocity vectors at the middle
@@ -238,7 +238,7 @@ def _update_fg_series(
     return f1, g1, f3, g3
 
 
-def anglesg(
+def gauss(
     decl1: float,
     decl2: float,
     decl3: float,
@@ -383,7 +383,7 @@ def anglesg(
     return r2, v2
 
 
-def doubler(
+def doubler_iter(
     magr1in: float,
     magr2in: float,
     los1: ArrayLike,
@@ -434,22 +434,22 @@ def doubler(
     """
     # Define default range value for when the square root is negative
     # Use this because hyperbolic likely at shorter times, lower alt
-    default_range = 300.0
+    default_range = 300
 
     # Range coefficients
-    cc1 = 2.0 * np.dot(los1, rsite1)
-    cc2 = 2.0 * np.dot(los2, rsite2)
+    cc1 = 2 * np.dot(los1, rsite1)
+    cc2 = 2 * np.dot(los2, rsite2)
 
     # Magnitude of the site position vectors
     magrsite1 = np.linalg.norm(rsite1)
     magrsite2 = np.linalg.norm(rsite2)
 
     # Compute rho1 and rho2
-    tempsq1 = cc1**2 - 4.0 * (magrsite1**2 - magr1in**2)
-    tempsq1 = default_range if tempsq1 < 0.0 else tempsq1
+    tempsq1 = cc1**2 - 4 * (magrsite1**2 - magr1in**2)
+    tempsq1 = default_range if tempsq1 < 0 else tempsq1
     rho1 = (-cc1 + np.sqrt(tempsq1)) * 0.5
-    tempsq2 = cc2**2 - 4.0 * (magrsite2**2 - magr2in**2)
-    tempsq2 = default_range if tempsq2 < 0.0 else tempsq2
+    tempsq2 = cc2**2 - 4 * (magrsite2**2 - magr2in**2)
+    tempsq2 = default_range if tempsq2 < 0 else tempsq2
     rho2 = (-cc2 + np.sqrt(tempsq2)) * 0.5
 
     # Compute r1 and r2
@@ -471,7 +471,7 @@ def doubler(
 
     # Delta true anomaly between obs 3 and 1
     cosdv31 = np.dot(r3, r1) / (magr3 * magr1)
-    sindv31 = np.sqrt(1.0 - cosdv31**2)
+    sindv31 = np.sqrt(1 - cosdv31**2)
     dv31 = np.arctan2(sindv31, cosdv31) + const.TWOPI * n13
 
     # Delta true anomaly between obs 3 and 2
@@ -504,8 +504,8 @@ def doubler(
     a = p / (1 - e**2)
 
     # Compute the delta mean and eccentric anomalies
-    deltam12 = 0.0
-    if e**2 < 1.0:
+    deltam12 = 0
+    if e**2 < 1:
         # Non-hyperbolic case
         n = np.sqrt(const.MU / a**3)
         s = magr2 / p * np.sqrt(1 - e**2) * esinv2
@@ -551,7 +551,7 @@ def doubler(
     return r2, r3, f1, f2, q1, magr1, magr2, a, deltae32
 
 
-def anglesdr(
+def doubler(
     decl1: float,
     decl2: float,
     decl3: float,
@@ -611,7 +611,7 @@ def anglesdr(
             magr2in += deltar2
 
         # Call doubler to compute intermediate values
-        _, _, f1, f2, q, *_ = doubler(
+        _, _, f1, f2, q, *_ = doubler_iter(
             magr1in,
             magr2in,
             los1,
@@ -691,7 +691,7 @@ def anglesdr(
         pctchg *= 0.5
 
     # Final calculation for updated r2 and v2
-    r2, r3, _, _, _, _, magr2, a, deltae32 = doubler(
+    r2, r3, _, _, _, _, magr2, a, deltae32 = doubler_iter(
         magr1in,
         magr2in,
         los1,
@@ -707,7 +707,7 @@ def anglesdr(
         n23,
     )
 
-    f = 1.0 - a / magr2 * (1.0 - np.cos(deltae32))
+    f = 1 - a / magr2 * (1 - np.cos(deltae32))
     g = tau32 - np.sqrt(a**3 / const.MU) * (deltae32 - np.sin(deltae32))
     v2 = (r3 - f * r2) / g
 

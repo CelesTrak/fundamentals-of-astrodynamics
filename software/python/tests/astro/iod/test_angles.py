@@ -104,7 +104,7 @@ def test_calculation_los_vectors(obs_data, los_vectors):
 )
 def test_angles_laplace(obs_data, site_data, diffsites, reci_expected, veci_expected):
     # Calculate position and velocity vectors
-    reci, veci = angles.anglesl(*obs_data, diffsites, *site_data)
+    reci, veci = angles.laplace(*obs_data, diffsites, *site_data)
 
     # Expected results
     assert np.allclose(reci, reci_expected, rtol=DEFAULT_TOL)
@@ -117,20 +117,20 @@ def test_angles_gauss(obs_data, site_data):
     veci_expected = [-4.185488280436629, 4.7884929168898145, 1.721714659663034]
 
     # Calculate position and velocity vectors
-    reci, veci = angles.anglesg(*obs_data, *site_data)
+    reci, veci = angles.gauss(*obs_data, *site_data)
 
     # Expected results
     assert np.allclose(reci, reci_expected, rtol=DEFAULT_TOL)
     assert np.allclose(veci, veci_expected, rtol=DEFAULT_TOL)
 
 
-def test_doubler(site_data, range_data, time_intervals, los_vectors):
+def test_doubler_iter(site_data, range_data, time_intervals, los_vectors):
     # Input data
     tau12, _, tau32 = time_intervals
     n12, n13, n23 = 0.12, 1.23, 2.34
 
     # Calculate outputs
-    r2, r3, f1, f2, q1, magr1, magr2, a, deltae32 = angles.doubler(
+    r2, r3, f1, f2, q1, magr1, magr2, a, deltae32 = angles.doubler_iter(
         *range_data, *los_vectors, *site_data, tau12, tau32, n12, n13, n23
     )
 
@@ -154,7 +154,7 @@ def test_angles_doubler(obs_data, site_data, range_data):
     veci_expected = [-4.172963733537418, 4.77645053907524, 1.7201932997557194]
 
     # Calculate position and velocity vectors
-    reci, veci = angles.anglesdr(*obs_data, *site_data, *range_data)
+    reci, veci = angles.doubler(*obs_data, *site_data, *range_data)
 
     # Expected results
     assert np.allclose(reci, reci_expected, rtol=DEFAULT_TOL)
