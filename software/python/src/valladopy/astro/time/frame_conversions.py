@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 27 May 2002
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 
 import numpy as np
@@ -67,9 +67,9 @@ def calc_orbit_effects(
     return prec, nut, st, pm, omegaearth
 
 
-###############################################################################
+########################################################################################
 # ECI <-> ECEF Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def compute_iau06_matrices(
@@ -302,7 +302,7 @@ def ecef2eci(
     aeci = (
         np.dot(prec, np.dot(nut, np.dot(st, np.dot(pm, aecef))))
         + np.cross(omegaearth, np.cross(omegaearth, rpef))
-        + 2.0 * np.cross(omegaearth, vpef)
+        + 2 * np.cross(omegaearth, vpef)
     )
 
     return reci, veci, aeci
@@ -369,9 +369,9 @@ def ecef2eci06(
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECI <-> PEF Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def compute_iau_matrices(
@@ -493,7 +493,7 @@ def eci2pef(
     apef = (
         st.T @ nut.T @ prec.T @ aeci
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return rpef, vpef, apef
@@ -548,16 +548,16 @@ def pef2eci(
         @ (
             np.asarray(apef)
             + np.cross(omegaearth, np.cross(omegaearth, rpef))
-            + 2.0 * np.cross(omegaearth, vpef)
+            + 2 * np.cross(omegaearth, vpef)
         )
     )
 
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECI <-> TOD Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def eci2tod(
@@ -649,9 +649,9 @@ def tod2eci(
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECI <-> MOD Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def eci2mod(
@@ -718,9 +718,9 @@ def mod2eci(
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECI <-> TEME Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def _get_teme_eci_transform(
@@ -747,14 +747,14 @@ def _get_teme_eci_transform(
 
     # Equation of equinoxes (geometric terms only)
     eqeg = deltapsi * np.cos(meaneps)
-    eqeg = np.remainder(eqeg, 2.0 * np.pi)
+    eqeg = np.remainder(eqeg, const.TWOPI)
 
     # Construct the rotation matrix for the equation of equinoxes
     eqe = np.array(
         [
-            [np.cos(eqeg), np.sin(eqeg), 0.0],
-            [-np.sin(eqeg), np.cos(eqeg), 0.0],
-            [0.0, 0.0, 1.0],
+            [np.cos(eqeg), np.sin(eqeg), 0],
+            [-np.sin(eqeg), np.cos(eqeg), 0],
+            [0, 0, 1],
         ]
     )
 
@@ -846,9 +846,9 @@ def teme2eci(
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECEF <-> PEF Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def ecef2pef(
@@ -939,9 +939,9 @@ def pef2ecef(
     return recef, vecef, aecef
 
 
-###############################################################################
+########################################################################################
 # ECEF <-> TOD Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def ecef2tod(
@@ -1001,7 +1001,7 @@ def ecef2tod(
     atod = st @ (
         pm @ aecef
         + np.cross(omegaearth, np.cross(omegaearth, rpef))
-        + 2.0 * np.cross(omegaearth, vpef)
+        + 2 * np.cross(omegaearth, vpef)
     )
 
     return rtod, vtod, atod
@@ -1064,15 +1064,15 @@ def tod2ecef(
     aecef = (
         pm.T @ atod
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
 
 
-###############################################################################
+########################################################################################
 # ECEF <-> MOD Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def ecef2mod(
@@ -1196,15 +1196,15 @@ def mod2ecef(
     aecef = (
         pm.T @ (st.T @ nut.T @ amod)
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
 
 
-###############################################################################
+########################################################################################
 # ECEF <-> TEME Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def get_teme_transform_matrices(
@@ -1232,7 +1232,7 @@ def get_teme_transform_matrices(
     # Compute omega from nutation theory
     omega = (
         125.04452222
-        + (-6962890.5390 * ttt + 7.455 * ttt**2 + 0.008 * ttt**3) / const.DEG2ARCSEC
+        + (-6962890.539 * ttt + 7.455 * ttt**2 + 0.008 * ttt**3) / const.DEG2ARCSEC
     )
     omega = np.remainder(np.radians(omega), const.TWOPI)
 
@@ -1241,7 +1241,7 @@ def get_teme_transform_matrices(
         gmstg = (
             gmst
             + 0.00264 * const.ARCSEC2RAD * np.sin(omega)
-            + 0.000063 * const.ARCSEC2RAD * np.sin(2.0 * omega)
+            + 0.000063 * const.ARCSEC2RAD * np.sin(2 * omega)
         )
     else:
         gmstg = gmst
@@ -1251,15 +1251,15 @@ def get_teme_transform_matrices(
     # Sidereal time matrix
     st = np.array(
         [
-            [np.cos(gmstg), -np.sin(gmstg), 0.0],
-            [np.sin(gmstg), np.cos(gmstg), 0.0],
-            [0.0, 0.0, 1.0],
+            [np.cos(gmstg), -np.sin(gmstg), 0],
+            [np.sin(gmstg), np.cos(gmstg), 0],
+            [0, 0, 1],
         ]
     )
 
     # Polar motion matrix and Earth's rotation vector
     *_, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, 0.0, 0.0, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, 0, 0, eqeterms=eqeterms
     )
 
     return st, pm, omegaearth
@@ -1316,7 +1316,7 @@ def ecef2teme(
     ateme = st @ (
         pm @ aecef
         + np.cross(omegaearth, np.cross(omegaearth, rpef))
-        + 2.0 * np.cross(omegaearth, vpef)
+        + 2 * np.cross(omegaearth, vpef)
     )
 
     return rteme, vteme, ateme
@@ -1373,7 +1373,7 @@ def teme2ecef(
     aecef = (
         pm.T @ ateme
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef

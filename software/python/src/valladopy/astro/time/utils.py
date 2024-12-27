@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 25 June 2002
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 
 import math
@@ -44,7 +44,8 @@ def fundarg(
         opt (str): Method option ('06', '02', '96', or '80')
 
     Returns:
-        tuple: A tuple containing:
+        tuple: (l, l1, f, d, omega, lonmer, lonven, lonear, lonmar, lonjup, lonsat,
+                lonurn, lonnep, precrate)
             l (float): Delaunay element in radians
             l1 (float): Delaunay element in radians
             f (float): Delaunay element in radians
@@ -118,7 +119,7 @@ def fundarg(
 
         # Planetary arguments in deg
         (lonmer, lonven, lonear, lonmar, lonjup, lonsat, lonurn, lonnep, precrate) = (
-            0.0,
+            0,
         ) * 9
 
     # Determine coefficients from IAU 1996 theory
@@ -126,30 +127,30 @@ def fundarg(
         # Delaunay fundamental arguments in deg
         l = (  # noqa
             calc_delunay_elem(
-                ttt, [-0.00024470, 0.051635, 31.8792, 1717915923.2178, 0.0]
+                ttt, [-0.00024470, 0.051635, 31.8792, 1717915923.2178, 0]
             )
             + 134.96340251
         )
         l1 = (
             calc_delunay_elem(
-                ttt, [-0.00001149, -0.000136, -0.5532, 129596581.0481, 0.0]
+                ttt, [-0.00001149, -0.000136, -0.5532, 129596581.0481, 0]
             )
             + 357.52910918
         )
         f = (
             calc_delunay_elem(
-                ttt, [0.00000417, 0.001037, -12.7512, 1739527262.8478, 0.0]
+                ttt, [0.00000417, 0.001037, -12.7512, 1739527262.8478, 0]
             )
             + 93.27209062
         )
         d = (
             calc_delunay_elem(
-                ttt, [-0.00003169, 0.006593, -6.3706, 1602961601.2090, 0.0]
+                ttt, [-0.00003169, 0.006593, -6.3706, 1602961601.2090, 0]
             )
             + 297.85019547
         )
         omega = (
-            calc_delunay_elem(ttt, [-0.00005939, 0.007702, 7.4722, -6962890.2665, 0.0])
+            calc_delunay_elem(ttt, [-0.00005939, 0.007702, 7.4722, -6962890.2665, 0])
             + 125.04455501
         )
 
@@ -166,7 +167,7 @@ def fundarg(
     elif opt == "80":
         # Delaunay fundamental arguments in deg
         l = calc_delunay_elem_80(  # noqa
-            ttt, [0.064, 31.310, 1717915922.6330], 134.96298139
+            ttt, [0.064, 31.31, 1717915922.6330], 134.96298139
         )
         l1 = calc_delunay_elem_80(ttt, [-0.012, -0.577, 129596581.2240], 357.52772333)
         f = calc_delunay_elem_80(ttt, [0.011, -13.257, 1739527263.1370], 93.27191028)
@@ -174,13 +175,13 @@ def fundarg(
         omega = calc_delunay_elem_80(ttt, [0.008, 7.455, -6962890.5390], 125.04452222)
 
         # Planetary arguments in deg
-        lonmer = 252.3 + 149472.0 * ttt
+        lonmer = 252.3 + 149472 * ttt
         lonven = 179.9 + 58517.8 * ttt
         lonear = 98.4 + 35999.4 * ttt
         lonmar = 353.3 + 19140.3 * ttt
         lonjup = 32.3 + 3034.9 * ttt
-        lonsat = 48.0 + 1222.1 * ttt
-        lonurn, lonnep, precrate = (0.0,) * 3
+        lonsat = 48 + 1222.1 * ttt
+        lonurn, lonnep, precrate = (0,) * 3
     else:
         raise ValueError(
             "Method must be one of the following: '06', '02', '96', or '80'"
@@ -237,7 +238,7 @@ def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, floa
                    '06' = IAU 2006
 
     Returns:
-        tuple:
+        tuple: (prec, psia, wa, ea, xa)
             prec (np.array): Transformation matrix for MOD to J2000
             psia (float): Canonical precession angle in radians
             wa (float): Canonical precession angle in radians
@@ -275,21 +276,19 @@ def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, floa
         z = 2304.9969 * ttt + 1.092999 * ttt2 + 0.0192 * ttt3
 
         # ttt is tropical centuries from 1950 (36524.22 days)
-        prec[0, 0] = 1.0 - 2.9696e-4 * ttt2 - 1.3e-7 * ttt3
+        prec[0, 0] = 1 - 2.9696e-4 * ttt2 - 1.3e-7 * ttt3
         prec[0, 1] = 2.234941e-2 * ttt + 6.76e-6 * ttt2 - 2.21e-6 * ttt3
         prec[0, 2] = 9.7169e-3 * ttt - 2.07e-6 * ttt2 - 9.6e-7 * ttt3
         prec[1, 0] = -prec[0, 1]
-        prec[1, 1] = 1.0 - 2.4975e-4 * ttt2 - 1.5e-7 * ttt3
+        prec[1, 1] = 1 - 2.4975e-4 * ttt2 - 1.5e-7 * ttt3
         prec[1, 2] = -1.0858e-4 * ttt2
         prec[2, 0] = -prec[0, 2]
         prec[2, 1] = prec[1, 2]
-        prec[2, 2] = 1.0 - 4.721e-5 * ttt2
+        prec[2, 2] = 1 - 4.721e-5 * ttt2
 
         # Pass these back out for testing
         # TODO: decide if these need to be removed
-        psia = zeta
-        wa = theta
-        ea = z
+        psia, wa, ea = zeta, theta, z
 
     # IAU 80 precession angles
     elif opt == "80":
@@ -399,7 +398,7 @@ def nutation(
     ttt3 = ttt2 * ttt
 
     # Mean obliquity of the ecliptic
-    meaneps = -46.8150 * ttt - 0.00059 * ttt2 + 0.001813 * ttt3 + 84381.448
+    meaneps = -46.815 * ttt - 0.00059 * ttt2 + 0.001813 * ttt3 + 84381.448
     meaneps = float(np.radians(np.remainder(meaneps / DEG2ARCSEC, np.degrees(TWOPI))))
 
     # Fundamental arguments using the IAU80 theory
@@ -421,7 +420,7 @@ def nutation(
     ) = fundarg(ttt, "80")
 
     # Calculate nutation parameters
-    deltapsi, deltaeps = 0.0, 0.0
+    deltapsi, deltaeps = 0, 0
     for i in range(len(iar80)):
         tempval = (
             iar80[i, 0] * l
@@ -489,19 +488,19 @@ def polarm(xp: float, yp: float, ttt: float, use_iau80: bool = True) -> np.ndarr
     if use_iau80:
         pm = np.array(
             [
-                [cosxp, 0.0, -sinxp],
+                [cosxp, 0, -sinxp],
                 [sinxp * sinyp, cosyp, cosxp * sinyp],
                 [sinxp * cosyp, -sinyp, cosxp * cosyp],
             ]
         )
     # Use IAU 2000 theory
     else:
-        # −47.0e-6 corresponds to a constant drift in the Terrestrial
+        # −47e-6 corresponds to a constant drift in the Terrestrial
         # Intermediate Origin (TIO) locator 𝑠′, which is approximately −47
         # microarcseconds per century (applied to the IAU 2000 theory)
         # See: https://pyerfa.readthedocs.io/en/latest/api/erfa.pom00.html
         # TODO: consider using pyerfa for this
-        sp = -47.0e-6 * ttt * ARCSEC2RAD
+        sp = -47e-6 * ttt * ARCSEC2RAD
         cossp = np.cos(sp)
         sinsp = np.sin(sp)
 

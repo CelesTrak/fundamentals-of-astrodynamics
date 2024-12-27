@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------------------
+# Author: David Vallado
+# Date: 16 July 2004
+#
+# Copyright (c) 2024
+# For license information, see LICENSE file
+# --------------------------------------------------------------------------------------
+
 import numpy as np
 from typing import Tuple
 
@@ -30,9 +38,9 @@ def iau06era(jdut1: float) -> np.ndarray:
     # Transformation matrix from PEF to IRE
     return np.array(
         [
-            [np.cos(era), -np.sin(era), 0.0],
-            [np.sin(era), np.cos(era), 0.0],
-            [0.0, 0.0, 1.0],
+            [np.cos(era), -np.sin(era), 0],
+            [np.sin(era), np.cos(era), 0],
+            [0, 0, 1],
         ]
     )
 
@@ -55,7 +63,7 @@ def iau06gst(
     lonurn: float,
     lonnep: float,
     precrate: float,
-) -> tuple[float, np.ndarray]:
+) -> Tuple[float, np.ndarray]:
     """Calculates the IAU 2006 Greenwich Sidereal Time (GST) and transformation matrix.
 
     References:
@@ -104,7 +112,7 @@ def iau06gst(
     *_, agst, agsti = iau06in()
 
     # Evaluate the EE complementary terms
-    gstsum0, gstsum1 = 0.0, 0.0
+    gstsum0, gstsum1 = 0, 0
     n_elem = len(agsti) - 1
     for i in range(n_elem):
         tempval = (
@@ -174,18 +182,18 @@ def iau06gst(
     # Transformation matrix
     st = np.array(
         [
-            [np.cos(gst), -np.sin(gst), 0.0],
-            [np.sin(gst), np.cos(gst), 0.0],
-            [0.0, 0.0, 1.0],
+            [np.cos(gst), -np.sin(gst), 0],
+            [np.sin(gst), np.cos(gst), 0],
+            [0, 0, 1],
         ]
     )
 
     return gst, st
 
 
-###############################################################################
+########################################################################################
 # IAU 2006 Precession-Nutation Theories (IAU2006/2000A and IAU2006/2000B)
-###############################################################################
+########################################################################################
 
 
 def _build_transformation_matrices(
@@ -197,7 +205,7 @@ def _build_transformation_matrices(
         ttt (float): Julian centuries of TT
         deltaeps (float): Nutation in obliquity in radians
         deltapsi (float): Nutation in longitude in radians
-        use_extended_prec (bool): Whether to include extended precession terms.
+        use_extended_prec (bool): Whether to include extended precession terms
 
     Returns:
         tuple:
@@ -314,7 +322,7 @@ def iau06pna(
     _, _, _, _, _, _, apn, apni, appl, appli, *_ = iau06in()
 
     # Compute luni-solar nutation
-    pnsum, ensum = 0.0, 0.0
+    pnsum, ensum = 0, 0
     for i in range(len(apni) - 1, -1, -1):
         tempval = (
             apni[i, 0] * l
@@ -332,7 +340,7 @@ def iau06pna(
         )
 
     # Compute planetary nutation
-    pplnsum, eplnsum = 0.0, 0.0
+    pplnsum, eplnsum = 0, 0
     for i in range(len(appli)):
         tempval = (
             appli[i, 0] * l
@@ -465,7 +473,7 @@ def iau06pnb(
     _, _, _, _, _, _, apn, apni, *_ = iau06in()
 
     # Compute luni-solar nutation
-    pnsum, ensum = 0.0, 0.0
+    pnsum, ensum = 0, 0
     for i in range(iau2000b_terms - 1, -1, -1):
         tempval = (
             apni[i, 0] * l
@@ -514,9 +522,9 @@ def iau06pnb(
     )
 
 
-###############################################################################
+########################################################################################
 # IAU 2006 XYS Parameters
-###############################################################################
+########################################################################################
 
 
 def iau06xys_series(
@@ -539,8 +547,7 @@ def iau06xys_series(
     """Calculates the XYS parameters for the IAU2006 CIO theory.
 
     This is the series implementation of the XYS parameters, which are used to compute
-    the Celestial Intermediate Origin (CIO) locator. Equivalent to the `iau06xysS`
-    MATLAB version.
+    the Celestial Intermediate Origin (CIO) locator.
 
     References:
         Vallado, 2022, p. 214-216
@@ -587,7 +594,7 @@ def iau06xys_series(
 
     # Compute X
     limits_x = [1306, 253, 36, 4, 1]  # total sum = 1600 (axs0 and a0xi length)
-    x_sums = [0.0] * len(limits_x)
+    x_sums = [0] * len(limits_x)
 
     # Loop over each group
     for group, limit in enumerate(limits_x):
@@ -627,7 +634,7 @@ def iau06xys_series(
 
     # Compute Y
     limits_y = [962, 277, 30, 5, 1]  # total sum = 1275 (ays0 and a0yi length)
-    y_sums = [0.0] * len(limits_y)
+    y_sums = [0] * len(limits_y)
 
     # Loop over each group
     for group, limit in enumerate(limits_y):
@@ -667,7 +674,7 @@ def iau06xys_series(
 
     # Compute S
     limits_s = [33, 3, 25, 4, 1]  # total sum = 66 (ass0 and a0si length)
-    s_sums = [0.0] * len(limits_s)
+    s_sums = [0] * len(limits_s)
 
     # Loop over each group
     for group, limit in enumerate(limits_s):
@@ -714,7 +721,7 @@ def iau06xys_series(
 
 def iau06xys(
     ttt: float, ddx: float = 0.0, ddy: float = 0.0
-) -> tuple[float, float, float, np.ndarray]:
+) -> Tuple[float, float, float, np.ndarray]:
     """Calculates the transformation matrix that accounts for the effects of
     precession-nutation using the IAU2006 theory.
 
@@ -780,13 +787,13 @@ def iau06xys(
     # Build nutation matrices
     nut1 = np.array(
         [
-            [1.0 - a * x**2, -a * x * y, x],
-            [-a * x * y, 1.0 - a * y**2, y],
-            [-x, -y, 1.0 - a * (x**2 + y**2)],
+            [1 - a * x**2, -a * x * y, x],
+            [-a * x * y, 1 - a * y**2, y],
+            [-x, -y, 1 - a * (x**2 + y**2)],
         ]
     )
     nut2 = np.array(
-        [[np.cos(s), np.sin(s), 0.0], [-np.sin(s), np.cos(s), 0.0], [0.0, 0.0, 1.0]]
+        [[np.cos(s), np.sin(s), 0], [-np.sin(s), np.cos(s), 0], [0, 0, 1]]
     )
 
     # Combine to form the final nutation matrix

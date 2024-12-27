@@ -7,6 +7,7 @@
 # --------------------------------------------------------------------------------------
 
 import logging
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
@@ -700,10 +701,10 @@ class SGP4:
         em = max(em, 1e-6)
         mm += self.satrec.no * templ
         xlm = mm + argpm + nodem
-        nodem = np.remainder(nodem, const.TWOPI)
-        argpm = np.remainder(argpm, const.TWOPI)
-        xlm = np.remainder(xlm, const.TWOPI)
-        mm = np.remainder(xlm - argpm - nodem, const.TWOPI)
+        nodem = math.remainder(nodem, const.TWOPI)
+        argpm = math.remainder(argpm, const.TWOPI)
+        xlm = math.remainder(xlm, const.TWOPI)
+        mm = math.remainder(xlm - argpm - nodem, const.TWOPI)
 
         return nm, em, inclm, nodem, argpm, mm, am, templ
 
@@ -764,7 +765,7 @@ class SGP4:
     @staticmethod
     def _solve_keplers_equation(xl, nodep, axnl, aynl, n_iter, tol, lim=0.95):
         """Solve Kepler's equation"""
-        u = np.remainder(xl - nodep, const.TWOPI)
+        u = math.remainder(xl - nodep, const.TWOPI)
         eo1, tem5, ktr = u, np.inf, 1
         sineo1, coseo1 = np.sin(eo1), np.cos(eo1)
 

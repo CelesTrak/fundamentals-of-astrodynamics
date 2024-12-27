@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 7 June 2002
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 
 import numpy as np
@@ -25,14 +25,14 @@ def gstime(jdut1: float) -> float:
     Returns:
         float: Greenwich Sidereal Time (0 to 2pi radians)
     """
-    # Julian centuries from the J2000.0 epoch
+    # Julian centuries from the J2000 epoch
     tut1 = (jdut1 - const.J2000) / const.CENT2DAY
 
     # Calculate Greenwich Sidereal Time in seconds
     gst = (
         -6.2e-6 * tut1**3
         + 0.093104 * tut1**2
-        + (876600.0 * const.HR2SEC + 8640184.812866) * tut1
+        + (876600 * const.HR2SEC + 8640184.812866) * tut1
         + 67310.54841
     )
 
@@ -55,9 +55,9 @@ def gstime0(year: int) -> float:
     """
     # Calculate Julian Date at 0 hr UT1 on January 1
     jd = (
-        367.0 * year
-        - np.floor(7 * (year + np.floor((10 / 12.0))) * 0.25)
-        + np.floor(275 / 9.0)
+        367 * year
+        - np.floor(7 * (year + np.floor((10 / 12))) * 0.25)
+        + np.floor(275 / 9)
         + 1721014.5
     )
 
@@ -120,34 +120,34 @@ def sidereal(
     gmst = gstime(jdut1)
 
     # Find mean apparent sidereal time
-    if jdut1 > 2450449.5 and eqeterms > 0:
+    if jdut1 > 2450449.5 and eqeterms:
         ast = (
             gmst
             + deltapsi * np.cos(meaneps)
             + 0.00264 * const.ARCSEC2RAD * np.sin(omega)
-            + 0.000063 * const.ARCSEC2RAD * np.sin(2.0 * omega)
+            + 0.000063 * const.ARCSEC2RAD * np.sin(2 * omega)
         )
     else:
         ast = gmst + deltapsi * np.cos(meaneps)
 
     ast = np.remainder(ast, const.TWOPI)
-    omegaearth = const.EARTHROT * (1.0 - lod / const.DAY2SEC)
+    omegaearth = const.EARTHROT * (1 - lod / const.DAY2SEC)
 
     # Transformation matrix for PEF to TOD
     st = np.array(
         [
-            [np.cos(ast), -np.sin(ast), 0.0],
-            [np.sin(ast), np.cos(ast), 0.0],
-            [0.0, 0.0, 1.0],
+            [np.cos(ast), -np.sin(ast), 0],
+            [np.sin(ast), np.cos(ast), 0],
+            [0, 0, 1],
         ]
     )
 
     # Sidereal time rate matrix
     stdot = np.array(
         [
-            [-omegaearth * np.sin(ast), -omegaearth * np.cos(ast), 0.0],
-            [omegaearth * np.cos(ast), -omegaearth * np.sin(ast), 0.0],
-            [0.0, 0.0, 0.0],
+            [-omegaearth * np.sin(ast), -omegaearth * np.cos(ast), 0],
+            [omegaearth * np.cos(ast), -omegaearth * np.sin(ast), 0],
+            [0, 0, 0],
         ]
     )
 
