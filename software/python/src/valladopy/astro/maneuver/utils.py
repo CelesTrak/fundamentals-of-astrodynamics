@@ -27,7 +27,7 @@ def specific_mech_energy(a: float) -> float:
     Returns:
         float: Specific mechanical energy
     """
-    return -const.MU / (2.0 * a)
+    return -const.MU / (2 * a)
 
 
 def velocity_mag(r: float, a: float) -> float:
@@ -40,7 +40,7 @@ def velocity_mag(r: float, a: float) -> float:
     Returns:
         float: Velocity magnitude in km/s
     """
-    return np.sqrt(2.0 * ((const.MU / r) + specific_mech_energy(a)))
+    return np.sqrt(2 * ((const.MU / r) + specific_mech_energy(a)))
 
 
 def angular_velocity(a: float) -> float:
@@ -66,7 +66,7 @@ def deltav(v1: float, v2: float, theta: float) -> float:
     Returns:
         float: Delta-v in km/s
     """
-    return np.sqrt(v1**2 + v2**2 - 2.0 * v1 * v2 * np.cos(theta))
+    return np.sqrt(v1**2 + v2**2 - 2 * v1 * v2 * np.cos(theta))
 
 
 def semimajor_axis(r: float, e: float, nu: float) -> float:
@@ -80,4 +80,4 @@ def semimajor_axis(r: float, e: float, nu: float) -> float:
     Returns:
         float: Semi-major axis in km
     """
-    return (r * (1.0 + e * np.cos(nu))) / (1.0 - e**2)
+    return (r * (1 + e * np.cos(nu))) / (1 - e**2)
