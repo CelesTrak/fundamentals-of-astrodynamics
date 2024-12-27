@@ -1,8 +1,18 @@
+# --------------------------------------------------------------------------------------
+# Authors: David Vallado
+# Date: 21 July 2006
+#
+# Copyright (c) 2024
+# For license information, see LICENSE file
+# --------------------------------------------------------------------------------------
+
 from dataclasses import dataclass
 from enum import Enum
 
 import numpy as np
 from pydantic import BaseModel
+
+from ... import constants as const
 
 
 class Classification(Enum):
@@ -108,14 +118,14 @@ def getgravc(wgs_model: WGSModel) -> GravitationalConstants:
     elif wgs_model == WGSModel.WGS_72:
         mu = 398600.8
         radiusearthkm = 6378.135
-        xke = 60.0 / np.sqrt(radiusearthkm**3 / mu)
+        xke = const.MIN2SEC / np.sqrt(radiusearthkm**3 / mu)
         j2 = 0.001082616
         j3 = -0.00000253881
         j4 = -0.00000165597
     elif wgs_model == WGSModel.WGS_84:
         mu = 398600.5
         radiusearthkm = 6378.137
-        xke = 60.0 / np.sqrt(radiusearthkm**3 / mu)
+        xke = const.MIN2SEC / np.sqrt(radiusearthkm**3 / mu)
         j2 = 0.00108262998905
         j3 = -0.00000253215306
         j4 = -0.00000161098761
