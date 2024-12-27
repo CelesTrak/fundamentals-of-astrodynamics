@@ -45,11 +45,11 @@ def test_position():
         (np.radians(-74.3), 9.678940118281297, 23.593826737778475, 6.2615587982527865),
     ],
 )
-def test_moonriset(lon, moonrise_expected, moonset_expected, moonphaseang_expected):
+def test_rise_set(lon, moonrise_expected, moonset_expected, moonphaseang_expected):
     # Vallado 2007, Example 5-4
     jd = 2451046.5
     latgd = np.radians(40)
-    moonrise, moonset, moonphaseang = moon.moonriset(jd, latgd, lon)
+    moonrise, moonset, moonphaseang = moon.rise_set(jd, latgd, lon)
 
     # Expected values
     assert np.isclose(moonrise, moonrise_expected, rtol=DEFAULT_TOL)

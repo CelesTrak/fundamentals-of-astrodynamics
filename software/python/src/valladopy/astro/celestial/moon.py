@@ -136,7 +136,7 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
     return rmoon * const.RE, rtasc, decl
 
 
-def moonriset(
+def rise_set(
     jd: float, latgd: float, lon: float, n_iters: int = 5, tol: float = 0.008
 ) -> Tuple[float, float, float]:
     """Finds the universal time for moonrise and moonset given the day and site
