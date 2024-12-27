@@ -43,11 +43,11 @@ def test_position():
         ),
     ],
 )
-def test_sunriset(event_type, lon, sunriset_expected, sunset_expected):
+def test_rise_set(event_type, lon, sunriset_expected, sunset_expected):
     # Vallado 2007, Example 5-2
     jd = 2450165.5
     latgd = np.radians(40)
-    sunrise, sunset = sun.sunriset(jd, latgd, lon, event_type)
+    sunrise, sunset = sun.rise_set(jd, latgd, lon, event_type)
 
     # Expected values
     assert np.isclose(sunrise, sunriset_expected, rtol=DEFAULT_TOL)
@@ -56,7 +56,7 @@ def test_sunriset(event_type, lon, sunriset_expected, sunset_expected):
 
 def test_invalid_event_type():
     with pytest.raises(ValueError) as excinfo:
-        sun.sunriset(2450165.5, np.radians(40), 0, "galactic")
+        sun.rise_set(2450165.5, np.radians(40), 0, "galactic")
     assert "Invalid event type" in str(excinfo.value)
 
 

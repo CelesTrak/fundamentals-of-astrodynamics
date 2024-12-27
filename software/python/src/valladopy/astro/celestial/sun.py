@@ -92,7 +92,7 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
     return rsun * const.AU2KM, rtasc, decl
 
 
-def sunriset(
+def rise_set(
     jd: float,
     latgd: float,
     lon: float,
