@@ -184,7 +184,7 @@ class SGP4:
         start: float | None = None,
         stop: float | None = None,
         step: float | None = None,
-    ):
+    ) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
         """Parse TLE lines and populate SGP4 variables.
 
         This function converts the two line element (TLE) set character string data to
@@ -199,10 +199,6 @@ class SGP4:
         If using the FromJD mode, the start and stop Julian dates must be set before
         calling this function (see `set_jd_from_from_ymdhms` or `set_jd_from_yr_doy`).
 
-        References:
-            - NORAD Spacetrack Report #3
-            - Vallado, Crawford, Hujsak, Kelso 2006
-
         Args:
             tle_line1 (str): First line of the TLE set
             tle_line2 (str): Second line of the TLE set
@@ -212,10 +208,12 @@ class SGP4:
             step (float, optional): Time step in minutes (default = None)
 
         Returns:
-            tuple (startmfe, stopmfe, deltamin)
+            tuple (r_init, v_init, startmfe, stopmfe, deltamin)
                 startmfe (float): Start time in minutes from epoch
                 stopmfe (float): Stop time in minutes from epoch
                 deltamin (float): Time step in minutes
+                r_init (np.ndarray): Initial position vector in TEME frame in km
+                v_init (np.ndarray): Initial velocity vector in TEME frame in km/s
         """
         # Constants
         xpdotp = const.DAY2MIN / const.TWOPI  # rev/day / rad/min
@@ -295,9 +293,9 @@ class SGP4:
 
         # Initialize SGP4
         epoch = self.satrec.jdsatepoch + self.satrec.jdsatepochf - JD_EPOCH_1950
-        self.sgp4init(epoch)
+        r_init, v_init = self.sgp4init(epoch)
 
-        return startmfe, stopmfe, deltamin
+        return startmfe, stopmfe, deltamin, r_init, v_init
 
     def initl(self, epoch: float):
         """Initialize parameters for the SPG4 propagator.
@@ -539,7 +537,9 @@ class SGP4:
             + 15 * cc1sq * (2 * self.satrec.d2 + cc1sq)
         )
 
-    def sgp4init(self, epoch: float, tol: float = const.SMALL):
+    def sgp4init(
+        self, epoch: float, tol: float = const.SMALL
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Initializes variables for SGP4.
 
         Args:
@@ -547,7 +547,9 @@ class SGP4:
             tol (float, optional): Tolerance for small values (default = const.SMALL)
 
         Returns:
-            None (updates self.satrec)
+            tuple (r_init, v_init)
+                r_init (np.ndarray): Initial position vector in TEME frame in km
+                v_init (np.ndarray): Initial velocity vector in TEME frame in km/s
 
         TODO:
             - Define magic numbers
@@ -567,8 +569,8 @@ class SGP4:
 
         # Ensure valid orbital elements and positive mean motion
         if not (self.sgp4init_out.omeosq >= 0 and self.satrec.no >= 0):
-            self.propagate(0)
-            return
+            r_init, v_init = self.propagate(0)
+            return r_init, v_init
 
         # Determine if perigee is less than 220 km
         if self.sgp4init_out.rp < (220 / self.grav_const.radiusearthkm + 1):
@@ -631,7 +633,9 @@ class SGP4:
             )
 
         # Propagate to zero epoch
-        self.propagate(0)
+        r_init, v_init = self.propagate(0)
+
+        return r_init, v_init
 
     def _apply_secular_gravity_drag(self, t):
         """Apply updates for secular gravity and atmospheric drag."""
@@ -843,8 +847,8 @@ class SGP4:
 
         Returns:
             tuple: (r, v)
-                r (np.ndarray): ECI position vector in km
-                v (np.ndarray): ECI Velocity vector in km/s
+                r (np.ndarray): Position vector in TEME frame in km
+                v (np.ndarray): Velocity vector in TEME frame in km/s
 
         Return codes for `satrec.error` (non-zero indicates an error)
             1 - Mean elements, ecc >= 1.0 or ecc < -0.001 or a < 0.95 er

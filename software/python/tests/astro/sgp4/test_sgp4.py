@@ -66,13 +66,11 @@ def test_initl(epoch, oe_params):
         (sgp4.TypeRun.FromJD, 12863952.7377735, 12867015.7877738, 1),
     ],
 )
-def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp, monkeypatch):
+def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp):
     # TODO: Add more test cases
-    # Patch SGP4 initialization method
-    monkeypatch.setattr(sgp4.SGP4, "sgp4init", lambda *args: None)
 
     # Initialize SGP4 class
-    sgp4_obj = sgp4.SGP4()
+    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
 
     # Inputs
     tle_line1 = "1 00005U 58002B   00179.78495062  .00000023  00000-0  28098-4 0  4753"
@@ -109,12 +107,20 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp, monkeypatc
         set_jd_startstop(sgp4_obj)
 
     # Call method
-    startmfe, stopmfe, deltamin = sgp4_obj.twoline2rv(tle_line1, tle_line2, typerun)
+    startmfe, stopmfe, deltamin, r_init, v_init = sgp4_obj.twoline2rv(
+        tle_line1, tle_line2, typerun
+    )
+
+    # Expected state vectors
+    r_exp = [7022.465292664065, -1400.0829675535483, 0.03995155416985751]
+    v_exp = [1.8938410145129438, 6.405893759209845, 4.5348072503547385]
 
     # Check results
     assert np.isclose(startmfe, startmfe_exp, rtol=DEFAULT_TOL)
     assert np.isclose(stopmfe, stopmfe_exp, rtol=DEFAULT_TOL)
     assert np.isclose(deltamin, deltamin_exp, rtol=DEFAULT_TOL)
+    assert np.allclose(r_init, r_exp, rtol=DEFAULT_TOL)
+    assert np.allclose(v_init, v_exp, rtol=DEFAULT_TOL)
     for key in expected:
         # Non-float comparisons
         if key in ["error", "satnum", "elnum", "revnum", "classification", "intldesg"]:
@@ -126,7 +132,7 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp, monkeypatc
 
 def test_sgp4init(oe_params, monkeypatch, caplog):
     # Patch SGP4 propagation method
-    monkeypatch.setattr(sgp4.SGP4, "propagate", lambda *args: None)
+    monkeypatch.setattr(sgp4.SGP4, "propagate", lambda *args: (None, None))
 
     # Initialize SGP4 class
     sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
