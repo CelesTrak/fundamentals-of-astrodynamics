@@ -20,6 +20,32 @@ def satrec_coeffs_nonds():
     }
 
 
+@pytest.fixture
+def satrec_state():
+    return {
+        "a": 4.165136398215488,
+        "alta": 6.0295615102596924,
+        "altp": 0.30071128617128307,
+        "aycof": 0.0010552861263719983,
+        "cc1": 1.9425158347208908e-13,
+        "cc4": 1.2056623400361753e-09,
+        "cc5": 2.0662701271427242e-07,
+        "delmo": 6.3571512831144235,
+        "eta": 0.9085028530232736,
+        "argpdot": -7.437009265331242e-08,
+        "omgcof": -3.510477365586775e-21,
+        "sinmao": 0.3457191249346113,
+        "t2cof": 2.9137737520813363e-13,
+        "x1mth2": 0.8100072955438793,
+        "x7thm1": 0.3299489311928454,
+        "xlcof": 0.0019032757631354295,
+        "xmcof": -2.4105286259805916e-15,
+        "mdot": 0.008748086886633134,
+        "nodedot": -1.2845672158012387e-06,
+        "nodecf": -4.604617513547723e-19,
+    }
+
+
 def set_jd_startstop(sgp4_obj):
     start_ymdhms = (2024, 12, 12, 2, 3, 4)
     stop_ymdhms = (2024, 12, 14, 5, 6, 7)
@@ -130,7 +156,7 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp):
             assert custom_isclose(getattr(sgp4_obj.satrec, key), expected[key])
 
 
-def test_sgp4init(oe_params, monkeypatch, caplog):
+def test_sgp4init(oe_params, satrec_state, monkeypatch, caplog):
     # Patch SGP4 propagation method
     monkeypatch.setattr(sgp4.SGP4, "propagate", lambda *args: (None, None))
 
@@ -168,27 +194,9 @@ def test_sgp4init(oe_params, monkeypatch, caplog):
         "nodeo": node,
         "argpo": argp,
         "mo": m,
-        "a": 4.165136398215488,
-        "alta": 6.0295615102596924,
-        "altp": 0.30071128617128307,
-        "aycof": 0.0010552861263719983,
-        "cc1": 1.9425158347208908e-13,
-        "cc4": 1.2056623400361753e-09,
-        "cc5": 2.0662701271427242e-07,
-        "delmo": 6.3571512831144235,
-        "eta": 0.9085028530232736,
-        "argpdot": -7.437009265331242e-08,
-        "omgcof": -3.510477365586775e-21,
-        "sinmao": 0.3457191249346113,
-        "t2cof": 2.9137737520813363e-13,
-        "x1mth2": 0.8100072955438793,
-        "x7thm1": 0.3299489311928454,
-        "xlcof": 0.0019032757631354295,
-        "xmcof": -2.4105286259805916e-15,
-        "mdot": 0.008748086886633134,
-        "nodedot": -1.2845672158012387e-06,
-        "nodecf": -4.604617513547723e-19,
     }
+    for key in satrec_state:
+        satrec_expected[key] = satrec_state[key]
 
     # Check results for default case
     assert sgp4_obj.use_deep_space
@@ -257,6 +265,7 @@ def test_adjust_perigee():
     ],
 )
 def test_propagate(
+    satrec_state,
     ds,
     dscom_data,
     dsinit_data,
@@ -276,31 +285,23 @@ def test_propagate(
     sgp4_obj.use_deep_space = use_deep_space
 
     # Update satellite record fields
-    sgp4_obj.satrec.ecco = 0.6877146
-    sgp4_obj.satrec.inclo = 1.11977881347003
-    sgp4_obj.satrec.nodeo = 4.87072001413786
-    sgp4_obj.satrec.argpo = 4.62102273937204
-    sgp4_obj.satrec.no = 0.00874854701963024
-    sgp4_obj.satrec.mo = 0.353005058520617
-    sgp4_obj.satrec.nodedot = -1.28456721580123e-06
-    sgp4_obj.satrec.argpdot = -7.43700926533354e-08
-    sgp4_obj.satrec.mdot = 0.00874808688663313
-    sgp4_obj.satrec.nodecf = -4.60461751354763e-19
+    sgp4_obj.satrec.ecco = ds.ep
+    sgp4_obj.satrec.inclo = ds.inclp
+    sgp4_obj.satrec.nodeo = ds.nodep
+    sgp4_obj.satrec.argpo = ds.argpp
+    sgp4_obj.satrec.no = ds.np_
+    sgp4_obj.satrec.mo = ds.mp
     sgp4_obj.satrec.bstar = 0.00011873
-    sgp4_obj.satrec.delmo = 6.35715128311442
-    sgp4_obj.satrec.eta = 0.908502853023273
-    sgp4_obj.satrec.sinmao = 0.345719124934611
-    sgp4_obj.satrec.cc1 = 1.94251583472087e-13
-    sgp4_obj.satrec.cc4 = 1.20566234003616e-09
-    sgp4_obj.satrec.cc5 = 2.0662701271427e-07
-    sgp4_obj.satrec.t2cof = 2.91377375208131e-13
-    sgp4_obj.satrec.aycof = 0.001055286126372
-    sgp4_obj.satrec.omgcof = -3.51047736558681e-21
-    sgp4_obj.satrec.xlcof = 0.00190327576313543
-    sgp4_obj.satrec.xmcof = -2.41052862598059e-15
-    sgp4_obj.satrec.x1mth2 = 0.810007295543882
-    sgp4_obj.satrec.x7thm1 = 0.329948931192823
     sgp4_obj.satrec.isimp = use_deep_space
+    # fmt: off
+    attributes_to_update = [
+        "nodedot", "argpdot", "mdot", "nodecf", "delmo", "eta", "sinmao",
+        "cc1", "cc4", "cc5", "t2cof", "aycof", "omgcof", "xlcof", "xmcof",
+        "x1mth2", "x7thm1"
+    ]
+    # fmt: on
+    for attr in attributes_to_update:
+        setattr(sgp4_obj.satrec, attr, satrec_state[attr])
 
     # Update other fields
     ds.dsinit_out.argpm = 4.62101381496092
