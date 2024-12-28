@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 27 May 2002
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 import logging
 
@@ -24,9 +24,8 @@ logger = logging.getLogger(__name__)
 def kepler(
     ro: ArrayLike, vo: ArrayLike, dtsec: float, n_iters: int = 50
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Solves Kepler's problem for orbit determination and returns a future
-    geocentric equatorial (ECI) position and velocity vector using universal
-    variables.
+    """Solves Kepler's problem for orbit determination and returns a future geocentric
+    equatorial (ECI) position and velocity vector using universal variables.
 
     Args:
         ro (array_like): Initial ECI position vector in km
@@ -45,8 +44,8 @@ def kepler(
 
     # Initialize values
     ktr = 0
-    xnew, znew, c2new, c3new = 0.0, 0.0, 0.0, 0.0
-    dtnew = -10.0
+    xnew, znew, c2new, c3new = 0, 0, 0, 0
+    dtnew = -10
     smu = np.sqrt(MU)
     magro = np.linalg.norm(ro)
     magvo = np.linalg.norm(vo)
@@ -56,7 +55,7 @@ def kepler(
     sme = (magvo**2 / 2) - (MU / magro)
     alpha = -2 * sme / MU
     a = -MU / (2 * sme) if np.abs(sme) > SMALL else np.inf
-    alpha = 0.0 if np.abs(alpha) < SMALL else alpha
+    alpha = 0 if np.abs(alpha) < SMALL else alpha
 
     # Setup initial guess for x
     if alpha >= SMALL:
@@ -70,22 +69,22 @@ def kepler(
         h = np.cross(ro, vo)
         magh = np.linalg.norm(h)
         p = magh**2 / MU
-        s = 0.5 * (np.pi / 2 - np.arctan(3.0 * np.sqrt(MU / (p**3)) * dtsec))
+        s = 0.5 * (np.pi / 2 - np.arctan(3 * np.sqrt(MU / (p**3)) * dtsec))
         w = np.arctan(np.tan(s) ** (1 / 3))
-        xold = np.sqrt(p) * (2.0 / np.tan(2.0 * w))
-        alpha = 0.0
+        xold = np.sqrt(p) * (2 / np.tan(2 * w))
+        alpha = 0
     else:
         # Hyperbolic orbit
         temp = (
-            -2.0
+            -2
             * MU
             * dtsec
-            / (a * (rdotv + np.sign(dtsec) * np.sqrt(-MU * a) * (1.0 - magro * alpha)))
+            / (a * (rdotv + np.sign(dtsec) * np.sqrt(-MU * a) * (1 - magro * alpha)))
         )
         xold = np.sign(dtsec) * np.sqrt(-a) * np.log(temp)
 
     # Newton-Raphson iteration to find x
-    tmp = 1.0 / smu
+    tmp = 1 / smu
     while (np.abs(dtnew * tmp - dtsec) >= SMALL) and (ktr < n_iters):
         xoldsqrd = xold * xold
         znew = xoldsqrd * alpha
@@ -96,13 +95,13 @@ def kepler(
         # Use a newton iteration for new values
         rval = (
             xoldsqrd * c2new
-            + rdotv * tmp * xold * (1.0 - znew * c3new)
-            + magro * (1.0 - znew * c2new)
+            + rdotv * tmp * xold * (1 - znew * c3new)
+            + magro * (1 - znew * c2new)
         )
         dtnew = (
             xoldsqrd * xold * c3new
             + rdotv * tmp * xoldsqrd * c2new
-            + magro * xold * (1.0 - znew * c3new)
+            + magro * xold * (1 - znew * c3new)
         )
 
         # Calculate new value for x
@@ -110,7 +109,7 @@ def kepler(
         xnew = xold + temp1
 
         # Check if the univ param goes negative; if so, use bissection
-        if (xnew < 0.0) and (dtsec > 0.0):
+        if (xnew < 0) and (dtsec > 0):
             xnew = xold * 0.5
 
         ktr += 1
@@ -125,19 +124,19 @@ def kepler(
 
     # Find f and g values
     xnewsqrd = xnew * xnew
-    f = 1.0 - (xnewsqrd * c2new / magro)
+    f = 1 - (xnewsqrd * c2new / magro)
     g = dtsec - xnewsqrd * xnew * c3new / smu
 
     # Find position and velocity vectors at new time
     r = f * ro + g * vo
     magr = np.linalg.norm(r)
-    gdot = 1.0 - (xnewsqrd * c2new / magr)
-    fdot = (smu * xnew / (magro * magr)) * (znew * c3new - 1.0)
+    gdot = 1 - (xnewsqrd * c2new / magr)
+    fdot = (smu * xnew / (magro * magr)) * (znew * c3new - 1)
     v = fdot * ro + gdot * vo
 
     # Check if f and g values are consistent
     temp = f * gdot - fdot * g
-    if np.abs(temp - 1.0) > 1e-5:
+    if np.abs(temp - 1) > 1e-5:
         logger.warning("f and g values are inconsistent")
 
     return r, v
@@ -164,12 +163,12 @@ def pkepler(
     # Convert position and velocity to orbital elements
     output = rv2coe(ro, vo)
     processed_output = tuple(
-        0.0 if isinstance(x, float) and np.isnan(x) else x for x in output
+        0 if isinstance(x, float) and np.isnan(x) else x for x in output
     )
     p, a, ecc, incl, raan, _, nu, m, arglat, truelon, lonper, _ = processed_output
 
     # Check for negative semi-major axis
-    if a < 0.0:
+    if a < 0:
         logger.error("Negative semi-major axis encountered")
         return np.zeros(3), np.zeros(3)
 
@@ -179,13 +178,13 @@ def pkepler(
     # J2 perturbation effects
     j2op2 = (n * 1.5 * RE**2 * J2) / (p**2)
     raandot = -j2op2 * np.cos(incl)
-    argpdot = j2op2 * (2.0 - 2.5 * np.sin(incl) ** 2)
+    argpdot = j2op2 * (2 - 2.5 * np.sin(incl) ** 2)
     mdot = n
 
     # Update semi-major axis and eccentricity
-    a -= 2.0 * ndot * dtsec * a / (3.0 * n)
-    ecc -= 2.0 * (1.0 - ecc) * ndot * dtsec / (3.0 * n)
-    p = a * (1.0 - ecc**2)
+    a -= 2 * ndot * dtsec * a / (3 * n)
+    ecc -= 2 * (1 - ecc) * ndot * dtsec / (3 * n)
+    p = a * (1 - ecc**2)
 
     # Update orbital elements
     if ecc < SMALL:

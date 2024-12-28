@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 1 March 2001
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 import logging
 import math
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 # Constants
-OOMU = 1.0 / np.sqrt(MU)
+OOMU = 1 / np.sqrt(MU)
 
 
 class DirectionOfMotion(Enum):
@@ -56,9 +56,9 @@ class LambertParams(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)
 
 
-###############################################################################
+########################################################################################
 # Supporting Functions
-###############################################################################
+########################################################################################
 
 
 def calculate_mag_and_angle(r1: ArrayLike, r2: ArrayLike) -> Tuple[float, float, float]:
@@ -78,13 +78,13 @@ def calculate_mag_and_angle(r1: ArrayLike, r2: ArrayLike) -> Tuple[float, float,
     magr1 = float(np.linalg.norm(r1))
     magr2 = float(np.linalg.norm(r2))
     cosdeltanu = np.dot(r1, r2) / (magr1 * magr2)
-    cosdeltanu = np.clip(cosdeltanu, -1.0, 1.0)  # Ensure within bounds [-1, 1]
+    cosdeltanu = np.clip(cosdeltanu, -1, 1)  # ensure within bounds [-1, 1]
     return magr1, magr2, float(cosdeltanu)
 
 
-###############################################################################
+########################################################################################
 # Lambert's Problem
-###############################################################################
+########################################################################################
 
 
 def lambertmin(
@@ -118,27 +118,27 @@ def lambertmin(
 
     # Define alphae and betae
     alphae = np.pi
-    betae = 2.0 * np.arcsin(np.sqrt((s - c) / s))
+    betae = 2 * np.arcsin(np.sqrt((s - c) / s))
 
     # Compute the minimum energy time of flight
     # Use multiplier based on direction of motion
     sign = 1 if dm == DirectionOfMotion.SHORT else -1
     tminenergy = np.sqrt(aminenergy**3 / MU) * (
-        2.0 * nrev * np.pi + alphae + sign * (betae - np.sin(betae))
+        2 * nrev * np.pi + alphae + sign * (betae - np.sin(betae))
     )
 
     # Calculate the parabolic time of flight, which serves as the minimum limit
-    tminabs = (1.0 / 3.0) * np.sqrt(2.0 / MU) * (s**1.5 - (s - c) ** 1.5)
+    tminabs = (1 / 3) * np.sqrt(2 / MU) * (s**1.5 - (s - c) ** 1.5)
 
     # Compute intermediate values
     rcrossr = np.cross(r1, r2)
     magrcrossr = np.linalg.norm(rcrossr)
-    pmin = magr1 * magr2 / c * (1.0 - cosdeltanu)
+    pmin = magr1 * magr2 / c * (1 - cosdeltanu)
     sindeltanu = magrcrossr / (magr1 * magr2) * sign
 
     # Compute the minimum energy velocity vector
     v = (np.sqrt(MU * pmin) / (magr1 * magr2 * sindeltanu)) * (
-        r2 - (1.0 - magr2 / pmin * (1.0 - cosdeltanu)) * r1
+        r2 - (1 - magr2 / pmin * (1 - cosdeltanu)) * r1
     )
 
     return v, aminenergy, tminenergy, tminabs
@@ -188,7 +188,7 @@ def lambertmint(
     magr1, magr2, cosdeltanu = calculate_mag_and_angle(r1, r2)
 
     # Calculate chord and semiperimeter
-    chord = np.sqrt(magr1**2 + magr2**2 - 2.0 * magr1 * magr2 * cosdeltanu)
+    chord = np.sqrt(magr1**2 + magr2**2 - 2 * magr1 * magr2 * cosdeltanu)
     s = (magr1 + magr2 + chord) * 0.5
 
     # Multipliers based on direction of motion and energy
@@ -196,14 +196,14 @@ def lambertmint(
     sign_de = 1 if de == DirectionOfEnergy.LOW else -1
 
     # Calculate minimum parabolic time of flight tasee if orbit is possible
-    tminp = (1.0 / 3.0) * np.sqrt(2.0 / MU) * ((s**1.5) + sign_dm * (s - chord) ** 1.5)
+    tminp = (1 / 3) * np.sqrt(2 / MU) * ((s**1.5) + sign_dm * (s - chord) ** 1.5)
 
     # Calculate minimum energy ellipse time of flight
     amin = 0.5 * s
-    beta = 2.0 * np.arcsin(np.sqrt((s - chord) / s))
+    beta = 2 * np.arcsin(np.sqrt((s - chord) / s))
     tminenergy = (
         (amin**1.5)
-        * ((2.0 * nrev + 1.0) * np.pi + sign_dm * (beta - np.sin(beta)))
+        * ((2 * nrev + 1) * np.pi + sign_dm * (beta - np.sin(beta)))
         / np.sqrt(MU)
     )
 
@@ -211,26 +211,25 @@ def lambertmint(
     # using Prussing method (Prussing 1992 AAS, 2000 JAS, Stern 1964 p. 230)
     an = 1.001 * amin
     i = 1
-    fa = 10.0
-    xi, eta = 0.0, 0.0
+    fa, xi, eta = 10, 0, 0
     while abs(fa) > fa_tol and i <= fa_iter:
         a = an
-        alp = 1.0 / a
-        alpha = 2.0 * np.arcsin(np.sqrt(0.5 * s * alp))
-        beta = sign_de * 2.0 * np.arcsin(np.sqrt(0.5 * (s - chord) * alp))
+        alp = 1 / a
+        alpha = 2 * np.arcsin(np.sqrt(0.5 * s * alp))
+        beta = sign_de * 2 * np.arcsin(np.sqrt(0.5 * (s - chord) * alp))
         xi = alpha - beta
         eta = np.sin(alpha) - np.sin(beta)
-        fa = (6.0 * nrev * np.pi + 3.0 * xi - eta) * (np.sin(xi) + eta) - 8.0 * (
-            1.0 - np.cos(xi)
+        fa = (6 * nrev * np.pi + 3 * xi - eta) * (np.sin(xi) + eta) - 8 * (
+            1 - np.cos(xi)
         )
         fadot = (
-            (6.0 * nrev * np.pi + 3.0 * xi - eta) * (np.cos(xi) + np.cos(alpha))
-            + (3.0 - np.cos(alpha)) * (np.sin(xi) + eta)
-            - 8.0 * np.sin(xi)
+            (6 * nrev * np.pi + 3 * xi - eta) * (np.cos(xi) + np.cos(alpha))
+            + (3 - np.cos(alpha)) * (np.sin(xi) + eta)
+            - 8 * np.sin(xi)
         ) * (-alp * np.tan(0.5 * alpha)) + (
-            (6.0 * nrev * np.pi + 3.0 * xi - eta) * (-np.cos(xi) - np.cos(alpha))
-            + (-3.0 - np.cos(beta)) * (np.sin(xi) + eta)
-            + 8.0 * np.sin(xi)
+            (6 * nrev * np.pi + 3 * xi - eta) * (-np.cos(xi) - np.cos(alpha))
+            + (-3 - np.cos(beta)) * (np.sin(xi) + eta)
+            + 8 * np.sin(xi)
         ) * (
             -alp * np.tan(0.5 * beta)
         )
@@ -243,14 +242,14 @@ def lambertmint(
     return tmin, tminp, tminenergy
 
 
-###############################################################################
+########################################################################################
 # Battin's Method
-###############################################################################
+########################################################################################
 
 
 def seebatt(v: float) -> float:
     """Recursively calculates a value used in the Lambert Battin problem using
-    predefined coefficients.
+    pre-defined coefficients.
 
     Args:
         v (float): Input value for the recursive calculations (v > -1)
@@ -267,46 +266,46 @@ def seebatt(v: float) -> float:
 
     # Coefficients derived from Battin's recursive series
     c = [
-        9.0 / 7.0,
-        16.0 / 63.0,
-        25.0 / 99.0,
-        36.0 / 143.0,
-        49.0 / 195.0,
-        64.0 / 255.0,
-        81.0 / 323.0,
-        100.0 / 399.0,
-        121.0 / 483.0,
-        144.0 / 575.0,
-        169.0 / 675.0,
-        196.0 / 783.0,
-        225.0 / 899.0,
-        256.0 / 1023.0,
-        289.0 / 1155.0,
-        324.0 / 1295.0,
-        361.0 / 1443.0,
-        400.0 / 1599.0,
-        441.0 / 1763.0,
-        484.0 / 1935.0,
+        9 / 7,
+        16 / 63,
+        25 / 99,
+        36 / 143,
+        49 / 195,
+        64 / 255,
+        81 / 323,
+        100 / 399,
+        121 / 483,
+        144 / 575,
+        169 / 675,
+        196 / 783,
+        225 / 899,
+        256 / 1023,
+        289 / 1155,
+        324 / 1295,
+        361 / 1443,
+        400 / 1599,
+        441 / 1763,
+        484 / 1935,
     ]
 
     # Recursive formulaiton for the Lambert problem
-    sqrtopv = np.sqrt(1.0 + v)
-    eta = v / (1.0 + sqrtopv) ** 2
+    sqrtopv = np.sqrt(1 + v)
+    eta = v / (1 + sqrtopv) ** 2
     ktr = 20
-    term2 = 1.0 + c[ktr - 1] * eta
+    term2 = 1 + c[ktr - 1] * eta
     for j in range(ktr - 2, -1, -1):
-        term2 = 1.0 + (c[j] * eta / term2)
+        term2 = 1 + (c[j] * eta / term2)
 
     return (
-        8.0
-        * (1.0 + sqrtopv)
-        / (3.0 + (1.0 / (5.0 + eta + ((9.0 / 7.0) * eta / term2))))
+        8
+        * (1 + sqrtopv)
+        / (3 + (1 / (5 + eta + ((9 / 7) * eta / term2))))
     )
 
 
 def kbatt(v: float) -> float:
     """Recursively calculates a value used in the Lambert Battin problem using
-    predefined coefficients.
+    pre-defined coefficients.
 
     Args:
         v (float): Input value for the recursive calculations
@@ -316,50 +315,47 @@ def kbatt(v: float) -> float:
     """
     # Coefficients derived from Battin's recursive series
     d = [
-        1.0 / 3.0,
-        4.0 / 27.0,
-        8.0 / 27.0,
-        2.0 / 9.0,
-        22.0 / 81.0,
-        208.0 / 891.0,
-        340.0 / 1287.0,
-        418.0 / 1755.0,
-        598.0 / 2295.0,
-        700.0 / 2907.0,
-        928.0 / 3591.0,
-        1054.0 / 4347.0,
-        1330.0 / 5175.0,
-        1480.0 / 6075.0,
-        1804.0 / 7047.0,
-        1978.0 / 8091.0,
-        2350.0 / 9207.0,
-        2548.0 / 10395.0,
-        2968.0 / 11655.0,
-        3190.0 / 12987.0,
-        3658.0 / 14391.0,
+        1 / 3,
+        4 / 27,
+        8 / 27,
+        2 / 9,
+        22 / 81,
+        208 / 891,
+        340 / 1287,
+        418 / 1755,
+        598 / 2295,
+        700 / 2907,
+        928 / 3591,
+        1054 / 4347,
+        1330 / 5175,
+        1480 / 6075,
+        1804 / 7047,
+        1978 / 8091,
+        2350 / 9207,
+        2548 / 10395,
+        2968 / 11655,
+        3190 / 12987,
+        3658 / 14391,
     ]
 
     # Initial values
-    sum1 = d[0]
-    delold = 1.0
-    termold = d[0]
-    i = 1
+    sum1, delold, termold = d[0], 1, d[0]
 
     # Process forwards
-    ktr = 21
+    i, ktr = 1, 21
     while i < ktr and abs(termold) > 1e-8:
-        del_ = 1.0 / (1.0 + d[i] * v * delold)
-        term = termold * (del_ - 1.0)
+        del_ = 1 / (1 + d[i] * v * delold)
+        term = termold * (del_ - 1)
         sum1 += term
         i += 1
         delold = del_
         termold = term
 
     # Process backwards
-    term2 = 1.0 + d[-1] * v
+    term2 = 1 + d[-1] * v
     for i in range(ktr - 2):
         sum2 = d[ktr - i - 2] * v / term2
-        term2 = 1.0 + sum2
+        term2 = 1 + sum2
 
     return d[0] / term2
 
@@ -373,8 +369,7 @@ def lambhodograph(
     dnu: float,
     dtsec: float,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Accomplishes a 180-degree (and 360-degree) transfer for the Lambert
-    problem.
+    """Accomplishes a 180-degree (and 360-degree) transfer for the Lambert problem.
 
     References:
         Thompson JGCD 2013 v34 n6 1925
@@ -395,17 +390,15 @@ def lambhodograph(
             v2t (np.ndarray): Transfer velocity vector at r2 in km/s
     """
     # Create numpy arrays and compute magnitudes of r1 and r2
-    r1 = np.array(r1)
-    r2 = np.array(r2)
-    magr1 = np.linalg.norm(r1)
-    magr2 = np.linalg.norm(r2)
+    r1, r2 = np.array(r1), np.array(r2)
+    magr1, magr2 = np.linalg.norm(r1), np.linalg.norm(r2)
 
     # Compute parameters a and b
-    a = MU * (1.0 / magr1 - 1.0 / p)
+    a = MU * (1 / magr1 - 1 / p)
     b = (MU * ecc / p) ** 2 - a**2
 
     # Calculate x1 based on b
-    x1 = 0.0 if b <= 0.0 else -np.sqrt(b)
+    x1 = 0 if b <= 0 else -np.sqrt(b)
 
     # 180-degree or multiple 180-degree transfers
     if abs(np.sin(dnu)) < SMALL:
@@ -422,8 +415,8 @@ def lambhodograph(
         nvec = cross_product_r1_v1 / norm_cross_r1_v1
 
         # Adjust the direction of x1 based on the time of flight
-        if ecc < 1.0:
-            ptx = TWOPI * np.sqrt(p**3 / (MU * (1.0 - ecc**2) ** 3))
+        if ecc < 1:
+            ptx = TWOPI * np.sqrt(p**3 / (MU * (1 - ecc**2) ** 3))
             if dtsec % ptx > ptx * 0.5:
                 x1 = -x1
     else:
@@ -470,10 +463,9 @@ def lambertb(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Solves Lambert's problem using Battin's method.
 
-    This method is developed in battin (1987) and explained by Thompson 2018.
-    It uses continued fractions to speed the solution and has several
-    parameters that are defined differently than the traditional gaussian
-    technique.
+    This method is developed in battin (1987) and explained by Thompson 2018. It uses
+    continued fractions to speed the solution and has several parameters that are
+    defined differently than the traditional Gaussian technique.
 
     References:
         Vallado: 2013, p. 493-497
@@ -508,16 +500,15 @@ def lambertb(
     _ = LambertParams(r1=r1, v1=v1, r2=r2, dm=dm, df=df, nrev=nrev, dtsec=dtsec)
 
     # Initialize values
-    v1dv = np.array([np.NAN] * 3)
-    v2dv = np.array([np.NAN] * 3)
-    y = 0.0
+    v1dv, v2dv = np.array([np.NAN] * 3), np.array([np.NAN] * 3)
+    y = 0
 
     # Create numpy arrays and compute magnitudes of r1 and r2
     magr1, magr2, cosdeltanu = calculate_mag_and_angle(r1, r2)
 
     # Determine direction of flight
     magrcrossr = np.linalg.norm(np.cross(r1, r2))
-    sign = 1.0 if df == DirectionOfFlight.DIRECT else -1.0
+    sign = 1 if df == DirectionOfFlight.DIRECT else -1
     sindeltanu = sign * magrcrossr / (magr1 * magr2)
 
     # Compute delta nu
@@ -525,112 +516,111 @@ def lambertb(
     dnu = dnu if dnu >= 0 else TWOPI + dnu  # Ensure positive angle
 
     # Calculate chord and semiperimeter
-    chord = np.sqrt(magr1**2 + magr2**2 - 2.0 * magr1 * magr2 * cosdeltanu)
+    chord = np.sqrt(magr1**2 + magr2**2 - 2 * magr1 * magr2 * cosdeltanu)
     s = (magr1 + magr2 + chord) * 0.5
     ror = magr2 / magr1
-    eps = ror - 1.0
+    eps = ror - 1
 
     # Calculate lambda, L, and m
-    lam = 1.0 / s * np.sqrt(magr1 * magr2) * np.cos(dnu * 0.5)
-    l_ = ((1.0 - lam) / (1.0 + lam)) ** 2
-    m = 8.0 * MU * dtsec**2 / (s**3 * (1.0 + lam) ** 6)
+    lam = 1 / s * np.sqrt(magr1 * magr2) * np.cos(dnu * 0.5)
+    l_ = ((1 - lam) / (1 + lam)) ** 2
+    m = 8 * MU * dtsec**2 / (s**3 * (1 + lam) ** 6)
 
     # Initial guess for x
-    xn = 1.0 + 4.0 * l_ if nrev > 0 else l_
+    xn = 1 + 4 * l_ if nrev > 0 else l_
 
     # Context for the safe square root function errors
     con = "Battin's method intermediate calculations: please adjust `dtsec`"
 
     # High energy case adjustments for long way, retrograde multi-rev
     if dm == DirectionOfMotion.LONG and nrev > 0:
-        xn, x = 1e-20, 10.0
+        xn, x = 1e-20, 10
         loops = 1
         while abs(xn - x) >= SMALL and loops <= n_loops_he:
             # Calculate h1 and h2
             x = xn
-            temp = 1.0 / (2.0 * (l_ - x**2))
+            temp = 1 / (2 * (l_ - x**2))
             temp1 = safe_sqrt(x, con)
             temp2 = (nrev * np.pi * 0.5 + np.arctan(temp1)) / temp1
-            h1 = temp * (l_ + x) * (1.0 + 2.0 * x + l_)
+            h1 = temp * (l_ + x) * (1 + 2 * x + l_)
             h2 = temp * m * temp1 * ((l_ - x**2) * temp2 - (l_ + x))
 
             # Calculate b and f
-            b = 0.25 * 27.0 * h2 / ((temp1 * (1.0 + h1)) ** 3)
-            if b < 0.0:
-                f = 2.0 * np.cos(1.0 / 3.0 * np.arccos(safe_sqrt(b + 1.0), con))
+            b = 0.25 * 27 * h2 / ((temp1 * (1 + h1)) ** 3)
+            if b < 0:
+                f = 2 * np.cos(1 / 3 * np.arccos(safe_sqrt(b + 1), con))
             else:
-                a_ = (safe_sqrt(b, con) + safe_sqrt(b + 1.0, con)) ** (1.0 / 3.0)
-                f = a_ + 1.0 / a_
+                a_ = (safe_sqrt(b, con) + safe_sqrt(b + 1, con)) ** (1 / 3)
+                f = a_ + 1 / a_
 
             # Calculate y and xn
-            y = 2.0 / 3.0 * temp1 * (1.0 + h1) * (safe_sqrt(b + 1.0, con) / f + 1.0)
+            y = 2 / 3 * temp1 * (1 + h1) * (safe_sqrt(b + 1, con) / f + 1)
             xn = 0.5 * (
-                (m / (y**2) - (1.0 + l_))
-                - safe_sqrt((m / (y**2) - (1.0 + l_)) ** 2 - 4.0 * l_, con)
+                (m / (y**2) - (1 + l_))
+                - safe_sqrt((m / (y**2) - (1 + l_)) ** 2 - 4 * l_, con)
             )
             loops += 1
 
         # Determine transfer velocity vectors for high energy case
         x = xn
-        a = s * (1.0 + lam) ** 2 * (1.0 + x) * (l_ + x) / (8.0 * x)
-        p = (2.0 * magr1 * magr2 * (1.0 + x) * np.sin(dnu * 0.5) ** 2) / (
+        a = s * (1 + lam) ** 2 * (1 + x) * (l_ + x) / (8 * x)
+        p = (2 * magr1 * magr2 * (1 + x) * np.sin(dnu * 0.5) ** 2) / (
             s * (1 + lam) ** 2 * (l_ + x)
         )
-        ecc = safe_sqrt(1.0 - p / a, con)
+        ecc = safe_sqrt(1 - p / a, con)
         v1dv, v2dv = lambhodograph(r1, v1, r2, p, ecc, dnu, dtsec)
     else:
         # Standard processing, low energy case
-        loops = 1
-        x = 10.0
+        loops, x = 1, 10
         while abs(xn - x) >= SMALL and loops <= n_loops_le:
             # Calculate h1 and h2
             x = xn
             if nrev > 0:
-                temp = 1.0 / ((1.0 + 2.0 * x + l_) * (4.0 * x**2))
+                temp = 1 / ((1 + 2 * x + l_) * (4 * x**2))
                 temp1 = (nrev * np.pi * 0.5 + np.arctan(safe_sqrt(x, con))) / safe_sqrt(
                     x, con
                 )
                 h1 = (
                     temp
                     * (l_ + x) ** 2
-                    * (3.0 * (1.0 + x) ** 2 * temp1 - (3.0 + 5.0 * x))
+                    * (3 * (1 + x) ** 2 * temp1 - (3 + 5 * x))
                 )
                 h2 = (
                     temp
                     * m
-                    * ((x**2 - x * (1.0 + l_) - 3.0 * l_) * temp1 + (3.0 * l_ + x))
+                    * ((x**2 - x * (1 + l_) - 3 * l_) * temp1 + (3 * l_ + x))
                 )
             else:
                 tempx = seebatt(x)
-                denom = 1.0 / ((1.0 + 2.0 * x + l_) * (4.0 * x + tempx * (3.0 + x)))
-                h1 = (l_ + x) ** 2 * (1.0 + 3.0 * x + tempx) * denom
+                denom = 1 / ((1 + 2 * x + l_) * (4 * x + tempx * (3 + x)))
+                h1 = (l_ + x) ** 2 * (1 + 3 * x + tempx) * denom
                 h2 = m * (x - l_ + tempx) * denom
 
             # Calculate y and xn
-            b = 0.25 * 27.0 * h2 / ((1.0 + h1) ** 3)
-            u = 0.5 * b / (1.0 + safe_sqrt(1.0 + b, con))
+            b = 0.25 * 27 * h2 / ((1 + h1) ** 3)
+            u = 0.5 * b / (1 + safe_sqrt(1 + b, con))
             k2 = kbatt(u)
-            y = ((1.0 + h1) / 3.0) * (
-                2.0 + safe_sqrt(1.0 + b, con) / (1.0 + 2.0 * u * k2 * k2)
+            y = ((1 + h1) / 3) * (
+                2 + safe_sqrt(1 + b, con) / (1 + 2 * u * k2 * k2)
             )
-            xn = safe_sqrt(((1.0 - l_) * 0.5) ** 2 + m / (y**2), con) - (1.0 + l_) * 0.5
+            xn = safe_sqrt(((1 - l_) * 0.5) ** 2 + m / (y**2), con) - (1 + l_) * 0.5
             loops += 1
 
         # Determine transfer velocity vectors for standard case
         if loops < n_loops_le:
             p = (
-                2.0 * magr1 * magr2 * y**2 * (1.0 + x) ** 2 * np.sin(dnu * 0.5) ** 2
+                2 * magr1 * magr2 * y**2 * (1 + x) ** 2 * np.sin(dnu * 0.5) ** 2
             ) / (m * s * (1 + lam) ** 2)
             ecc = safe_sqrt(
                 (
                     eps**2
-                    + 4.0
+                    + 4
                     * magr2
                     / magr1
                     * np.sin(dnu * 0.5) ** 2
                     * ((l_ - x) / (l_ + x)) ** 2
                 )
-                / (eps**2 + 4.0 * magr2 / magr1 * np.sin(dnu * 0.5) ** 2),
+                / (eps**2 + 4 * magr2 / magr1 * np.sin(dnu * 0.5) ** 2),
                 con,
             )
             v1dv, v2dv = lambhodograph(r1, v1, r2, p, ecc, dnu, dtsec)
@@ -638,9 +628,9 @@ def lambertb(
     return v1dv, v2dv
 
 
-###############################################################################
+########################################################################################
 # Universal Variable Lambert Problem
-###############################################################################
+########################################################################################
 
 
 def _calculate_c2dot_c3dot(
@@ -662,10 +652,10 @@ def _calculate_c2dot_c3dot(
             c3ddot (float): Second derivative of c3 with respect to psi
     """
     if abs(psi) > tol:
-        c2dot = 0.5 / psi * (1.0 - psi * c3 - 2.0 * c2)
-        c3dot = 0.5 / psi * (c2 - 3.0 * c3)
-        c2ddot = 1.0 / (4.0 * psi**2) * ((8.0 - psi) * c2 + 5.0 * psi * c3 - 4.0)
-        c3ddot = 1.0 / (4.0 * psi**2) * ((15.0 - psi) * c3 - 7.0 * c2 + 1.0)
+        c2dot = 0.5 / psi * (1 - psi * c3 - 2 * c2)
+        c3dot = 0.5 / psi * (c2 - 3 * c3)
+        c2ddot = 1 / (4 * psi**2) * ((8 - psi) * c2 + 5 * psi * c3 - 4)
+        c3ddot = 1 / (4 * psi**2) * ((15 - psi) * c3 - 7 * c2 + 1)
     else:
         # Taylor series expansion for small psi
         c2dot = sum(
@@ -676,7 +666,7 @@ def _calculate_c2dot_c3dot(
             (-1) ** (i + 1) * (i + 1) * psi**i / math.factorial(2 * i + 5)
             for i in range(5)
         )
-        c2ddot, c3ddot = 0.0, 0.0
+        c2ddot, c3ddot = 0, 0
 
     return c2dot, c3dot, c2ddot, c3ddot
 
@@ -699,8 +689,8 @@ def _calculate_dtdpsi(
         float: Derivative of time of flight with respect to psi
     """
     return (
-        x**3 * (c3dot - 3.0 * c3 * c2dot / (2.0 * c2))
-        + 0.125 * vara * (3.0 * c3 * np.sqrt(y) / c2 + vara / x)
+        x**3 * (c3dot - 3 * c3 * c2dot / (2 * c2))
+        + 0.125 * vara * (3 * c3 * np.sqrt(y) / c2 + vara / x)
     ) * OOMU
 
 
@@ -716,10 +706,8 @@ def lambgettbiu(
 
     Returns:
         tuple: (tbi, tbil)
-            tbi (np.ndarray): Matrix of psi and time of flight for SHORT
-                              direction
-            tbil (np.ndarray): Matrix of psi and time of flight for LONG
-                               direction
+            tbi (np.ndarray): Matrix of psi and time of flight for SHORT direction
+            tbil (np.ndarray): Matrix of psi and time of flight for LONG direction
     """
     tbi = np.zeros((order, 2))
     for i in range(order):
@@ -739,8 +727,8 @@ def lambgettbiu(
 def lambertumins(
     r1: ArrayLike, r2: ArrayLike, dm: DirectionOfMotion, nrev: int, n_iter: int = 20
 ) -> Tuple[float, float]:
-    """Find the minimum psi values for the universal variable Lambert problem
-    for multi-rev cases.
+    """Find the minimum psi values for the universal variable Lambert problem for the
+    multi-rev cases.
 
     References:
         Arora and Russell: AAS 10-198
@@ -771,8 +759,8 @@ def lambertumins(
     vara = sign_dm * np.sqrt(magr1 * magr2 * (1.0 + cosdeltanu))
 
     # Outer bounds for the nrev case
-    lower = 4.0 * nrev**2 * np.pi**2
-    upper = 4.0 * (nrev + 1.0) ** 2 * np.pi**2
+    lower = 4 * nrev**2 * np.pi**2
+    upper = 4 * (nrev + 1) ** 2 * np.pi**2
 
     # Streamline by narrowing down the bounds (since it's near the center)
     upper = lower + (upper - lower) * 0.6
@@ -785,17 +773,15 @@ def lambertumins(
     c2, c3 = findc2c3(psiold)
 
     # Iterative loop to find minimum psi
-    x, sqrty = 0.0, 0.0
-    loops = 0
-    dtdpsi = 200.0
-    psinew = psiold
+    x, sqrty, loops = 0, 0, 0
+    dtdpsi, psinew = 200, psiold
     while abs(dtdpsi) >= 0.1 and loops < n_iter:
         # Calculate y and x
         if abs(c2) > SMALL:
-            y = magr1 + magr2 - (vara * (1.0 - psiold * c3) / np.sqrt(c2))
+            y = magr1 + magr2 - (vara * (1 - psiold * c3) / np.sqrt(c2))
         else:
             y = magr1 + magr2
-        x = np.sqrt(y / c2) if abs(c2) > SMALL else 0.0
+        x = np.sqrt(y / c2) if abs(c2) > SMALL else 0
 
         # Calculate derivatives of c2 and c3
         c2dot, c3dot, c2ddot, c3ddot = _calculate_c2dot_c3dot(psiold, c2, c3)
@@ -806,21 +792,21 @@ def lambertumins(
         # Solve for second derivative of dt with respect to psi
         sqrty = np.sqrt(y)
         q = 0.25 * vara * np.sqrt(c2) - x**2 * c2dot
-        s1 = -24.0 * q * x**3 * c2 * sqrty * c3dot
-        s2 = 36.0 * q * x**3 * sqrty * c3 * c2dot - 16.0 * x**5 * sqrty * c3ddot * c2**2
+        s1 = -24 * q * x**3 * c2 * sqrty * c3dot
+        s2 = 36 * q * x**3 * sqrty * c3 * c2dot - 16 * x**5 * sqrty * c3ddot * c2**2
         s3 = (
-            24.0
+            24
             * x**5
             * sqrty
             * (c3dot * c2dot * c2 + c3 * c2ddot * c2 - c3 * c2dot**2)
-            - 6.0 * vara * c3dot * y * c2 * x**2
+            - 6 * vara * c3dot * y * c2 * x**2
         )
         s4 = (
             -0.75 * vara**2 * c3 * c2**1.5 * x**2
-            + 6.0 * vara * c3 * y * c2dot * x**2
+            + 6 * vara * c3 * y * c2dot * x**2
             + (vara**2 * c2 * (0.25 * vara * np.sqrt(c2) - x**2 * c2)) * sqrty / x
         )
-        dtdpsi2 = -(s1 + s2 + s3 + s4) / (16.0 * np.sqrt(MU) * (c2**2 * sqrty * x**2))
+        dtdpsi2 = -(s1 + s2 + s3 + s4) / (16 * np.sqrt(MU) * (c2**2 * sqrty * x**2))
 
         # Newton-Raphson update for psi
         psinew = psiold - dtdpsi / dtdpsi2
@@ -850,8 +836,11 @@ def lambertu(
     tol: float = 1e-05,
     n_iter: int = 20,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Solves Lambert's problem for orbit determination, returns the velocity
-    vectors at each of two given position vectors.
+    """Solves Lambert's problem for orbit determination, returns the velocity vectors at
+    each of two given position vectors.
+
+    The solution uses universal variables for calculation and a bissection technique
+    updating psi.
 
     References:
         Vallado: 2013, p. 489-493, Algorithm 58
@@ -872,39 +861,39 @@ def lambertu(
         n_iter (int): Maximum number of iterations to perform (defaults to 20)
 
     Returns:
-        tuple: (v1dv, v2dv, errorl)
+        tuple: (v1dv, v2dv)
             v1dv (np.ndarray): Transfer velocity vector at r1 in km/s
             v2dv (np.ndarray): Transfer velocity vector at r2 in km/s
 
     Notes:
-        - If the orbit is not possible, the method will log an error and
-          return the Battin method or a Hohmann transfer
-        - This method is sensitive to inputs, specifically `dtsec` and `psi`
-          values in `psi_vec` (for multi-rev cases) - a bad combination can
-          lead to no solutions (see Vallado 2013, Figure 7-16)
+        - If the orbit is not possible, the method will log an error and return the
+          Battin method or a Hohmann transfer
+        - This method is sensitive to inputs, specifically `dtsec` and `psi` values in
+          `psi_vec` (for multi-rev cases) - a bad combination can lead to no solutions
+          (see Vallado 2013, Figure 7-16)
     """
     # Validate the Pydantic model
     _ = LambertParams(r1=r1, v1=v1, r2=r2, dtsec=dtsec, dm=dm, de=de, nrev=nrev)
 
     # Definitions and initialization
     max_ynegktr_iters = 10  # maximum number of iterations for y < 0
-    v1dv = np.zeros(3)
-    v2dv = np.zeros(3)
+    v1dv, v2dv = np.zeros(3), np.zeros(3)
 
     # Compute magnitudes of r1 and r2
     magr1, magr2, cosdeltanu = calculate_mag_and_angle(r1, r2)
 
     # Determine vara based on direction of motion
-    sign = -1.0 if dm == DirectionOfMotion.LONG else 1.0
+    sign = -1 if dm == DirectionOfMotion.LONG else 1
     vara = sign * np.sqrt(magr1 * magr2 * (1.0 + cosdeltanu))
 
     # Set up initial bounds for bisection
     if nrev == 0:
-        lower = -16.0 * np.pi**2  # Hyperbolic and parabolic solutions
-        upper = 4.0 * np.pi**2
+        # Hyperbolic and parabolic solutions
+        lower = -16 * np.pi**2
+        upper = 4 * np.pi**2
     else:
-        lower = 4.0 * nrev**2 * np.pi**2
-        upper = 4.0 * (nrev + 1.0) ** 2 * np.pi**2
+        lower = 4 * nrev**2 * np.pi**2
+        upper = 4 * (nrev + 1) ** 2 * np.pi**2
         if de == DirectionOfEnergy.HIGH:
             upper = psi_vec[nrev - 1]
         else:
@@ -923,11 +912,11 @@ def lambertu(
 
     # Compute initial y and dtold
     if abs(c2new) > tol:
-        y = magr1 + magr2 - (vara * (1.0 - psiold * c3new) / np.sqrt(c2new))
+        y = magr1 + magr2 - (vara * (1 - psiold * c3new) / np.sqrt(c2new))
     else:
         y = magr1 + magr2
 
-    xold = np.sqrt(y / c2new) if abs(c2new) > tol else 0.0
+    xold = np.sqrt(y / c2new) if abs(c2new) > tol else 0
     dtold = (xold**3 * c3new + vara * np.sqrt(y)) * OOMU
 
     # Check if orbit is not possible
@@ -936,14 +925,14 @@ def lambertu(
         logger.error("Orbit is not possible")
 
         # Call Battin method or use a Hohmann transfer in 3D
-        atx = (MU * (dtsec / np.pi) ** 2) ** (1.0 / 3.0)  # half period
-        v1tmag = np.sqrt(2.0 * MU / magr1 - MU / atx)
-        v2tmag = np.sqrt(2.0 * MU / magr2 - MU / atx)
+        atx = (MU * (dtsec / np.pi) ** 2) ** (1 / 3)  # half period
+        v1tmag = np.sqrt(2 * MU / magr1 - MU / atx)
+        v2tmag = np.sqrt(2 * MU / magr2 - MU / atx)
 
         # Compute the direction of the velocity vectors
         wxu = unit(np.cross(r1, v1))
-        v1diru = unit(np.cross(r1, wxu))  # Unit vector for v1, retrograde
-        v2diru = unit(np.cross(r2, wxu))  # Unit vector for v2, retrograde
+        v1diru = unit(np.cross(r1, wxu))
+        v2diru = unit(np.cross(r2, wxu))
 
         # Compute the velocities using the direction and magnitude
         v1dv = -v1tmag * v1diru
@@ -952,36 +941,34 @@ def lambertu(
         return v1dv, v2dv
 
     # Loop for iteration
-    loops = 0
-    ynegktr = 1
-    dtnew = -10.0
+    loops, ynegktr, dtnew = 0, 1, -10
 
     # Loop to find psi
     while abs(dtnew - dtsec) >= tol and loops < n_iter and ynegktr <= max_ynegktr_iters:
         if abs(c2new) > tol:
-            y = magr1 + magr2 - (vara * (1.0 - psiold * c3new) / np.sqrt(c2new))
+            y = magr1 + magr2 - (vara * (1 - psiold * c3new) / np.sqrt(c2new))
         else:
             y = magr1 + magr2
 
         # Check for negative y values
-        if y < 0.0 < vara:
-            while y < 0.0 and ynegktr < max_ynegktr_iters:
+        if y < 0 < vara:
+            while y < 0 and ynegktr < max_ynegktr_iters:
                 psinew = (
                     0.8
-                    * (1.0 / c3new)
-                    * (1.0 - (magr1 + magr2) * np.sqrt(c2new) / vara)
+                    * (1 / c3new)
+                    * (1 - (magr1 + magr2) * np.sqrt(c2new) / vara)
                 )
                 c2new, c3new = findc2c3(psinew)
                 psiold = psinew
                 lower = psiold
-                y = magr1 + magr2 - (vara * (1.0 - psiold * c3new) / np.sqrt(c2new))
+                y = magr1 + magr2 - (vara * (1 - psiold * c3new) / np.sqrt(c2new))
                 ynegktr += 1
 
         loops += 1
 
         # Check for convergence
         if ynegktr < max_ynegktr_iters:
-            xold = np.sqrt(y / c2new) if abs(c2new) > tol else 0.0
+            xold = np.sqrt(y / c2new) if abs(c2new) > tol else 0
             dtnew = (xold**3 * c3new + vara * np.sqrt(y)) * OOMU
 
             # Newton-Raphson iteration for psi update
@@ -1015,7 +1002,7 @@ def lambertu(
 
             # Make sure the first guess isn't too close
             if abs(dtnew - dtsec) < tol and loops == 1:
-                dtnew = dtsec - 1.0
+                dtnew = dtsec - 1
 
     # Check for non-convergence
     if loops >= n_iter or ynegktr >= max_ynegktr_iters:
@@ -1024,9 +1011,9 @@ def lambertu(
             logger.error("y is negative")
     else:
         # Compute velocity vectors using f and g series
-        f = 1.0 - y / magr1
-        gdot = 1.0 - y / magr2
-        g = 1.0 / (vara * np.sqrt(y / MU))
+        f = 1 - y / magr1
+        gdot = 1 - y / magr2
+        g = 1 / (vara * np.sqrt(y / MU))
 
         for i in range(3):
             v1dv[i] = (r2[i] - f * r1[i]) * g

@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 27 May 2002
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 from enum import Enum
 from typing import Tuple
@@ -12,7 +12,7 @@ from typing import Tuple
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ...constants import RE, MU, ECCEARTHSQRD, SMALL, TWOPI
+from ...constants import RE, MU, ECCEARTHSQRD, SMALL, TWOPI, J2000_UTC
 
 
 class OrbitType(Enum):
@@ -63,9 +63,8 @@ def is_equatorial(inc: float) -> bool:
 def site(latgd: float, lon: float, alt: float) -> Tuple[np.ndarray, np.ndarray]:
     """Finds the position and velocity vectors for a site.
 
-    The answer is returned in the geocentric equatorial (ECEF) coordinate
-    system. Note that the velocity is zero because the coordinate system is
-    fixed to the Earth.
+    The answer is returned in the geocentric equatorial (ECEF) coordinate system.
+    Note that the velocity is zero because the coordinate system is fixed to the Earth.
 
     References:
         Vallado: 2001, p. 404-407, Algorithm 47
@@ -82,14 +81,14 @@ def site(latgd: float, lon: float, alt: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     # Compute site position vector
     sinlat = np.sin(latgd)
-    cearth = RE / np.sqrt(1.0 - ECCEARTHSQRD * sinlat**2)
+    cearth = RE / np.sqrt(1 - ECCEARTHSQRD * sinlat**2)
     rdel = (cearth + alt) * np.cos(latgd)
-    rk = ((1.0 - ECCEARTHSQRD) * cearth + alt) * sinlat
+    rk = ((1 - ECCEARTHSQRD) * cearth + alt) * sinlat
 
     rsecef = np.array([rdel * np.cos(lon), rdel * np.sin(lon), rk])
 
     # Site velocity vector in ECEF frame is zero
-    vsecef = np.array([0.0, 0.0, 0.0])
+    vsecef = np.zeros(3)
 
     return rsecef, vsecef
 
@@ -110,15 +109,15 @@ def findc2c3(znew: float) -> Tuple[float, float]:
     """
     if znew > SMALL:
         sqrtz = np.sqrt(znew)
-        c2new = (1.0 - np.cos(sqrtz)) / znew
+        c2new = (1 - np.cos(sqrtz)) / znew
         c3new = (sqrtz - np.sin(sqrtz)) / (sqrtz**3)
     elif znew < -SMALL:
         sqrtz = np.sqrt(-znew)
-        c2new = (1.0 - np.cosh(sqrtz)) / znew
+        c2new = (1 - np.cosh(sqrtz)) / znew
         c3new = (np.sinh(sqrtz) - sqrtz) / (sqrtz**3)
     else:
         c2new = 0.5
-        c3new = 1.0 / 6.0
+        c3new = 1 / 6
 
     return c2new, c3new
 
@@ -126,9 +125,8 @@ def findc2c3(znew: float) -> Tuple[float, float]:
 def lon2nu(jdut1: float, lon: float, incl: float, raan: float, argp: float) -> float:
     """Converts the longitude of the ascending node to the true anomaly.
 
-    This function calculates the true anomaly (`nu`) of an object
-    at a given Julian date (`jdut1`) using the Greenwich Mean Sidereal Time
-    (GMST) and orbital elements.
+    This function calculates the true anomaly (`nu`) of an object at a given Julian date
+    using the Greenwich Mean Sidereal Time (GMST) and orbital elements.
 
     Args:
         jdut1 (float): Julian date of UT1 (days from 4713 BC)
@@ -138,15 +136,15 @@ def lon2nu(jdut1: float, lon: float, incl: float, raan: float, argp: float) -> f
         argp (float): Argument of periapsis in radians
 
     Returns:
-        float: True anomaly (`nu`) in radians (0 to 2pi)
+        float: True anomaly in radians (0 to 2pi)
     """
     # Calculate GMST
-    ed = jdut1 - 2451544.5  # Elapsed days from 1 Jan 2000, 0 hrs
+    ed = jdut1 - J2000_UTC
     gmst = 99.96779469 + 360.9856473662860 * ed + 0.29079e-12 * ed * ed  # deg
     gmst = np.remainder(np.radians(gmst), TWOPI)
 
     # Check quadrants
-    if gmst < 0.0:
+    if gmst < 0:
         gmst += TWOPI
 
     # Calculate lambdau
@@ -166,8 +164,8 @@ def lon2nu(jdut1: float, lon: float, incl: float, raan: float, argp: float) -> f
 
 
 def gc2gd(latgc: float) -> float:
-    """Converts geocentric latitude to geodetic latitude for positions on the
-    surface of the Earth.
+    """Converts geocentric latitude to geodetic latitude for positions on the surface of
+    the Earth.
 
     References:
         Vallado: 2001, p. 146, Eq. 3-11
@@ -176,14 +174,14 @@ def gc2gd(latgc: float) -> float:
         latgc (float): Geocentric latitude in radians
 
     Returns:
-        (float): Geodetic latitude in radians (-pi/2 to pi/2)
+        float: Geodetic latitude in radians (-pi/2 to pi/2)
     """
-    return np.arctan(np.tan(latgc) / (1.0 - ECCEARTHSQRD))
+    return np.arctan(np.tan(latgc) / (1 - ECCEARTHSQRD))
 
 
 def gd2gc(latgd: float) -> float:
-    """Converts geodetic latitude to geocentric latitude for positions on the
-    surface of the Earth.
+    """Converts geodetic latitude to geocentric latitude for positions on the surface of
+    the Earth.
 
     References:
         Vallado: 2001, p. 146, Eq. 3-11
@@ -192,9 +190,9 @@ def gd2gc(latgd: float) -> float:
         latgd (float): Geodetic latitude in radians
 
     Returns:
-        (float): Geocentric latitude in radians (-pi/2 to pi/2)
+        float: Geocentric latitude in radians (-pi/2 to pi/2)
     """
-    return np.arctan((1.0 - ECCEARTHSQRD) * np.tan(latgd))
+    return np.arctan((1 - ECCEARTHSQRD) * np.tan(latgd))
 
 
 def checkhitearth(
@@ -214,13 +212,10 @@ def checkhitearth(
         nrev (int): Number of revolutions (0, 1, 2, ...)
 
     Returns:
-        tuple: (hitearth, hitearthstr)
-            hitearth (bool): True if Earth is impacted (False otherwise)
-            hitearthstr (str): Explanation of the impact status
+        tuple:
+            bool: True if Earth is impacted (False otherwise)
+            str: Explanation of the impact status
     """
-    # Initialize variables
-    hitearth, hitearthstr = False, "No impact"
-
     # Compute magnitudes of position vectors
     magr1 = np.linalg.norm(r1)
     magr2 = np.linalg.norm(r2)
@@ -230,72 +225,67 @@ def checkhitearth(
 
     # Check if the initial or final position vector is below the padded radius
     if magr1 < rpad or magr2 < rpad:
-        hitearth, hitearthstr = True, "Impact at initial/final radii"
-    else:
-        rdotv1 = np.dot(r1, v1)
-        rdotv2 = np.dot(r2, v2)
+        return True, "Impact at initial/final radii"
 
-        # Solve for the reciprocal of the semi-major axis (1/a)
-        ainv = 2.0 / magr1 - np.linalg.norm(v1) ** 2 / MU
+    # Compute dot products of position and velocity vectors
+    rdotv1, rdotv2 = np.dot(r1, v1), np.dot(r2, v2)
 
-        # Find ecos(E)
-        ecosea1 = 1.0 - magr1 * ainv
-        ecosea2 = 1.0 - magr2 * ainv
+    # Solve for the reciprocal of the semi-major axis (1/a)
+    ainv = 2 / magr1 - np.linalg.norm(v1) ** 2 / MU
+    a = 1 / ainv
 
-        # Determine the radius of perigee for nrev > 0
-        if nrev > 0:
-            a = 1.0 / ainv
-            if a > 0.0:
-                # Elliptical orbit
-                esinea1 = rdotv1 / np.sqrt(MU * a)
-                ecc = np.sqrt(ecosea1**2 + esinea1**2)
-            else:
-                # Hyperbolic orbit
-                esinea1 = rdotv1 / np.sqrt(MU * abs(-a))
-                ecc = np.sqrt(ecosea1**2 - esinea1**2)
+    # Find ecos(E)
+    ecosea1, ecosea2 = 1 - magr1 * ainv, 1 - magr2 * ainv
 
-            # Check if the radius of perigee is below the padded radius
-            rp = a * (1.0 - ecc)
-            if rp < rpad:
-                hitearth, hitearthstr = True, "Impact during nrev"
-
-        # Check for special cases when nrev = 0
+    # Determine the radius of perigee for nrev > 0
+    if nrev > 0:
+        if a > 0:
+            # Elliptical orbit
+            esinea1 = rdotv1 / np.sqrt(MU * a)
+            ecc = np.sqrt(ecosea1**2 + esinea1**2)
         else:
-            if (
-                (rdotv1 < 0.0 < rdotv2)
-                or (rdotv1 > 0.0 < rdotv2 and ecosea1 < ecosea2)
-                or (rdotv1 < 0.0 > rdotv2 and ecosea1 > ecosea2)
-            ):
+            # Hyperbolic orbit
+            esinea1 = rdotv1 / np.sqrt(MU * abs(-a))
+            ecc = np.sqrt(ecosea1**2 - esinea1**2)
 
-                # Check for parabolic impact
-                if abs(ainv) <= SMALL:
-                    hbar = np.cross(r1, v1)
-                    magh = np.linalg.norm(hbar)
-                    rp = magh**2 * 0.5 / MU
-                    if rp < rpad:
-                        hitearth, hitearthstr = True, "Parabolic impact"
+        # Check if the radius of perigee is below the padded radius
+        rp = a * (1 - ecc)
+        if rp < rpad:
+            return True, "Impact during nrev"
 
+    # Check for special cases when nrev = 0
+    else:
+        if (
+            (rdotv1 < 0 < rdotv2)
+            or (rdotv1 > 0 < rdotv2 and ecosea1 < ecosea2)
+            or (rdotv1 < 0 > rdotv2 and ecosea1 > ecosea2)
+        ):
+
+            # Check for parabolic impact
+            if abs(ainv) <= SMALL:
+                hbar = np.cross(r1, v1)
+                magh = np.linalg.norm(hbar)
+                rp = magh**2 * 0.5 / MU
+                if rp < rpad:
+                    return True, "Parabolic impact"
+
+            else:
+                esinea1 = rdotv1 / np.sqrt(MU * abs(a))
+                if ainv > 0:
+                    ecc = np.sqrt(ecosea1**2 + esinea1**2)
                 else:
-                    a = 1.0 / ainv
-                    esinea1 = rdotv1 / np.sqrt(MU * abs(a))
-                    if ainv > 0.0:
-                        ecc = np.sqrt(ecosea1**2 + esinea1**2)
-                    else:
-                        ecc = np.sqrt(ecosea1**2 - esinea1**2)
+                    ecc = np.sqrt(ecosea1**2 - esinea1**2)
 
-                    # Check for elliptical impact
-                    if ecc < 1.0:
-                        rp = a * (1.0 - ecc)
-                        if rp < rpad:
-                            hitearth, hitearthstr = True, "Elliptical impact"
+                # Check for elliptical impact
+                rp = a * (1 - ecc)
+                if ecc < 1 and rp < rpad:
+                    return True, "Elliptical impact"
 
-                    # Check for hyperbolic impact
-                    elif rdotv1 < 0.0 < rdotv2:
-                        rp = a * (1.0 - ecc)
-                        if rp < rpad:
-                            hitearth, hitearthstr = True, "Hyperbolic impact"
+                # Check for hyperbolic impact
+                elif rdotv1 < 0 < rdotv2 and rp < rpad:
+                    return True, "Hyperbolic impact"
 
-    return hitearth, hitearthstr
+    return False, "No impact"
 
 
 def findtof(ro: ArrayLike, r: ArrayLike, p: float) -> float:
@@ -313,8 +303,7 @@ def findtof(ro: ArrayLike, r: ArrayLike, p: float) -> float:
         float: Time of flight in seconds
     """
     # Magnitudes of position vectors
-    magr = np.linalg.norm(r)
-    magro = np.linalg.norm(ro)
+    magr, magro = np.linalg.norm(r), np.linalg.norm(ro)
 
     # Calculate cosine and sine of change in true anomaly
     cosdnu = np.dot(ro, r) / (magro * magr)
@@ -322,15 +311,15 @@ def findtof(ro: ArrayLike, r: ArrayLike, p: float) -> float:
     sindnu = np.linalg.norm(rcrossr) / (magro * magr)
 
     # Intermediate calculations
-    k = magro * magr * (1.0 - cosdnu)
+    k = magro * magr * (1 - cosdnu)
     l_ = magro + magr
-    m = magro * magr * (1.0 + cosdnu)
-    a = (m * k * p) / ((2.0 * m - l_**2) * p**2 + 2.0 * k * l_ * p - k**2)
+    m = magro * magr * (1 + cosdnu)
+    a = (m * k * p) / ((2 * m - l_**2) * p**2 + 2 * k * l_ * p - k**2)
 
     # Compute f and g
-    f = 1.0 - (magr / p) * (1.0 - cosdnu)
+    f = 1 - (magr / p) * (1 - cosdnu)
     g = magro * magr * sindnu / np.sqrt(MU * p)
-    alpha = 1.0 / a
+    alpha = 1 / a
 
     # Find time of flight based on orbit type
     if alpha > SMALL:
@@ -339,20 +328,20 @@ def findtof(ro: ArrayLike, r: ArrayLike, p: float) -> float:
         fdot = (
             np.sqrt(MU / p)
             * np.tan(dnu * 0.5)
-            * (((1.0 - cosdnu) / p) - (1.0 / magro) - (1.0 / magr))
+            * (((1 - cosdnu) / p) - (1 / magro) - (1 / magr))
         )
-        cosdeltae = 1.0 - (magro / a) * (1.0 - f)
+        cosdeltae = 1 - (magro / a) * (1 - f)
         sindeltae = (-magro * magr * fdot) / np.sqrt(MU * a)
         deltae = np.arctan2(sindeltae, cosdeltae)
         tof = g + np.sqrt(a**3 / MU) * (deltae - sindeltae)
     elif alpha < SMALL:
         # Hyperbolic case
-        deltah = np.arccosh(1.0 - (magro / a) * (1.0 - f))
+        deltah = np.arccosh(1 - (magro / a) * (1 - f))
         tof = g + np.sqrt(-(a**3) / MU) * (np.sinh(deltah) - deltah)
     else:
         # Parabolic case
-        c = np.sqrt(magr**2 + magro**2 - 2.0 * magr * magro * cosdnu)
+        c = np.sqrt(magr**2 + magro**2 - 2 * magr * magro * cosdnu)
         s = (magro + magr + c) * 0.5
-        tof = (2.0 / 3.0) * np.sqrt((s**3) * 0.5 / MU) * (1.0 - ((s - c) / s) ** 1.5)
+        tof = (2 / 3) * np.sqrt((s**3) * 0.5 / MU) * (1 - ((s - c) / s) ** 1.5)
 
     return tof
