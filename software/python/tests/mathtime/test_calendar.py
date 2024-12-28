@@ -113,8 +113,8 @@ class TestGetIntDay:
         (2024, 60.0, (2, 29, 0, 0, 0.0)),  # Feb 29, 2024, 00:00:00 (leap year)
     ],
 )
-def test_days_to_mdh(year, days, mdh_exp):
-    assert cal.days_to_mdh(year, days) == mdh_exp
+def test_days2mdh(year, days, mdh_exp):
+    assert cal.days2mdh(year, days) == mdh_exp
 
 
 @pytest.mark.parametrize(

@@ -1,11 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 27 May 2002
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
-
+# --------------------------------------------------------------------------------------
 
 import calendar
 from datetime import datetime, timedelta
@@ -76,7 +75,7 @@ def get_int_day(day_str: str) -> int:
         raise ValueError(f"Invalid day abbreviation: {day_str}") from e
 
 
-def days_to_mdh(year: int, days: float) -> Tuple[int, int, int, int, float]:
+def days2mdh(year: int, days: float) -> Tuple[int, int, int, int, float]:
     """Converts day of the year to month, day, hour, minute, and second.
 
     Args:

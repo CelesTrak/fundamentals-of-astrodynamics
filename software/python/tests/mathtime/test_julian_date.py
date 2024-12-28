@@ -25,8 +25,8 @@ def test_jday():
         ((2024, 12, 2, 12, 0, 0), julian_date.CalendarType.GREGORIAN, 2460646.5, 0.5),
     ],
 )
-def test_jdayall(ymdhms, calendar_type, expected_jd, expected_jd_frac):
-    jd, jd_frac = julian_date.jdayall(*ymdhms, calendar_type)
+def test_jday_all(ymdhms, calendar_type, expected_jd, expected_jd_frac):
+    jd, jd_frac = julian_date.jday_all(*ymdhms, calendar_type)
     assert np.isclose(jd, expected_jd, rtol=DEFAULT_TOL)
     assert np.isclose(jd_frac, expected_jd_frac, rtol=DEFAULT_TOL)
 

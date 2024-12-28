@@ -16,7 +16,7 @@ import numpy as np
 
 from ... import constants as const
 from ...mathtime.julian_date import jday
-from ...mathtime.calendar import days_to_mdh
+from ...mathtime.calendar import days2mdh
 from ..time.sidereal import gstime
 from .deep_space import DeepSpace
 from .utils import SatRec, WGSModel, getgravc
@@ -172,8 +172,8 @@ class SGP4:
     def set_jd_from_yr_doy(
         self, start_yr: int, start_doy: float, stop_yr: int, stop_doy: float
     ):
-        start_mdhms = days_to_mdh(start_yr, start_doy)
-        stop_mdhms = days_to_mdh(stop_yr, stop_doy)
+        start_mdhms = days2mdh(start_yr, start_doy)
+        stop_mdhms = days2mdh(stop_yr, stop_doy)
 
         self.set_jd_from_from_ymdhms((start_yr, *start_mdhms), (stop_yr, *stop_mdhms))
 
@@ -250,7 +250,7 @@ class SGP4:
         self.satrec.nddot /= xpdotp * const.DAY2MIN**2  # rad/min^3
 
         # Compute Julian date of the epoch
-        mdhms = days_to_mdh(year, self.satrec.epochdays)
+        mdhms = days2mdh(year, self.satrec.epochdays)
         self.satrec.jdsatepoch, self.satrec.jdsatepochf = jday(year, *mdhms)
 
         # Default values for start, stop, and step

@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 27 May 2002
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 import calendar
 import logging
@@ -13,7 +13,7 @@ from typing import Tuple
 
 import numpy as np
 
-from .calendar import days_to_mdh
+from .calendar import days2mdh
 from .utils import hms2sec, sec2hms
 from .. import constants as const
 
@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 # Constants
-JULIAN_DATE_REFERENCE_YEAR = 1900  # Reference year for the Julian Date
+JULIAN_DATE_REFERENCE_YEAR = 1900  # reference year for the Julian Date
 JULIAN_DATE_1900 = 2415019.5  # Julian date for January 0, 1900
 JULIAN_DATE_EPOCH_OFFSET = 4716  # Julian date offset from the Gregorian calendar
-DST_RULE_CHANGE_YEAR = 2007  # Year when DST rules changed in the US
-DST_CHANGE_UTC_HOUR = -10.0  # Hour when DST changes in UTC (02:00)
+DST_RULE_CHANGE_YEAR = 2007  # year when DST rules changed in the US
+DST_CHANGE_UTC_HOUR = -10  # hour when DST changes in UTC (02:00)
 
 
 class CalendarType(Enum):
@@ -61,9 +61,9 @@ def jday(
     """
     # Calculate Julian Date
     jd = (
-        367.0 * year
-        - np.floor((7 * (year + np.floor((month + 9) / 12.0))) * 0.25)
-        + np.floor(275 * month / 9.0)
+        367 * year
+        - np.floor((7 * (year + np.floor((month + 9) / 12))) * 0.25)
+        + np.floor(275 * month / 9)
         + day
         + 1721013.5
     )  # use - 678987.0 to go to MJD directly
@@ -72,14 +72,14 @@ def jday(
     jd_frac = (second + minute * const.MIN2SEC + hour * const.HR2SEC) / const.DAY2SEC
 
     # Adjust if jd_frac > 1
-    if jd_frac > 1.0:
+    if jd_frac > 1:
         jd += np.floor(jd_frac)
         jd_frac -= np.floor(jd_frac)
 
     return jd, jd_frac
 
 
-def jdayall(
+def jday_all(
     year: int,
     month: int,
     day: int,
@@ -116,7 +116,7 @@ def jdayall(
 
     # Determine B based on the calendar type
     if calendar_type == CalendarType.JULIAN:
-        b = 0.0
+        b = 0
     elif calendar_type == CalendarType.GREGORIAN:
         b = 2 - (year // 100) + (year // 400)
     else:
@@ -138,9 +138,9 @@ def jdayall(
     jdfrac = (hour * const.HR2SEC + minute * const.MIN2SEC + second) / const.DAY2SEC
 
     # Normalize jdfrac if it exceeds 1.0
-    if jdfrac >= 1.0:
+    if jdfrac >= 1:
         jd += int(jdfrac)
-        jdfrac %= 1.0
+        jdfrac %= 1
 
     return jd, jdfrac
 
@@ -165,9 +165,9 @@ def invjday(jd: float, jdfrac: float) -> Tuple[int, int, int, int, int, float]:
         - This assumes the Gregorian calendar type.
     """
     # Normalize jdfrac if it spans multiple days
-    if abs(jdfrac) >= 1.0:
+    if abs(jdfrac) >= 1:
         jd += int(jdfrac)
-        jdfrac %= 1.0
+        jdfrac %= 1
 
     # Adjust for fraction of a day in the Julian Date
     dt = jd - int(jd) - 0.5
@@ -186,7 +186,7 @@ def invjday(jd: float, jdfrac: float) -> Tuple[int, int, int, int, int, float]:
     )
 
     # Handle start-of-year edge case
-    if days + jdfrac < 1.0:
+    if days + jdfrac < 1:
         year -= 1
         leap_years = (year - (JULIAN_DATE_REFERENCE_YEAR + 1)) // 4
         days = int(
@@ -198,7 +198,7 @@ def invjday(jd: float, jdfrac: float) -> Tuple[int, int, int, int, int, float]:
         )
 
     # Convert days of year + fractional day to calendar date and time
-    month, day, hour, minute, second = days_to_mdh(year, days + jdfrac)
+    month, day, hour, minute, second = days2mdh(year, days + jdfrac)
 
     return year, month, day, hour, minute, second
 
@@ -222,7 +222,7 @@ def day_of_week(jd: float) -> int:
     return ((jd + 1) % 7) + 1
 
 
-def find_dst_date(year, month, target_week, weekday):
+def find_dst_date(year: int, month: int, target_week: int, weekday: int) -> int | None:
     """Find the nth occurrence or the last occurrence of a specific weekday in a given
     month.
 
@@ -233,7 +233,7 @@ def find_dst_date(year, month, target_week, weekday):
         weekday (int): Day of the week (0=Monday, 6=Sunday)
 
     Returns:
-        int: Day of the month for the specified weekday and week
+        int: Day of the month for the specified weekday and week (None if invalid)
     """
     weeks = calendar.monthcalendar(year, month)
     if target_week == -1:  # last occurrence
@@ -250,7 +250,7 @@ def find_dst_date(year, month, target_week, weekday):
     return None
 
 
-def daylight_savings(year: int, lon: float) -> tuple[int, int, float, float]:
+def daylight_savings(year: int, lon: float) -> Tuple[int, int, float, float]:
     """Find the start and stop dates for daylight savings time (DST) in a given year.
 
     References:
@@ -304,14 +304,14 @@ def daylight_savings(year: int, lon: float) -> tuple[int, int, float, float]:
 
     # Julian date for DST start
     jdstartdst, jdstartdst_frac = jday(
-        year, 3 if year >= DST_RULE_CHANGE_YEAR else 4, startday, 12, 0, 0.0
+        year, 3 if year >= DST_RULE_CHANGE_YEAR else 4, startday, 12, 0, 0
     )
     jdstartdst += jdstartdst_frac
     jdstartdst += (DST_CHANGE_UTC_HOUR - zone) / const.DAY2HR
 
     # Julian date for DST end
     jdstopdst, jdstopdst_frac = jday(
-        year, 11 if year >= DST_RULE_CHANGE_YEAR else 10, stopday, 12, 0, 0.0
+        year, 11 if year >= DST_RULE_CHANGE_YEAR else 10, stopday, 12, 0, 0
     )
     jdstopdst += jdstopdst_frac
     jdstopdst += (DST_CHANGE_UTC_HOUR - zone) / const.DAY2HR
@@ -406,12 +406,12 @@ def convtime(
     tdb = (
         tt
         + 0.001657 * np.sin(628.3076 * ttt + 6.2401)
-        + 0.000022 * np.sin(575.3385 * ttt + 4.2970)
+        + 0.000022 * np.sin(575.3385 * ttt + 4.297)
         + 0.000014 * np.sin(1256.6152 * ttt + 6.1969)
         + 0.000005 * np.sin(606.9777 * ttt + 4.0212)
         + 0.000005 * np.sin(52.9691 * ttt + 0.4444)
         + 0.000002 * np.sin(21.3299 * ttt + 5.5431)
-        + 0.000010 * ttt * np.sin(628.3076 * ttt + 4.2490)
+        + 0.00001 * ttt * np.sin(628.3076 * ttt + 4.249)
     )
     hrtemp, mintemp, sectemp = sec2hms(tdb)
     jdtdb, jdtdbfrac = jday(year, month, day, hrtemp, mintemp, sectemp)
