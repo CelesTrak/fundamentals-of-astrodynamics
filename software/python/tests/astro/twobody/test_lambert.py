@@ -49,14 +49,14 @@ class TestLambert:
             ),
         ],
     )
-    def test_lambertmin(
+    def test_min_energy(
         self, lambert_inputs, dm, v_exp, aminenergy_exp, tminenergy_exp, tminabs_exp
     ):
         # Unpack inputs
         r1, r2, _, nrev, _ = lambert_inputs
 
         # Compute Lambert minimum energy
-        out = lambert.lambertmin(r1, r2, dm, nrev)
+        out = lambert.min_energy(r1, r2, dm, nrev)
         v, aminenergy, tminenergy, tminabs = out
 
         # Check results
@@ -98,14 +98,14 @@ class TestLambert:
             ),
         ],
     )
-    def test_lambertmint(
+    def test_min_time(
         self, lambert_inputs, dm, de, tmin_exp, tminp_exp, tminenergy_exp
     ):
         # Unpack inputs
         r1, r2, _, nrev, _ = lambert_inputs
 
         # Compute Lambert minimum time
-        tmin, tminp, tminenergy = lambert.lambertmint(r1, r2, dm, de, nrev)
+        tmin, tminp, tminenergy = lambert.min_time(r1, r2, dm, de, nrev)
 
         # Check results
         assert np.allclose(tmin, tmin_exp, rtol=DEFAULT_TOL)
@@ -130,7 +130,7 @@ class TestLambertBattin:
     def test_kbatt(self, v):
         assert np.isclose(lambert.kbatt(v), 0.327568960337347, rtol=DEFAULT_TOL)
 
-    def test_lambhodograph(self):
+    def test_hodograph(self):
         r1 = [6888, 0, 0]
         v1 = [0, 7.6072, 0]
         r2 = [8000 * np.sin(np.pi / 4), 8000 * np.cos(np.pi / 4), 0]
@@ -140,7 +140,7 @@ class TestLambertBattin:
         dtsec = 1234
 
         # Check nominal case
-        v1t, v2t = lambert.lambhodograph(r1, v1, r2, p, ecc, dnu, dtsec)
+        v1t, v2t = lambert.hodograph(r1, v1, r2, p, ecc, dnu, dtsec)
         assert custom_allclose(v1t, [0, 7.668753340719345, 0])
         assert custom_allclose(v2t, [-4.665702986379401, 4.672061552209318, 0])
 
@@ -148,12 +148,12 @@ class TestLambertBattin:
         new_v1 = [7.6072, 0, 0]
         new_dnu = 0
         with pytest.raises(ValueError):
-            lambert.lambhodograph(r1, new_v1, r2, p, ecc, new_dnu, dtsec)
+            lambert.hodograph(r1, new_v1, r2, p, ecc, new_dnu, dtsec)
 
         # Check when r1 and r2 are parallel
         new_r2 = [8000, 0, 0]
         with pytest.raises(ValueError):
-            lambert.lambhodograph(r1, v1, new_r2, p, ecc, dnu, dtsec)
+            lambert.hodograph(r1, v1, new_r2, p, ecc, dnu, dtsec)
 
     @pytest.mark.parametrize(
         "dm, df, v1dv_exp, v2dv_exp",
@@ -184,18 +184,18 @@ class TestLambertBattin:
             ),
         ],
     )
-    def test_lambertb(self, lambert_inputs, dm, df, v1dv_exp, v2dv_exp):
+    def test_battin(self, lambert_inputs, dm, df, v1dv_exp, v2dv_exp):
         # Unpack inputs and set dtsec
         r1, r2, v1, nrev, dtsec = lambert_inputs
 
         # Compute Lambert minimum time
-        v1dv, v2dv = lambert.lambertb(r1, v1, r2, dm, df, nrev, dtsec)
+        v1dv, v2dv = lambert.battin(r1, v1, r2, dm, df, nrev, dtsec)
 
         # Check results
         assert np.allclose(v1dv, v1dv_exp, rtol=DEFAULT_TOL)
         assert np.allclose(v2dv, v2dv_exp, rtol=DEFAULT_TOL)
 
-    def test_lambertb_bad_inputs(self, lambert_inputs):
+    def test_battin_bad_inputs(self, lambert_inputs):
         # Unpack inputs
         r1, r2, v1, nrev, _ = lambert_inputs
         dm = lambert.DirectionOfMotion.LONG
@@ -203,12 +203,12 @@ class TestLambertBattin:
 
         # Check when dtsec is 0
         with pytest.raises(ValueError):
-            lambert.lambertb(r1, v1, r2, dm, df, nrev, dtsec=0)
+            lambert.battin(r1, v1, r2, dm, df, nrev, dtsec=0)
 
         # Check when dtsec is positive but within a range without a solution
         # (hits the error in a different part of the algorithm)
         with pytest.raises(ValueError):
-            lambert.lambertb(r1, v1, r2, dm, df, nrev, dtsec=4560)
+            lambert.battin(r1, v1, r2, dm, df, nrev, dtsec=4560)
 
 
 class TestLambertUniversal:
@@ -238,7 +238,7 @@ class TestLambertUniversal:
         dtdpsi = lambert._calculate_dtdpsi(x, c2, c3, c2dot, c3dot, vara, y)
         assert np.isclose(dtdpsi, -2162.3620971040746, rtol=DEFAULT_TOL)
 
-    def test_lambgettbiu(self, lambert_inputs):
+    def test_get_tbiu(self, lambert_inputs):
         # Unpack inputs
         r1, r2, _, _, _ = lambert_inputs
 
@@ -259,7 +259,7 @@ class TestLambertUniversal:
         )
 
         # Compute universal variable Lambert problem
-        tbi, tbil = lambert.lambgettbiu(r1, r2, order=3)
+        tbi, tbil = lambert.get_tbiu(r1, r2, order=3)
 
         # Check results
         assert np.allclose(tbi, tbi_exp, rtol=DEFAULT_TOL)
@@ -272,12 +272,12 @@ class TestLambertUniversal:
             (lambert.DirectionOfMotion.SHORT, 57.8159275519482, 15048.626881962446),
         ],
     )
-    def test_lambertumins(self, lambert_inputs, dm, psib_exp, tof_exp):
+    def test_universal_min(self, lambert_inputs, dm, psib_exp, tof_exp):
         # Unpack inputs
         r1, r2, _, nrev, _ = lambert_inputs
 
         # Compute universal variable Lambert problem
-        psib, tof = lambert.lambertumins(r1, r2, dm, nrev)
+        psib, tof = lambert.universal_min(r1, r2, dm, nrev)
 
         # Check results
         assert np.isclose(psib, psib_exp, rtol=DEFAULT_TOL)
@@ -328,14 +328,14 @@ class TestLambertUniversal:
             ),
         ],
     )
-    def test_lambertu(
+    def test_universal(
         self, lambert_inputs, dm, de, nrev, psi_vec, v1dv_exp, v2dv_exp, caplog
     ):
         # Unpack inputs
         r1, r2, v1, _, dtsec = lambert_inputs
 
         # Compute universal variable Lambert problem
-        v1dv, v2dv = lambert.lambertu(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
+        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
 
         # Check results
         assert np.allclose(v1dv, v1dv_exp, rtol=DEFAULT_TOL)
@@ -348,7 +348,7 @@ class TestLambertUniversal:
         "dtsec, psi_vec",
         [(4560, [113]), (92854.234, [20])],  # dtsec is too small  # psi is too small
     )
-    def test_lambertu_bad_inputs(self, lambert_inputs, dtsec, psi_vec, caplog):
+    def test_universal_bad_inputs(self, lambert_inputs, dtsec, psi_vec, caplog):
         # Unpack inputs
         r1, r2, v1, nrev, _ = lambert_inputs
 
@@ -357,7 +357,7 @@ class TestLambertUniversal:
         de = lambert.DirectionOfEnergy.HIGH
 
         # Compute universal variable Lambert problem
-        v1dv, v2dv = lambert.lambertu(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
+        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
 
         # Check results
         assert np.allclose(v1dv, np.zeros(3), rtol=DEFAULT_TOL)
@@ -369,7 +369,7 @@ class TestLambertUniversal:
             "Lambert did not converge! Try different values of dtsec or psi"
         )
 
-    def test_lambertu_bad_orbit(self, lambert_inputs, caplog):
+    def test_universal_bad_orbit(self, lambert_inputs, caplog):
         # Unpack inputs
         _, _, v1, nrev, dtsec = lambert_inputs
 
@@ -383,7 +383,7 @@ class TestLambertUniversal:
         psi_vec = [113]
 
         # Compute universal variable Lambert problem
-        v1dv, v2dv = lambert.lambertu(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
+        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
 
         # Check results
         v1dv_exp = np.array([0, 2823.473599000267, 0])

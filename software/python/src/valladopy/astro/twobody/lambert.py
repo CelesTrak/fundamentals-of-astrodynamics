@@ -87,7 +87,7 @@ def calculate_mag_and_angle(r1: ArrayLike, r2: ArrayLike) -> Tuple[float, float,
 ########################################################################################
 
 
-def lambertmin(
+def min_energy(
     r1: ArrayLike, r2: ArrayLike, dm: DirectionOfMotion, nrev: int
 ) -> Tuple[np.ndarray, float, float, float]:
     """Solves the Lambert minimum energy problem.
@@ -144,7 +144,7 @@ def lambertmin(
     return v, aminenergy, tminenergy, tminabs
 
 
-def lambertmint(
+def min_time(
     r1: ArrayLike,
     r2: ArrayLike,
     dm: DirectionOfMotion,
@@ -153,8 +153,8 @@ def lambertmint(
     fa_tol: float = 1e-5,
     fa_iter: int = 20,
 ) -> Tuple[float, float, float]:
-    """Solves Lambert's problem to find the minimum time of flight for
-    the multi-revolution cases.
+    """Solves Lambert's problem to find the minimum time of flight for the
+    multi-revolution cases.
 
     References:
         Vallado: 2013, p. 494, Algorithm 59
@@ -168,8 +168,8 @@ def lambertmint(
         nrev (int): Number of revolutions (0, 1, 2, ...)
         fa_tol (float, optional): Tolerance for the Prussing method min TOF
                                   (defaults to 1e-5)
-        fa_iter (int, optional): Maximum number of iterations for the Prussing
-                                 method min TOF (defaults to 20)
+        fa_iter (int, optional): Maximum number of iterations for the Prussing method
+                                 min TOF (defaults to 20)
 
     Returns:
         tuple:
@@ -356,7 +356,7 @@ def kbatt(v: float) -> float:
     return d[0] / term2
 
 
-def lambhodograph(
+def hodograph(
     r1: ArrayLike,
     v1: ArrayLike,
     r2: ArrayLike,
@@ -446,7 +446,7 @@ def lambhodograph(
     return v1t, v2t
 
 
-def lambertb(
+def battin(
     r1: ArrayLike,
     v1: ArrayLike,
     r2: ArrayLike,
@@ -564,7 +564,7 @@ def lambertb(
             s * (1 + lam) ** 2 * (l_ + x)
         )
         ecc = safe_sqrt(1 - p / a, con)
-        v1dv, v2dv = lambhodograph(r1, v1, r2, p, ecc, dnu, dtsec)
+        v1dv, v2dv = hodograph(r1, v1, r2, p, ecc, dnu, dtsec)
     else:
         # Standard processing, low energy case
         loops, x = 1, 10
@@ -609,7 +609,7 @@ def lambertb(
                 / (eps**2 + 4 * magr2 / magr1 * np.sin(dnu * 0.5) ** 2),
                 con,
             )
-            v1dv, v2dv = lambhodograph(r1, v1, r2, p, ecc, dnu, dtsec)
+            v1dv, v2dv = hodograph(r1, v1, r2, p, ecc, dnu, dtsec)
 
     return v1dv, v2dv
 
@@ -680,9 +680,7 @@ def _calculate_dtdpsi(
     ) * OOMU
 
 
-def lambgettbiu(
-    r1: ArrayLike, r2: ArrayLike, order: int
-) -> Tuple[np.ndarray, np.ndarray]:
+def get_tbiu(r1: ArrayLike, r2: ArrayLike, order: int) -> Tuple[np.ndarray, np.ndarray]:
     """Form the minimum time and universal variable matrix for multi-rev cases.
 
     Args:
@@ -697,20 +695,20 @@ def lambgettbiu(
     """
     tbi = np.zeros((order, 2))
     for i in range(order):
-        psib, tof = lambertumins(r1, r2, DirectionOfMotion.SHORT, i + 1)
+        psib, tof = universal_min(r1, r2, DirectionOfMotion.SHORT, i + 1)
         tbi[i, 0] = psib
         tbi[i, 1] = tof
 
     tbil = np.zeros((order, 2))
     for i in range(order):
-        psib, tof = lambertumins(r1, r2, DirectionOfMotion.LONG, i + 1)
+        psib, tof = universal_min(r1, r2, DirectionOfMotion.LONG, i + 1)
         tbil[i, 0] = psib
         tbil[i, 1] = tof
 
     return tbi, tbil
 
 
-def lambertumins(
+def universal_min(
     r1: ArrayLike, r2: ArrayLike, dm: DirectionOfMotion, nrev: int, n_iter: int = 20
 ) -> Tuple[float, float]:
     """Find the minimum psi values for the universal variable Lambert problem for the
@@ -807,7 +805,7 @@ def lambertumins(
     return psib, tof
 
 
-def lambertu(
+def universal(
     r1: ArrayLike,
     v1: ArrayLike,
     r2: ArrayLike,
