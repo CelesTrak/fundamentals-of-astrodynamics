@@ -135,11 +135,7 @@ def sidereal(
 
     # Transformation matrix for PEF to TOD
     st = np.array(
-        [
-            [np.cos(ast), -np.sin(ast), 0],
-            [np.sin(ast), np.cos(ast), 0],
-            [0, 0, 1],
-        ]
+        [[np.cos(ast), -np.sin(ast), 0], [np.sin(ast), np.cos(ast), 0], [0, 0, 1]]
     )
 
     # Sidereal time rate matrix

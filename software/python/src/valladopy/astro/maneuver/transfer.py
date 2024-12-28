@@ -413,9 +413,7 @@ def min_combined(
     tdi = ifinal - iinit
 
     # Delta-Vs
-    temp = (1 / tdi) * np.arctan(
-        np.sin(tdi) / ((rfinal / rinit) ** 1.5 + np.cos(tdi))
-    )
+    temp = (1 / tdi) * np.arctan(np.sin(tdi) / ((rfinal / rinit) ** 1.5 + np.cos(tdi)))
     deltava = utils.deltav(v1t, vinit, temp * tdi)
     deltavb = utils.deltav(v3t, vfinal, tdi * (1 - temp))
 

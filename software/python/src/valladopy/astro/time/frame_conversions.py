@@ -751,11 +751,7 @@ def _get_teme_eci_transform(
 
     # Construct the rotation matrix for the equation of equinoxes
     eqe = np.array(
-        [
-            [np.cos(eqeg), np.sin(eqeg), 0],
-            [-np.sin(eqeg), np.cos(eqeg), 0],
-            [0, 0, 1],
-        ]
+        [[np.cos(eqeg), np.sin(eqeg), 0], [-np.sin(eqeg), np.cos(eqeg), 0], [0, 0, 1]]
     )
 
     return prec, nut, eqe

@@ -296,11 +296,7 @@ def seebatt(v: float) -> float:
     for j in range(ktr - 2, -1, -1):
         term2 = 1 + (c[j] * eta / term2)
 
-    return (
-        8
-        * (1 + sqrtopv)
-        / (3 + (1 / (5 + eta + ((9 / 7) * eta / term2))))
-    )
+    return 8 * (1 + sqrtopv) / (3 + (1 / (5 + eta + ((9 / 7) * eta / term2))))
 
 
 def kbatt(v: float) -> float:
@@ -580,16 +576,8 @@ def lambertb(
                 temp1 = (nrev * np.pi * 0.5 + np.arctan(safe_sqrt(x, con))) / safe_sqrt(
                     x, con
                 )
-                h1 = (
-                    temp
-                    * (l_ + x) ** 2
-                    * (3 * (1 + x) ** 2 * temp1 - (3 + 5 * x))
-                )
-                h2 = (
-                    temp
-                    * m
-                    * ((x**2 - x * (1 + l_) - 3 * l_) * temp1 + (3 * l_ + x))
-                )
+                h1 = temp * (l_ + x) ** 2 * (3 * (1 + x) ** 2 * temp1 - (3 + 5 * x))
+                h2 = temp * m * ((x**2 - x * (1 + l_) - 3 * l_) * temp1 + (3 * l_ + x))
             else:
                 tempx = seebatt(x)
                 denom = 1 / ((1 + 2 * x + l_) * (4 * x + tempx * (3 + x)))
@@ -600,17 +588,15 @@ def lambertb(
             b = 0.25 * 27 * h2 / ((1 + h1) ** 3)
             u = 0.5 * b / (1 + safe_sqrt(1 + b, con))
             k2 = kbatt(u)
-            y = ((1 + h1) / 3) * (
-                2 + safe_sqrt(1 + b, con) / (1 + 2 * u * k2 * k2)
-            )
+            y = ((1 + h1) / 3) * (2 + safe_sqrt(1 + b, con) / (1 + 2 * u * k2 * k2))
             xn = safe_sqrt(((1 - l_) * 0.5) ** 2 + m / (y**2), con) - (1 + l_) * 0.5
             loops += 1
 
         # Determine transfer velocity vectors for standard case
         if loops < n_loops_le:
-            p = (
-                2 * magr1 * magr2 * y**2 * (1 + x) ** 2 * np.sin(dnu * 0.5) ** 2
-            ) / (m * s * (1 + lam) ** 2)
+            p = (2 * magr1 * magr2 * y**2 * (1 + x) ** 2 * np.sin(dnu * 0.5) ** 2) / (
+                m * s * (1 + lam) ** 2
+            )
             ecc = safe_sqrt(
                 (
                     eps**2
@@ -795,10 +781,7 @@ def lambertumins(
         s1 = -24 * q * x**3 * c2 * sqrty * c3dot
         s2 = 36 * q * x**3 * sqrty * c3 * c2dot - 16 * x**5 * sqrty * c3ddot * c2**2
         s3 = (
-            24
-            * x**5
-            * sqrty
-            * (c3dot * c2dot * c2 + c3 * c2ddot * c2 - c3 * c2dot**2)
+            24 * x**5 * sqrty * (c3dot * c2dot * c2 + c3 * c2ddot * c2 - c3 * c2dot**2)
             - 6 * vara * c3dot * y * c2 * x**2
         )
         s4 = (
@@ -954,9 +937,7 @@ def lambertu(
         if y < 0 < vara:
             while y < 0 and ynegktr < max_ynegktr_iters:
                 psinew = (
-                    0.8
-                    * (1 / c3new)
-                    * (1 - (magr1 + magr2) * np.sqrt(c2new) / vara)
+                    0.8 * (1 / c3new) * (1 - (magr1 + magr2) * np.sqrt(c2new) / vara)
                 )
                 c2new, c3new = findc2c3(psinew)
                 psiold = psinew

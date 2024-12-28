@@ -37,11 +37,7 @@ def iau06era(jdut1: float) -> np.ndarray:
 
     # Transformation matrix from PEF to IRE
     return np.array(
-        [
-            [np.cos(era), -np.sin(era), 0],
-            [np.sin(era), np.cos(era), 0],
-            [0, 0, 1],
-        ]
+        [[np.cos(era), -np.sin(era), 0], [np.sin(era), np.cos(era), 0], [0, 0, 1]]
     )
 
 
@@ -181,11 +177,7 @@ def iau06gst(
 
     # Transformation matrix
     st = np.array(
-        [
-            [np.cos(gst), -np.sin(gst), 0],
-            [np.sin(gst), np.cos(gst), 0],
-            [0, 0, 1],
-        ]
+        [[np.cos(gst), -np.sin(gst), 0], [np.sin(gst), np.cos(gst), 0], [0, 0, 1]]
     )
 
     return gst, st
@@ -792,9 +784,7 @@ def iau06xys(
             [-x, -y, 1 - a * (x**2 + y**2)],
         ]
     )
-    nut2 = np.array(
-        [[np.cos(s), np.sin(s), 0], [-np.sin(s), np.cos(s), 0], [0, 0, 1]]
-    )
+    nut2 = np.array([[np.cos(s), np.sin(s), 0], [-np.sin(s), np.cos(s), 0], [0, 0, 1]])
 
     # Combine to form the final nutation matrix
     nut = np.dot(nut1, nut2)

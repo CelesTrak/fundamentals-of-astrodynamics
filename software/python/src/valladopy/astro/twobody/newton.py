@@ -47,7 +47,7 @@ def newtone(ecc: float, e0: float) -> Tuple[float, float]:
         nu = np.arctan2(sinv, cosv)
     else:
         # Parabolic orbit
-        m = e0 + (1 / 3) * e0 ** 3
+        m = e0 + (1 / 3) * e0**3
         nu = 2 * np.arctan(e0)
 
     return m, nu
