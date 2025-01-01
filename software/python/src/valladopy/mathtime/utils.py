@@ -68,6 +68,38 @@ def sec2hms(seconds: float) -> tuple[int, int, float]:
     return hours, minutes, secs
 
 
+def hms2ut(hours: int, minutes: int, seconds: float) -> float:
+    """Converts hours, minutes, and seconds into universal time.
+
+    Args:
+        hours (int): Hours (0 .. 23)
+        minutes (int): Minutes (0 .. 59)
+        seconds (float): Seconds (0.0 .. 59.999)
+
+    Returns:
+        float: Universal time in hrmin.sec format
+    """
+    return hours * 100 + minutes + seconds * 0.01
+
+
+def ut2hms(ut: float) -> Tuple[int, int, float]:
+    """Converts universal time (hhmm.sec format) into hours, minutes, and seconds.
+
+    Args:
+        ut (float): Universal time in hrmin.sec format
+
+    Returns:
+        tuple: (hours, minutes, seconds)
+            hours (int): The number of hours (0 .. 23)
+            minutes (int): The number of minutes (0 .. 59)
+            seconds (float): The number of seconds (0.0 .. 59.999)
+    """
+    hr = int(np.floor(ut * 0.01))
+    minute = int(np.floor(ut - hr * 100))
+    second = (ut - hr * 100 - minute) * 100
+    return hr, minute, second
+
+
 def hms2rad(hours: int, minutes: int, seconds: float) -> float:
     """Convert hours, minutes, and seconds to radians.
 
@@ -142,38 +174,6 @@ def rad2dms(radians: float) -> tuple[int, int, float]:
     secs = round(secs) if abs(secs - round(secs)) < const.SMALL else secs
 
     return degrees, minutes, secs
-
-
-def hms2ut(hr: int, minute: int, second: float) -> float:
-    """Converts hours, minutes, and seconds into universal time.
-
-    Args:
-        hr (int): Hours (0 .. 23)
-        minute (int): Minutes (0 .. 59)
-        second (float): Seconds (0.0 .. 59.999)
-
-    Returns:
-        float: Universal time in hrmin.sec format
-    """
-    return hr * 100 + minute + second * 0.01
-
-
-def ut2hms(ut: float) -> Tuple[int, int, float]:
-    """Converts universal time (hhmm.sec format) into hours, minutes, and seconds.
-
-    Args:
-        ut (float): Universal time in hrmin.sec format
-
-    Returns:
-        tuple: (hours, minutes, seconds)
-            hours (int): The number of hours (0 .. 23)
-            minutes (int): The number of minutes (0 .. 59)
-            seconds (float): The number of seconds (0.0 .. 59.999)
-    """
-    hr = np.floor(ut * 0.01)
-    minute = np.floor(ut - hr * 100)
-    second = (ut - hr * 100 - minute) * 100
-    return hr, minute, second
 
 
 def jd2sse(julian_date: float) -> float:

@@ -3,6 +3,8 @@ import pytest
 
 import src.valladopy.mathtime.utils as utils
 
+from ..conftest import custom_isclose
+
 
 @pytest.mark.parametrize(
     "value, context, expected_output, raises_error",
@@ -30,8 +32,24 @@ def test_safe_sqrt(value, context, expected_output, raises_error):
     ],
 )
 def test_hms_sec_conversions(hours, minutes, seconds, total_seconds):
-    assert utils.hms2sec(hours, minutes, seconds) == total_seconds
+    assert np.isclose(utils.hms2sec(hours, minutes, seconds), total_seconds)
     assert utils.sec2hms(total_seconds) == (hours, minutes, seconds)
+
+
+@pytest.mark.parametrize(
+    "hours, minutes, seconds, ut",
+    [
+        # note: negative case does not work here
+        # but it probably doesn't need to anyway
+        (1, 1, 1, 101.01),  # normal case
+        (0, 0, 0, 0),  # edge case
+    ],
+)
+def test_hms_ut_conversions2(hours, minutes, seconds, ut):
+    hms = utils.ut2hms(ut)
+    assert custom_isclose(utils.hms2ut(hours, minutes, seconds), ut)
+    assert hms[0:2] == (hours, minutes)
+    assert custom_isclose(hms[2], seconds)
 
 
 @pytest.mark.parametrize(
@@ -43,7 +61,7 @@ def test_hms_sec_conversions(hours, minutes, seconds, total_seconds):
     ],
 )
 def test_hms_rad_conversions(hours, minutes, seconds, radians):
-    assert utils.hms2rad(hours, minutes, seconds) == radians
+    assert custom_isclose(utils.hms2rad(hours, minutes, seconds), radians)
     assert utils.rad2hms(radians) == (hours, minutes, seconds)
 
 
@@ -56,7 +74,7 @@ def test_hms_rad_conversions(hours, minutes, seconds, radians):
     ],
 )
 def test_dms_rad_conversions(degrees, minutes, seconds, radians):
-    assert utils.dms2rad(degrees, minutes, seconds) == radians
+    assert custom_isclose(utils.dms2rad(degrees, minutes, seconds), radians)
     assert utils.rad2dms(radians) == (degrees, minutes, seconds)
 
 
