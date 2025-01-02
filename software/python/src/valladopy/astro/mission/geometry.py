@@ -23,7 +23,7 @@ def pathm(llat: float, llon: float, range_: float, az: float) -> Tuple[float, fl
     azimuth from a given starting point.
 
     References:
-        Vallado: 2001, p. 774-776, Eq. 11-6 and 11-7
+        Vallado: 2022, p. 872, Eq. 11-6 and 11-7
 
     Args:
         llat (float): Start geocentric latitude in radians (-pi/2 to pi/2)
@@ -76,7 +76,7 @@ def rngaz(
     on a spherical Earth.
 
     References:
-        Vallado: 2001, p. 774-775, Eq. 11-3 to 11-5
+        Vallado: 2022, p. 872, Eq. 11-3 to 11-5
 
     Args:
         llat (float): Start geocentric latitude in radians (-pi/2 to pi/2)
@@ -120,11 +120,11 @@ def satfov(
     tfov: float,
     etactr: float,
     tol_fov: float = 1e-5,
-):
+) -> Tuple[float, float, float, float]:
     """Finds parameters relating to a satellite's field of view (FOV).
 
     References:
-        Vallado: 2001, p. 776-781, Eq. 11-8 to 11-13
+        Vallado: 2022, p. 874-876, Eq. 11-8 to 11-13
 
     Args:
         az (float): Azimuth in radians (0.0 to 2pi)
@@ -137,10 +137,10 @@ def satfov(
 
     Returns:
         tuple: (rhomin, rhomax, lat, lon)
-            rhomin: Minimum slant range in km
-            rhomax: Maximum slant range in km
-            lat: Latitude of the center of the FOV in radians
-            lon: Longitude of the center of the FOV in radians
+            rhomin (float): Minimum slant range in km
+            rhomax (float): Maximum slant range in km
+            lat (float): Latitude of the center of the FOV in radians
+            lon (float): Longitude of the center of the FOV in radians
     """
     # Satellite parameters and limiting cases
     r = const.RE + salt
