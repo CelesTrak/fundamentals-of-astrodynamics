@@ -11,6 +11,7 @@ import numpy as np
 from typing import Tuple
 
 from ... import constants as const
+from ...mathtime.julian_date import jday
 
 
 def gstime(jdut1: float) -> float:
@@ -23,7 +24,7 @@ def gstime(jdut1: float) -> float:
         jdut1 (float): Julian date of UT1 (days from 4713 BC)
 
     Returns:
-        float: Greenwich Sidereal Time (0 to 2pi radians)
+        float: Greenwich Sidereal Time in radians (0 to 2pi)
     """
     # Julian centuries from the J2000 epoch
     tut1 = (jdut1 - const.J2000) / const.CENT2DAY
@@ -45,7 +46,7 @@ def gstime0(year: int) -> float:
     of the given year.
 
     References:
-        Vallado: 2007, p. 195, Eq. 3-46
+        Vallado: 2022, p. 189-190, Eq. 3-48
 
     Args:
         year (int): Year (e.g., 1998, 1999, etc.)
@@ -54,12 +55,7 @@ def gstime0(year: int) -> float:
         float: Greenwich Sidereal Time in radians (0 to 2pi)
     """
     # Calculate Julian Date at 0 hr UT1 on January 1
-    jd = (
-        367 * year
-        - np.floor(7 * (year + np.floor((10 / 12))) * 0.25)
-        + np.floor(275 / 9)
-        + 1721014.5
-    )
+    jd, _ = jday(year, month=1, day=1)
 
     return gstime(jd)
 
@@ -76,9 +72,9 @@ def lstime(lon: float, jdut1: float) -> Tuple[float, float]:
         jdut1 (float): Julian date of UT1 (days from 4713 BC)
 
     Returns:
-        tuple[float, float]:
-            - Local sidereal time (LST) in radians (0 to 2pi)
-            - Greenwich sidereal time (GST) in radians (0 to 2pi)
+        tuple: (lst, gst)
+            lst (float): Local sidereal time (LST) in radians (0 to 2pi)
+            gst (float): Greenwich sidereal time (GST) in radians (0 to 2pi)
     """
     # Calculate GST
     gst = gstime(jdut1)
@@ -101,7 +97,7 @@ def sidereal(
     sidereal time.
 
     References:
-        Vallado: 2013, p. 223-224
+        Vallado: 2022, p. 224-225
 
     Args:
         jdut1 (float): Julian date of UT1 (days from 4713 BC)
@@ -112,7 +108,7 @@ def sidereal(
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
-        tuple:
+        tuple: (st, stdot)
             st (np.ndarray): Transformation matrix for PEF to TOD
             stdot (np.ndarray): Transformation rate matrix
     """

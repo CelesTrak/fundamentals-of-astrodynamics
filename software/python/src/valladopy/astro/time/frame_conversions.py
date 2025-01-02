@@ -61,7 +61,7 @@ def calc_orbit_effects(
     pm = polarm(xp, yp, ttt, use_iau80=use_iau80)
 
     # Calculate the effects of Earth's rotation
-    thetasa = const.EARTHROT * (1.0 - lod / const.DAY2SEC)
+    thetasa = const.EARTHROT * (1 - lod / const.DAY2SEC)
     omegaearth = np.array([0, 0, thetasa])
 
     return prec, nut, st, pm, omegaearth
@@ -137,10 +137,10 @@ def eci2ecef(
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the ECI mean equator, mean equinox frame
-    (J2000) to the Earth-fixed (ITRF) frame (ECEF).
+    (J2000) to the Earth-fixed frame (ECEF).
 
     References:
-        Vallado: 2013, p. 223-229
+        Vallado: 2022, p. 223-230
 
     Args:
         reci (array_like): ECi position vector in km
@@ -180,7 +180,7 @@ def eci2ecef(
     aecef = (
         pm.T @ (st.T @ nut.T @ prec.T @ aeci)
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
@@ -203,7 +203,7 @@ def eci2ecef06(
     using IAU 2006 models.
 
     References:
-        Vallado, 2004, pp. 205-219
+        Vallado, 2022, p. 223-230
 
     Args:
         reci (ArrayLike): ECI position vector in km
@@ -241,7 +241,7 @@ def eci2ecef06(
     aecef = pm.T @ (
         st.T @ pnb.T @ aeci
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
@@ -264,7 +264,7 @@ def ecef2eci(
     mean equator, mean equinox (J2000) frame.
 
     References:
-        Vallado: 2013, p. 223-229
+        Vallado: 2022, p. 223-230
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -324,7 +324,7 @@ def ecef2eci06(
     """Transforms a vector from the Earth-fixed frame (ITRF) to the ECI frame (GCRF).
 
     References:
-        Vallado, 2004, pp. 205-219
+        Vallado, 2022, p. 223-230
 
     Args:
         recef (ArrayLike): ECEF position vector in km
@@ -384,7 +384,7 @@ def compute_iau_matrices(
     ddx: float = 0.0,
     ddy: float = 0.0,
     eqeterms: bool = True,
-):
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Computes the precession/nutation matrix, sidereal time matrix,
     polar motion matrix, and Earth rotation vector.
 
@@ -400,17 +400,16 @@ def compute_iau_matrices(
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
-        tuple: (prec, nut, st, pm, omegaearth)
+        tuple: (prec, nut, st, omegaearth)
             prec (np.ndarray): Precession matrix
             nut (np.ndarray): Nutation matrix
             st (np.ndarray): Sidereal time matrix
-            pm (np.ndarray): Polar motion matrix
             omegaearth (np.ndarray): Earth rotation vector
     """
     # Get the precession matrix and the Earth's rotation vector
     iau_opt = "06" if "06" in opt else opt
     prec, *_, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, 0.0, 0.0, ddpsi, ddeps, opt=iau_opt, eqeterms=eqeterms
+        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, opt=iau_opt, eqeterms=eqeterms
     )
 
     # Get orbit effects based on the option
@@ -456,11 +455,11 @@ def eci2pef(
     ddy: float = 0.0,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the mean equator, mean equinox frame (J2000),
+    """Transforms a vector from the mean equator, mean equinox frame (ECI),
     to the pseudo earth-fixed frame (PEF).
 
     References:
-        Vallado: 2001, p. 219, Eqs. 3-65 to 3-66
+        Vallado: 2022, p. 224
 
     Args:
         reci (array_like): ECI position vector in km
@@ -514,7 +513,7 @@ def pef2eci(
     equator, mean equinox (J2000) frame using the IAU 1980 model.
 
     References:
-        Vallado: 2001, p. 219, Eq. 3-68
+        Vallado: 2022, p. 224
 
     Args:
         rpef (array_like): PEf position vector in km
@@ -575,7 +574,7 @@ def eci2tod(
     (J2000) to the true equator, true equinox of date (TOD) frame.
 
     References:
-        Vallado: 2001, p. 216-219, Eq. 3-65
+        Vallado: 2022, p. 225
 
     Args:
         reci (array_like): ECI position vector in km
@@ -619,7 +618,7 @@ def tod2eci(
     to the ECI mean equator, mean equinox (J2000) frame.
 
     References:
-        Vallado: 2001, p. 219-220, Eq. 3-68
+        Vallado: 2022, p. 225
 
     Args:
         rtod (array_like): TOD position vector in km
@@ -661,7 +660,7 @@ def eci2mod(
     (J2000) to the mean equator, mean equinox of date (MOD) frame.
 
     References:
-        Vallado: 2001, p. 214-215, Eq. 3-57
+        Vallado: 2022, p. 227
 
     Args:
         reci (array_like): ECI position vector in km
@@ -693,7 +692,7 @@ def mod2eci(
     to the ECI mean equator, mean equinox (J2000) frame.
 
     References:
-        Vallado: 2013, p. 219-220, Eq. 3-68
+        Vallado: 2022, p. 227
 
     Args:
         rmod (array_like): MOD position vector in km
@@ -769,7 +768,7 @@ def eci2teme(
     true equator, mean equinox (TEME) frame.
 
     References:
-        Vallado: 2013, p. 231-233
+        Vallado: 2022, p. 232-234
 
     Args:
         reci (array_like): ECI position vector in km
@@ -811,7 +810,7 @@ def teme2eci(
     mean equator, mean equinox (J2000) frame.
 
     References:
-        Vallado: 2013, p. 231-233
+        Vallado: 2022, p. 232-234
 
     Args:
         rteme (array_like): TEME position vector in km
@@ -860,7 +859,7 @@ def ecef2pef(
     Earth-fixed (PEF) frame.
 
     References:
-        Vallado: 2001, p. 219, Eq. 3-65 to 3-66
+        Vallado: 2022, p. 224
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -904,7 +903,7 @@ def pef2ecef(
     Earth-fixed (ITRF) frame.
 
     References:
-        Vallado: 2001, p. 219, Eq. 3-65 to 3-66
+        Vallado: 2022, p. 224
 
     Args:
         rpef (array_like): PEF position vector in km
@@ -957,7 +956,7 @@ def ecef2tod(
     frame.
 
     References:
-        Vallado: 2013, p. 223-231
+        Vallado: 2022, p. 225
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -1020,7 +1019,7 @@ def tod2ecef(
     frame.
 
     References:
-        Vallado: 2013, p. 223-231
+        Vallado: 2022, p. 225
 
     Args:
         rtod (array_like): TOD position vector in km
@@ -1088,7 +1087,7 @@ def ecef2mod(
     frame.
 
     References:
-        Vallado: 2004, p. 219-228
+        Vallado: 2022, p. 227
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -1152,7 +1151,7 @@ def mod2ecef(
     frame.
 
     References:
-        Vallado: 2004, p. 219-228
+        Vallado: 2022, p. 227
 
     Args:
         rmod (array_like): MOD position vector in km
@@ -1278,7 +1277,7 @@ def ecef2teme(
     Results take into account the effects of sidereal time and polar motion.
 
     References:
-        Vallado: 2013, p. 231-233
+        Vallado: 2022, p. 232-234
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -1335,7 +1334,7 @@ def teme2ecef(
     Results take into account the effects of sidereal time and polar motion.
 
     References:
-        Vallado: 2013, p. 231-233
+        Vallado: 2022, p. 232-234
 
     Args:
         rteme (array_like): TEME position vector in km

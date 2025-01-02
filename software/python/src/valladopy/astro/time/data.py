@@ -19,6 +19,9 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 def iau80in() -> Tuple[np.ndarray, np.ndarray]:
     """Initializes the nutation matrices needed for reduction calculations.
 
+    References:
+        Vallado, 2022, Section 3.7.1
+
     Returns:
         tuple: (iar80, rar80)
             iar80 (np.ndarray): Integers for FK5 1980
@@ -62,7 +65,7 @@ def iau06in() -> (
     """Initializes the matrices needed for IAU 2006 reduction calculations.
 
     References:
-        Vallado, 2004, p. 205-219, 910-912
+        Vallado, 2022, Section 3.7.1
 
     Returns:
         tuple: (axs0, a0xi, ays0, a0yi, ass0, a0si, apn, apni, appl, appli, agst, agsti)

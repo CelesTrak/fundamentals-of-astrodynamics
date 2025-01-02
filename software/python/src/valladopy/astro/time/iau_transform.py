@@ -20,7 +20,7 @@ def iau06era(jdut1: float) -> np.ndarray:
     Earth Rotation Angle (ERA).
 
     References:
-        Vallado, 2004, p. 212
+        Vallado, 2022, p. 214
 
     Args:
         jdut1 (float): Julian date of UT1 (days)
@@ -32,7 +32,7 @@ def iau06era(jdut1: float) -> np.ndarray:
     tut1d = jdut1 - J2000
 
     # Earth rotation angle (ERA) in radians
-    era = TWOPI * (0.7790572732640 + 1.00273781191135448 * tut1d)
+    era = TWOPI * (0.779057273264 + 1.00273781191135448 * tut1d)
     era = np.mod(era, TWOPI)
 
     # Transformation matrix from PEF to IRE
@@ -63,7 +63,7 @@ def iau06gst(
     """Calculates the IAU 2006 Greenwich Sidereal Time (GST) and transformation matrix.
 
     References:
-        Vallado, 2004, p. 216
+        Vallado, 2022, p. 217
 
     Args:
         jdut1 (float): Julian date of UT1 (days from 4713 BC)
@@ -266,7 +266,7 @@ def iau06pna(
     model.
 
     References:
-        Vallado, 2004, p. 212-214
+        Vallado, 2022, p. 214-216
 
     Args:
         ttt (float): Julian centuries of TT
@@ -414,7 +414,7 @@ def iau06pnb(
     model based on IAU2000B.
 
     References:
-        Vallado, 2004, p. 212-214
+        Vallado, 2022, p. 214-216
 
     Args:
         ttt (float): Julian centuries of TT

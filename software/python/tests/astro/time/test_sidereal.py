@@ -30,16 +30,12 @@ def test_gstime_lstime(jdut1, lon, gstime_exp, lstime_exp):
 
 
 def test_gstime0():
-    # Definitions
-    year = 1989
-
-    # Compute GST at the beginning of the year
-    assert custom_isclose(gstime0(year), 1.7561909422996962)
+    assert custom_isclose(gstime0(1989), 1.7561909422996962)
 
 
 def test_sidereal():
     # Definitions
-    jdut1 = 2453101.82740678310  # Julian date of UT1
+    jdut1 = 2453101.8274067831  # Julian date of UT1
     deltapsi = 6.230930776908879  # Nutation angle, rad
     meaneps = 0.40908313012283176  # Mean obliquity of the ecliptic, rad
     omega = 0.7435907904482468  # Moon longitude of AN, rad
@@ -52,16 +48,16 @@ def test_sidereal():
     # Compare matrices
     st_exp = np.array(
         [
-            [0.17979642915209632, 0.9837038396103551, 0.0],
-            [-0.9837038396103551, 0.17979642915209632, 0.0],
-            [0.0, 0.0, 1.0],
+            [0.17979642915209632, 0.9837038396103551, 0],
+            [-0.9837038396103551, 0.17979642915209632, 0],
+            [0, 0, 1],
         ]
     )
     stdot_exp = np.array(
         [
-            [7.173281395194778e-05, -1.3110962143545667e-05, 0.0],
-            [1.3110962143545667e-05, 7.173281395194778e-05, 0.0],
-            [0.0, 0.0, 0.0],
+            [7.173281395194778e-05, -1.3110962143545667e-05, 0],
+            [1.3110962143545667e-05, 7.173281395194778e-05, 0],
+            [0, 0, 0],
         ]
     )
 

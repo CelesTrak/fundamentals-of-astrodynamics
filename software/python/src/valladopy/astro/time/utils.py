@@ -82,7 +82,7 @@ def fundarg(
     if opt == "06":
         # Delaunay fundamental arguments in deg
         l = calc_delunay_elem(  # noqa
-            ttt, [-0.00024470, 0.051635, 31.8792, 1717915923.2178, 485868.249036]
+            ttt, [-0.0002447, 0.051635, 31.8792, 1717915923.2178, 485868.249036]
         )
         l1 = calc_delunay_elem(
             ttt, [-0.00001149, 0.000136, -0.5532, 129596581.0481, 1287104.793048]
@@ -91,7 +91,7 @@ def fundarg(
             ttt, [0.00000417, -0.001037, -12.7512, 1739527262.8478, 335779.526232]
         )
         d = calc_delunay_elem(
-            ttt, [-0.00003169, 0.006593, -6.3706, 1602961601.2090, 1072260.703692]
+            ttt, [-0.00003169, 0.006593, -6.3706, 1602961601.209, 1072260.703692]
         )
         omega = calc_delunay_elem(
             ttt, [-0.00005939, 0.007702, 7.4722, -6962890.5431, 450160.398036]
@@ -147,7 +147,7 @@ def fundarg(
         )
 
         # Planetary arguments in deg
-        lonmer, lonurn, lonnep = (0.0,) * 3
+        lonmer, lonurn, lonnep = (0,) * 3
         lonven = 181.979800853 + 58517.8156748 * ttt
         lonear = 100.466448494 + 35999.3728521 * ttt
         lonmar = 355.433274605 + 19140.299314 * ttt
@@ -159,12 +159,12 @@ def fundarg(
     elif opt == "80":
         # Delaunay fundamental arguments in deg
         l = calc_delunay_elem_80(  # noqa
-            ttt, [0.064, 31.31, 1717915922.6330], 134.96298139
+            ttt, [0.064, 31.31, 1717915922.633], 134.96298139
         )
-        l1 = calc_delunay_elem_80(ttt, [-0.012, -0.577, 129596581.2240], 357.52772333)
-        f = calc_delunay_elem_80(ttt, [0.011, -13.257, 1739527263.1370], 93.27191028)
-        d = calc_delunay_elem_80(ttt, [0.019, -6.891, 1602961601.3280], 297.85036306)
-        omega = calc_delunay_elem_80(ttt, [0.008, 7.455, -6962890.5390], 125.04452222)
+        l1 = calc_delunay_elem_80(ttt, [-0.012, -0.577, 129596581.224], 357.52772333)
+        f = calc_delunay_elem_80(ttt, [0.011, -13.257, 1739527263.137], 93.27191028)
+        d = calc_delunay_elem_80(ttt, [0.019, -6.891, 1602961601.328], 297.85036306)
+        omega = calc_delunay_elem_80(ttt, [0.008, 7.455, -6962890.539], 125.04452222)
 
         # Planetary arguments in deg
         lonmer = 252.3 + 149472 * ttt
@@ -264,7 +264,7 @@ def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, floa
 
         # GTDS pg 3-17 using days from 1950 - avoids long precession constants
         zeta = 2304.9969 * ttt + 0.302 * ttt2 + 0.01808 * ttt3
-        theta = 2004.2980 * ttt - 0.425936 * ttt2 - 0.0416 * ttt3
+        theta = 2004.298 * ttt - 0.425936 * ttt2 - 0.0416 * ttt3
         z = 2304.9969 * ttt + 1.092999 * ttt2 + 0.0192 * ttt3
 
         # ttt is tropical centuries from 1950 (36524.22 days)
@@ -307,12 +307,12 @@ def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, floa
         )
         ea = (
             calc_prec_angle(
-                ttt, [-0.0000000434, -0.000000576, 0.00200340, -0.0001831, -46.836769]
+                ttt, [-0.0000000434, -0.000000576, 0.0020034, -0.0001831, -46.836769]
             )
             + oblo
         )
         xa = calc_prec_angle(
-            ttt, [-0.0000000560, 0.000170663, -0.00121197, -2.3814292, 10.556403]
+            ttt, [-0.000000056, 0.000170663, -0.00121197, -2.3814292, 10.556403]
         )
         zeta = (
             calc_prec_angle(
@@ -367,7 +367,7 @@ def nutation(
     nutation.
 
     References:
-        Vallado: 2013, p. 224-226
+        Vallado: 2022, p. 225-227
 
     Args:
         ttt (float): Julian centuries of TT
@@ -456,7 +456,7 @@ def polarm(xp: float, yp: float, ttt: float, use_iau80: bool = True) -> np.ndarr
     """Calculate the transformation matrix that accounts for polar motion.
 
     References:
-        Vallado: 2004, p. 207-209, 211, 223-224
+        Vallado: 2022, p. 213, 224
 
     Both the 1980 and 2000 theories are handled. Note that the rotation order
     is different between 1980 and 2000.
@@ -471,10 +471,8 @@ def polarm(xp: float, yp: float, ttt: float, use_iau80: bool = True) -> np.ndarr
     Returns:
         pm (np.ndarray): Transformation matrix for ECEF to PEF
     """
-    cosxp = np.cos(xp)
-    sinxp = np.sin(xp)
-    cosyp = np.cos(yp)
-    sinyp = np.sin(yp)
+    cosxp, sinxp = np.cos(xp), np.sin(xp)
+    cosyp, sinyp = np.cos(yp), np.sin(yp)
 
     # Use IAU 1980 theory
     if use_iau80:
@@ -493,8 +491,7 @@ def polarm(xp: float, yp: float, ttt: float, use_iau80: bool = True) -> np.ndarr
         # See: https://pyerfa.readthedocs.io/en/latest/api/erfa.pom00.html
         # TODO: consider using pyerfa for this
         sp = -47e-6 * ttt * ARCSEC2RAD
-        cossp = np.cos(sp)
-        sinsp = np.sin(sp)
+        cossp, sinsp = np.cos(sp), np.sin(sp)
 
         pm = np.array(
             [
