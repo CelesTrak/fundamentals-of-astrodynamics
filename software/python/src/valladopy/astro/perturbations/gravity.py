@@ -20,7 +20,7 @@ def trigpoly(
     """Computes accumulated Legendre polynomials and trigonometric terms.
 
     References:
-        Vallado: 2013, p. 597, Eq. 8-57
+        Vallado: 2022, p. 600-602
 
     Args:
         recef (array_like): ECEF satellite position vector in km
