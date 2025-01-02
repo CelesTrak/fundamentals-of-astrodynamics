@@ -32,7 +32,7 @@ def hohmann(
     or ellipse-to-ellipse.
 
     References:
-        Vallado 2007, p. 327, Algorithm 36
+        Vallado 2022, p. 326-329, Algorithm 36
 
     Args:
         rinit (float): Initial position magnitude in km
@@ -81,12 +81,12 @@ def bielliptic(
     efinal: float,
     nuinit: float,
     nufinal: float,
-) -> tuple[float, float, float, float]:
+) -> Tuple[float, float, float, float]:
     """Calculates the delta-v values for a bi-elliptic transfer, either circle-to-circle
     or ellipse-to-ellipse.
 
     References:
-        Vallado 2007, pp. 327, Algorithm 37
+        Vallado 2022, pp. 326-330, Algorithm 37
 
     Args:
         rinit (float): Initial position magnitude in km
@@ -143,12 +143,12 @@ def one_tangent(
     nuinit: float,
     nutran: float,
     tol: float = 1e-6,
-) -> tuple[float, float, float, float, float, float, float]:
+) -> Tuple[float, float, float, float, float, float, float]:
     """Calculates the delta-v values for a one tangent transfer, either circle-to-circle
     or ellipse-to-ellipse.
 
     References:
-        Vallado 2007, p. 335, Algorithm 38
+        Vallado 2022, p. 335-338, Algorithm 38
 
     Args:
         rinit (float): Initial position magnitude in km
@@ -232,7 +232,7 @@ def incl_only(deltai: float, vinit: float, fpa: float) -> float:
     """Calculates the delta-v for a change in inclination only.
 
     References:
-        Vallado 2007, p. 346, Algorithm 39
+        Vallado 2022, p. 346-348, Algorithm 39
 
     Args:
         deltai (float): Change in inclination in radians
@@ -260,7 +260,7 @@ def node_only(
     """Calculates the delta-v for a change in longitude of the ascending node.
 
     References:
-        Vallado 2007, pp. 349, Algorithm 40
+        Vallado 2022, pp. 349-351, Algorithm 40
 
     Args:
         iinit (float): Initial inclination in radians
@@ -316,7 +316,7 @@ def incl_and_node(
     ascending node.
 
     References:
-        Vallado 2007, p. 350, Algorithm 41
+        Vallado 2022, p. 352, Algorithm 41
 
     Args:
         iinit (float): Initial inclination in radians
@@ -370,12 +370,12 @@ def min_combined(
     ifinal: float,
     use_optimal: bool = True,
     tol: float = 1e-6,
-) -> tuple[float, float, float, float, float]:
+) -> Tuple[float, float, float, float, float]:
     """Calculates the delta-v and inclination change for the minimum velocity change
     between two non-coplanar orbits.
 
     References:
-        Vallado 2007, p. 355, Algorithm 42
+        Vallado 2022, p. 355-357, Algorithm 42
 
     Args:
         rinit (float): Initial position magnitude in km
@@ -449,7 +449,7 @@ def combined(
     inclination changes. The final orbit is assumed to be circular.
 
     References:
-        Vallado 2007, p. 352-359, Example 6-7
+        Vallado 2007, p. 360-361, Example 6-7
 
     Args:
         rinit (float): Initial position magnitude in km
@@ -521,7 +521,7 @@ def rendezvous_coplanar(
     """Calculates parameters for a Hohmann transfer rendezvous.
 
     References:
-        Vallado 2007, pp. 364, Algorithms 44 and 45
+        Vallado 2022, pp. 361-367, Algorithms 44 and 45
 
     Args:
         rcsint (float): Radius of the interceptor's circular orbit in km
@@ -612,7 +612,7 @@ def rendezvous_noncoplanar(
     """Calculates parameters for a non-coplanar Hohmann transfer maneuver.
 
     References:
-        Vallado 2007, pp. 370, Algorithm 46
+        Vallado 2022, pp. 369-373, Algorithm 46
 
     Args:
         phasei (float): Initial phase angle in radians
