@@ -23,13 +23,11 @@ def gibbs(
     tol_angle: float = np.radians(1),
     orbit_tol: float = 1e-6,
 ) -> Tuple[np.ndarray, float, float, float]:
-    """Performs the Gibbs method for orbit determination.
-
-    This method determines the velocity at the middle point of the 3 given position
-    vectors.
+    """Determine the velocity at the middle point of the 3 given position vectors using
+    the Gibbs method.
 
     References:
-        Vallado: 2007, p. 456, Algorithm 52
+        Vallado: 2022, p. 460-467, Algorithm 54
 
     Args:
         r1 (array_like): ECI position vector #1 in km
@@ -118,13 +116,11 @@ def hgibbs(
     jd3: float,
     tol_angle: float = np.radians(1),
 ) -> Tuple[np.ndarray, float, float, float]:
-    """Performs the Herrick-Gibbs method for orbit determination.
-
-    This method determines the velocity at the middle point of the 3 given position
-    vectors.
+    """Determines the velocity at the middle point of the 3 given position vectors
+    using the Herrick-Gibbs method.
 
     References:
-        Vallado: 2007, p. 462, Algorithm 52
+        Vallado: 2022, p. 467-472, Algorithm 55
 
     Args:
         r1 (array_like): ECI position vector #1 in km

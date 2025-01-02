@@ -78,7 +78,7 @@ def laplace(
     method.
 
     References:
-        Vallado: 2001, p. 413-417
+        Vallado: 2022, p. 441-445
 
     Args:
         decl1 (float): Declination of first sighting in radians
@@ -132,7 +132,7 @@ def laplace(
 
     # First and second derivatives of rs2
     if not diffsites:
-        earth_rot_vec = [0.0, 0.0, const.EARTHROT]
+        earth_rot_vec = [0, 0, const.EARTHROT]
         rs2dot = np.cross(earth_rot_vec, rseci2)
         rs2ddot = np.cross(earth_rot_vec, rs2dot)
     else:
@@ -146,7 +146,7 @@ def laplace(
     dmat3 = np.column_stack((los2, rs2ddot, lddot))
     dmat4 = np.column_stack((los2, rseci2, lddot))
 
-    d = 2.0 * np.linalg.det(dmat)
+    d = 2 * np.linalg.det(dmat)
     d1 = np.linalg.det(dmat1)
     d2 = np.linalg.det(dmat2)
     d3 = np.linalg.det(dmat3)
@@ -260,7 +260,7 @@ def gauss(
     Gaussian method.
 
     References:
-        Vallado: 2007, p. 429-439
+        Vallado: 2022, p. 448, Algorithm 52
 
     Args:
         decl1 (float): Declination of first sighting in radians
@@ -310,9 +310,9 @@ def gauss(
 
     # Calculate coefficients for polynomial
     a1 = tau32 / (tau32 - tau12)
-    a1u = (tau32 * ((tau32 - tau12) ** 2 - tau32**2)) / (6.0 * (tau32 - tau12))
+    a1u = (tau32 * ((tau32 - tau12) ** 2 - tau32**2)) / (6 * (tau32 - tau12))
     a3 = -tau12 / (tau32 - tau12)
-    a3u = -(tau12 * ((tau32 - tau12) ** 2 - tau12**2)) / (6.0 * (tau32 - tau12))
+    a3u = -(tau12 * ((tau32 - tau12) ** 2 - tau12**2)) / (6 * (tau32 - tau12))
 
     dl1 = lir[1, 0] * a1 - lir[1, 1] + lir[1, 2] * a3
     dl2 = lir[1, 0] * a1u + lir[1, 2] * a3u
@@ -322,9 +322,9 @@ def gauss(
 
     # Polynomial coefficients
     poly = np.zeros(9)
-    poly[0] = 1.0
-    poly[2] = -(dl1**2 + 2.0 * dl1 * l2dotrs + magrs2**2)
-    poly[5] = -2.0 * const.MU * (l2dotrs * dl2 + dl1 * dl2)
+    poly[0] = 1
+    poly[2] = -(dl1**2 + 2 * dl1 * l2dotrs + magrs2**2)
+    poly[5] = -2 * const.MU * (l2dotrs * dl2 + dl1 * dl2)
     poly[8] = -const.MU**2 * dl2**2
 
     # Roots of the polynomial
@@ -338,7 +338,7 @@ def gauss(
     # Solve for improved estimates of f and g series
     u = const.MU / bigr2**3
     c1 = a1 + a1u * u
-    c2 = -1.0
+    c2 = -1
     c3 = a3 + a3u * u
 
     # Compute range values
@@ -356,7 +356,7 @@ def gauss(
 
         # Recompute range values
         r1 = rhomat[0, 0] * los1 / c1 + rseci1
-        r2 = rhomat[1, 0] * los2 / -1.0 + rseci2
+        r2 = rhomat[1, 0] * los2 / -1 + rseci2
         r3 = rhomat[2, 0] * los3 / c3 + rseci3
 
         # Call gibbs method
@@ -397,11 +397,11 @@ def doubler_iter(
     n12: int,
     n13: int,
     n23: int,
-) -> tuple[np.ndarray, np.ndarray, float, float, float, float, float, float, float]:
+) -> Tuple[np.ndarray, np.ndarray, float, float, float, float, float, float, float]:
     """Perform the iterative work for the double-r angles-only routine.
 
     References:
-        Vallado: 2022, p. 449-450
+        Vallado: 2022, p. 449-452
 
     Args:
         magr1in (float): Magnitude of the first sighting position vector
@@ -528,7 +528,7 @@ def doubler_iter(
         )
     else:
         # Hyperbolic case
-        if a > 0.0:
+        if a > 0:
             a = -a
             p = -p
         n = np.sqrt(const.MU / -(a**3))
@@ -574,6 +574,9 @@ def doubler(
     max_iterations: int = 15,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Solve orbit determination problem using the double-r technique.
+
+    References:
+        Vallado: 2022, p. 449-452, Algorithm 53
 
     Args:
         decl1 (float): Declination of first sighting in radians
