@@ -39,7 +39,7 @@ def get_moon_latlon(ttdb: float) -> Tuple[float, float]:
                 + 6.29 * np.sin(np.radians(134.9 + 477198.85 * ttdb))
                 - 1.27 * np.sin(np.radians(259.2 - 413335.38 * ttdb))
                 + 0.66 * np.sin(np.radians(235.7 + 890534.23 * ttdb))
-                + 0.21 * np.sin(np.radians(269.9 + 954397.70 * ttdb))
+                + 0.21 * np.sin(np.radians(269.9 + 954397.7 * ttdb))
                 - 0.19 * np.sin(np.radians(357.5 + 35999.05 * ttdb))
                 - 0.11 * np.sin(np.radians(186.6 + 966404.05 * ttdb))
             )
@@ -53,7 +53,7 @@ def get_moon_latlon(ttdb: float) -> Tuple[float, float]:
                 5.13 * np.sin(np.radians(93.3 + 483202.03 * ttdb))
                 + 0.28 * np.sin(np.radians(228.2 + 960400.87 * ttdb))
                 - 0.28 * np.sin(np.radians(318.3 + 6003.18 * ttdb))
-                - 0.17 * np.sin(np.radians(217.6 - 407332.20 * ttdb))
+                - 0.17 * np.sin(np.radians(217.6 - 407332.2 * ttdb))
             )
         )
         % const.TWOPI
@@ -96,7 +96,7 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
     """Calculates the geocentric equatorial position vector of the Moon.
 
     References:
-        Vallado: 2007, p. 290, Algorithm 31
+        Vallado: 2022, p. 294, Algorithm 31
 
     Args:
         jd (float): Julian date (days from 4713 BC)
@@ -117,7 +117,7 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
             + 0.0518 * np.cos(np.radians(134.9 + 477198.85 * ttdb))
             + 0.0095 * np.cos(np.radians(259.2 - 413335.38 * ttdb))
             + 0.0078 * np.cos(np.radians(235.7 + 890534.23 * ttdb))
-            + 0.0028 * np.cos(np.radians(269.9 + 954397.70 * ttdb))
+            + 0.0028 * np.cos(np.radians(269.9 + 954397.7 * ttdb))
         )
         % const.TWOPI
     )
@@ -126,7 +126,7 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
     l, m, n = get_geodetic_dir_cosines(ttdb)
 
     # Moon's position vector
-    magr = 1.0 / np.sin(hzparal)
+    magr = 1 / np.sin(hzparal)
     rmoon = np.array([magr * l, magr * m, magr * n])
 
     # Right ascension and declination
@@ -143,7 +143,7 @@ def rise_set(
     location.
 
     References:
-        Vallado: 2007, p. 292, Algorithm 32
+        Vallado: 2022, p. 296-298, Algorithm 32
 
     Args:
         jd (float): Julian date (days from 4713 BC)
@@ -164,12 +164,12 @@ def rise_set(
 
     # Initialize results and variables
     results = {"moonrise": np.nan, "moonset": np.nan}
-    moongha, deltaut, ttdb, lha = 0.0, 0.0, 0.0, 0.0
+    moongha, deltaut, ttdb, lha = 0, 0, 0, 0
 
     # Iteration parameters
     try1 = 1
 
-    for event, jd_offset in [("moonrise", 6.0), ("moonset", 18.0)]:
+    for event, jd_offset in [("moonrise", 6), ("moonset", 18)]:
         # Initial guess for UT
         sign = -1 if event == "moonrise" else 1
         uttemp = (jd_offset + sign * np.degrees(lon) / const.DEG2HR) / const.DAY2HR
@@ -181,7 +181,7 @@ def rise_set(
         # Initialize variables for iteration
         i = 0
         tn = uttemp
-        t = tn + 10.0
+        t = tn + 10
         jdtemp = jd + uttemp
 
         while abs(tn - t) >= tol and i <= n_iters:
@@ -296,24 +296,24 @@ def illumination(f: float, elev: float) -> float:
     # See Table 5-1 in Vallado 2022 (p. 317)
     if elev >= 20:
         l0, l1, l2, l3 = -1.95, 4.06, -4.24, 1.56
-    elif 5.0 <= elev < 20.0:
+    elif 5 <= elev < 20:
         l0, l1, l2, l3 = -2.58, 12.58, -42.58, 59.06
-    elif -0.8 < elev < 5.0:
+    elif -0.8 < elev < 5:
         l0, l1, l2, l3 = -2.79, 24.27, -252.95, 1321.29
     else:
-        l0, l1, l2, l3 = 0.0, 0.0, 0.0, 0.0
-        f = 0.0
+        l0, l1, l2, l3 = 0, 0, 0, 0
+        f = 0
 
     # Compute l1 and l2 based on coefficients and phase angle
-    x = elev / 90.0
+    x = elev / 90
     l1 = l0 + l1 * x + l2 * x**2 + l3 * x**3
     l2 = -0.00868 * f - 2.2e-9 * f**4
 
     # Compute moon illumination
-    moonillum = 10.0 ** (l1 + l2)
+    moonillum = 10 ** (l1 + l2)
 
     # Clamp moonillum to valid range
     if moonillum < 0 or moonillum >= 1:
-        moonillum = 0.0
+        moonillum = 0
 
     return moonillum

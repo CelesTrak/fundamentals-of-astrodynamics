@@ -32,7 +32,7 @@ def in_sight(
     the Earth's shape.
 
     References:
-        Vallado: 2001, p. 291-295, Algorithm 35
+        Vallado: 2022, p. 312-315, Algorithm 35
 
     Args:
         r1 (array_like): Position vector of the first satellite in km
@@ -48,9 +48,9 @@ def in_sight(
 
     # Scale z-components for ellipsoidal Earth
     temp = (
-        1.0 / np.sqrt(1.0 - const.ECCEARTHSQRD)
+        1 / np.sqrt(1 - const.ECCEARTHSQRD)
         if earth_model == EarthModel.ELLIPSOIDAL
-        else 1.0
+        else 1
     )
     tr1 = np.array([r1[0], r1[1], r1[2] * temp])
     tr2 = np.array([r2[0], r2[1], r2[2] * temp])
@@ -61,18 +61,18 @@ def in_sight(
     adotb = np.dot(tr1, tr2)
 
     # Compute minimum parametric value
-    if abs(asqrd + bsqrd - 2.0 * adotb) < 1e-4:
-        tmin = 0.0
+    if abs(asqrd + bsqrd - 2 * adotb) < 1e-4:
+        tmin = 0
     else:
-        tmin = (asqrd - adotb) / (asqrd + bsqrd - 2.0 * adotb)
+        tmin = (asqrd - adotb) / (asqrd + bsqrd - 2 * adotb)
     logger.debug(f"Minimum parametric value (tmin): {tmin}")
 
     # Check line-of-sight (LOS)
-    if tmin < 0.0 or tmin > 1.0:
+    if tmin < 0 or tmin > 1:
         return True
     else:
-        distsqrd = ((1.0 - tmin) * asqrd + adotb * tmin) / const.RE**2
-        return True if distsqrd > 1.0 else False
+        distsqrd = ((1 - tmin) * asqrd + adotb * tmin) / const.RE**2
+        return True if distsqrd > 1 else False
 
 
 def sun_ecliptic_parameters(t: float) -> Tuple[float, float, float]:
@@ -93,7 +93,7 @@ def sun_ecliptic_parameters(t: float) -> Tuple[float, float, float]:
         np.radians(
             np.degrees(mean_lon)
             + 1.914666471 * np.sin(mean_anomaly)
-            + 0.019994643 * np.sin(2.0 * mean_anomaly)
+            + 0.019994643 * np.sin(2 * mean_anomaly)
         )
         % const.TWOPI
     )

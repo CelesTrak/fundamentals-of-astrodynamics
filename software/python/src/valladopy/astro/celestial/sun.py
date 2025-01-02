@@ -41,7 +41,7 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
     a precessing frame (TEME) and converting to ICRF.
 
     References:
-        Vallado: 2007, p. 281, Algorithm 29
+        Vallado: 2022, p. 285, Algorithm 29
 
     Args:
         jd (float): Julian date (days from 4713 BC)
@@ -65,7 +65,7 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
     magr = (
         1.000140612
         - 0.016708617 * np.cos(meananomaly)
-        - 0.000139589 * np.cos(2.0 * meananomaly)
+        - 0.000139589 * np.cos(2 * meananomaly)
     )
 
     # Sun position vector in geocentric equatorial coordinates
@@ -81,9 +81,9 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
     rtasc = np.arctan(np.cos(obliquity) * np.tan(eclplong))
 
     # Ensure right ascension is in the same quadrant as ecliptic longitude
-    if eclplong < 0.0:
+    if eclplong < 0:
         eclplong += const.TWOPI
-    if abs(eclplong - rtasc) > np.pi / 2.0:
+    if abs(eclplong - rtasc) > np.pi / 2:
         rtasc += 0.5 * np.pi * round((eclplong - rtasc) / (0.5 * np.pi))
 
     # Declination (radians)
@@ -101,7 +101,7 @@ def rise_set(
     """Finds the universal time for sunrise and sunset given the day and site location.
 
     References:
-        Vallado: 2007, p. 283, Algorithm 30
+        Vallado: 2022, p. 289-290, Algorithm 30
 
     Args:
         jd (float): Julian date (days from 4713 BC)
@@ -120,10 +120,10 @@ def rise_set(
 
     # Select the sun angle based on the kind of event
     sunangle_map = {
-        SunEventType.SUNRISESET: np.radians(90.0 + 50.0 / 60.0),
-        SunEventType.CIVIL_TWILIGHT: np.radians(96.0),
-        SunEventType.NAUTICAL_TWILIGHT: np.radians(102.0),
-        SunEventType.ASTRONOMICAL_TWILIGHT: np.radians(108.0),
+        SunEventType.SUNRISESET: np.radians(90 + 50 / 60),
+        SunEventType.CIVIL_TWILIGHT: np.radians(96),
+        SunEventType.NAUTICAL_TWILIGHT: np.radians(102),
+        SunEventType.ASTRONOMICAL_TWILIGHT: np.radians(108),
     }
     sunangle = sunangle_map.get(event_type, None)
     if sunangle is None:
@@ -133,7 +133,7 @@ def rise_set(
     results = {"sunrise": np.nan, "sunset": np.nan}
 
     # Loop for sunrise and sunset
-    initial_guess_times = {"sunrise": 6.0, "sunset": 18.0}
+    initial_guess_times = {"sunrise": 6, "sunset": 18}
     for event, jd_offset in initial_guess_times.items():
         # Initialize Julian date for the day
         jdtemp = (
@@ -159,7 +159,7 @@ def rise_set(
         lha = (np.cos(sunangle) - np.sin(decl) * np.sin(latgd)) / (
             np.cos(decl) * np.cos(latgd)
         )
-        if abs(lha) > 1.0:
+        if abs(lha) > 1:
             logger.error("Local hour angle out of range; sunrise/sunset not visible.")
             return results["sunrise"], results["sunset"]
 
@@ -190,7 +190,7 @@ def in_light(
     """Determines if a spacecraft is in sunlight at a given time.
 
     References:
-        Vallado: 2001, p. 291-295, Algorithm 35
+        Vallado: 2022, p. 312-315, Algorithm 35
 
     Args:
         r (array_like): Position vector of the spacecraft in km
@@ -239,33 +239,33 @@ def illumination(jd: float, lat: float, lon: float) -> float:
     sunel_deg = np.degrees(sunel)
 
     # Compute illumination using ground illumination indices
-    sunillum = 0.0
+    sunillum = 0
     if sunel_deg > -18.01:
-        x = sunel_deg / 90.0
+        x = sunel_deg / 90
 
         # Determine coefficients based on sun elevation
         # See Table 5-1 in Vallado 2022 (p. 317)
         if sunel_deg >= 20:
             l0, l1, l2, l3 = 3.74, 3.97, -4.07, 1.47
-        elif 5.0 <= sunel_deg < 20.0:
+        elif 5 <= sunel_deg < 20:
             l0, l1, l2, l3 = 3.05, 13.28, -45.98, 64.33
-        elif -0.8 <= sunel_deg < 5.0:
+        elif -0.8 <= sunel_deg < 5:
             l0, l1, l2, l3 = 2.88, 22.26, -207.64, 1034.30
-        elif -5.0 <= sunel_deg < -0.8:
+        elif -5 <= sunel_deg < -0.8:
             l0, l1, l2, l3 = 2.88, 21.81, -258.11, -858.36
-        elif -12.0 <= sunel_deg < -5.0:
+        elif -12 <= sunel_deg < -5:
             l0, l1, l2, l3 = 2.70, 12.17, -431.69, -1899.83
-        elif -18.0 <= sunel_deg < -12.0:
+        elif -18 <= sunel_deg < -12:
             l0, l1, l2, l3 = 13.84, 262.72, 1447.42, 2797.93
         else:
-            l0, l1, l2, l3 = 0.0, 0.0, 0.0, 0.0
+            l0, l1, l2, l3 = 0, 0, 0, 0
 
         # Compute illumination
         l1 = l0 + l1 * x + l2 * x**2 + l3 * x**3
-        sunillum = 10.0**l1
+        sunillum = 10**l1
 
         # Clamp sunillum to valid range
-        if sunillum < 0.0 or sunillum >= 1e4:
-            sunillum = 0.0
+        if sunillum < 0 or sunillum >= 1e4:
+            sunillum = 0
 
     return sunillum
