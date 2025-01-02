@@ -241,7 +241,7 @@ class DeepSpace:
         out = DscomOutput()
 
         # Constants
-        zes, zel = 0.01675, 0.05490
+        zes, zel = 0.01675, 0.0549
         c1ss, c1l = 2.9864797e-6, 4.7968065e-7
         zsinis, zcosis = 0.39785416, 0.91744867
         zcosgs, zsings = 0.1945905, -0.98088458
@@ -252,18 +252,18 @@ class DeepSpace:
         out.sinomm, out.cosomm = np.sin(self.argpp), np.cos(self.argpp)
         out.sinim, out.cosim = np.sin(self.inclp), np.cos(self.inclp)
         out.emsq = out.em**2
-        betasq = 1.0 - out.emsq
+        betasq = 1 - out.emsq
         out.rtemsq = np.sqrt(betasq)
 
         # Initialize lunar solar terms
         out.day = self.epoch + 18261.5 + tc / const.DAY2MIN
-        xnodce = np.remainder(4.5236020 - 9.2422029e-4 * out.day, const.TWOPI)
+        xnodce = np.remainder(4.523602 - 9.2422029e-4 * out.day, const.TWOPI)
         stem, ctem = np.sin(xnodce), np.cos(xnodce)
         zcosil = 0.91375164 - 0.03568096 * ctem
-        zsinil = np.sqrt(1.0 - zcosil**2)
+        zsinil = np.sqrt(1 - zcosil**2)
         zsinhl = 0.089683511 * stem / zsinil
-        zcoshl = np.sqrt(1.0 - zsinhl**2)
-        out.gam = 5.8351514 + 0.0019443680 * out.day
+        zcoshl = np.sqrt(1 - zsinhl**2)
+        out.gam = 5.8351514 + 0.001944368 * out.day
         zy = zcoshl * ctem + 0.91744867 * zsinhl * stem
         zx = np.arctan2(0.39785416 * stem / zsinil, zy)
         zx = out.gam + zx - xnodce
@@ -359,7 +359,7 @@ class DeepSpace:
                 cc = c1l
 
         # Compute additional terms
-        out.zmol = np.remainder(4.7199672 + 0.22997150 * out.day - out.gam, const.TWOPI)
+        out.zmol = np.remainder(4.7199672 + 0.2299715 * out.day - out.gam, const.TWOPI)
         out.zmos = np.remainder(6.2565837 + 0.017201977 * out.day, const.TWOPI)
 
         # Compute solar terms
@@ -412,10 +412,7 @@ class DeepSpace:
             raise ValueError("dscom_out not set. Run dscom() first.")
 
         # Constants
-        zns = 1.19459e-5
-        zes = 0.01675
-        znl = 1.5835218e-4
-        zel = 0.05490
+        zns, zes, znl, zel = 1.19459e-5, 0.01675, 1.5835218e-4, 0.0549
 
         # Extract variables
         ee2, e3 = self.dscom_out.ee2, self.dscom_out.e3
@@ -432,7 +429,7 @@ class DeepSpace:
 
         # Calculate time-varying periodics
         zm = zmos + zns * t
-        zf = zm + 2.0 * zes * np.sin(zm)
+        zf = zm + 2 * zes * np.sin(zm)
         sinzf = np.sin(zf)
         f2 = 0.5 * sinzf**2 - 0.25
         f3 = -0.5 * sinzf * np.cos(zf)
@@ -442,7 +439,7 @@ class DeepSpace:
         sghs = sgh2 * f2 + sgh3 * f3 + sgh4 * sinzf
         shs = sh2 * f2 + sh3 * f3
         zm = zmol + znl * t
-        zf = zm + 2.0 * zel * np.sin(zm)
+        zf = zm + 2 * zel * np.sin(zm)
         sinzf = np.sin(zf)
         f2 = 0.5 * sinzf**2 - 0.25
         f3 = -0.5 * sinzf * np.cos(zf)
@@ -493,7 +490,7 @@ class DeepSpace:
 
         # SGP4 fix for AFSPC-written intrinsic functions
         self.nodep = np.remainder(self.nodep, const.TWOPI)
-        if self.nodep < 0.0 and self.use_afspc_mode:
+        if self.nodep < 0 and self.use_afspc_mode:
             self.nodep += const.TWOPI
 
         xls = self.mp + self.argpp + cosip * self.nodep
@@ -503,7 +500,7 @@ class DeepSpace:
         self.nodep = np.arctan2(alfdp, betdp)
 
         # SGP4 fix for AFSPC-written intrinsic functions
-        if self.nodep < 0.0 and self.use_afspc_mode:
+        if self.nodep < 0 and self.use_afspc_mode:
             self.nodep += const.TWOPI
 
         if np.abs(xnoh - self.nodep) > np.pi:
@@ -530,43 +527,43 @@ class DeepSpace:
         cosisq = self.dscom_out.cosim**2
         emo, em, emsq = out.em, satrec.ecco, eccsq
         eoc = em * emsq
-        g201 = -0.306 - (em - 0.64) * 0.440
+        g201 = -0.306 - (em - 0.64) * 0.44
 
         if em <= 0.65:
-            g211 = 3.616 - 13.2470 * em + 16.2900 * emsq
-            g310 = -19.302 + 117.3900 * em - 228.4190 * emsq + 156.5910 * eoc
+            g211 = 3.616 - 13.247 * em + 16.29 * emsq
+            g310 = -19.302 + 117.39 * em - 228.419 * emsq + 156.591 * eoc
             g322 = -18.9068 + 109.7927 * em - 214.6334 * emsq + 146.5816 * eoc
-            g410 = -41.122 + 242.6940 * em - 471.0940 * emsq + 313.9530 * eoc
-            g422 = -146.407 + 841.8800 * em - 1629.014 * emsq + 1083.4350 * eoc
-            g520 = -532.114 + 3017.977 * em - 5740.032 * emsq + 3708.2760 * eoc
+            g410 = -41.122 + 242.694 * em - 471.094 * emsq + 313.953 * eoc
+            g422 = -146.407 + 841.88 * em - 1629.014 * emsq + 1083.435 * eoc
+            g520 = -532.114 + 3017.977 * em - 5740.032 * emsq + 3708.276 * eoc
         else:
             g211 = -72.099 + 331.819 * em - 508.738 * emsq + 266.724 * eoc
             g310 = -346.844 + 1582.851 * em - 2415.925 * emsq + 1246.113 * eoc
             g322 = -342.585 + 1554.908 * em - 2366.899 * emsq + 1215.972 * eoc
             g410 = -1052.797 + 4758.686 * em - 7193.992 * emsq + 3651.957 * eoc
-            g422 = -3581.690 + 16178.110 * em - 24462.770 * emsq + 12422.520 * eoc
+            g422 = -3581.69 + 16178.11 * em - 24462.77 * emsq + 12422.52 * eoc
             if em > 0.715:
                 g520 = -5149.66 + 29936.92 * em - 54087.36 * emsq + 31324.56 * eoc
             else:
                 g520 = 1464.74 - 4664.75 * em + 3763.64 * emsq
 
         if em < 0.7:
-            g533 = -919.22770 + 4988.6100 * em - 9064.7700 * emsq + 5542.21 * eoc
+            g533 = -919.2277 + 4988.61 * em - 9064.77 * emsq + 5542.21 * eoc
             g521 = -822.71072 + 4568.6173 * em - 8491.4146 * emsq + 5337.524 * eoc
-            g532 = -853.66600 + 4690.2500 * em - 8624.7700 * emsq + 5341.4 * eoc
+            g532 = -853.666 + 4690.25 * em - 8624.77 * emsq + 5341.4 * eoc
         else:
-            g533 = -37995.780 + 161616.52 * em - 229838.20 * emsq + 109377.94 * eoc
+            g533 = -37995.78 + 161616.52 * em - 229838.2 * emsq + 109377.94 * eoc
             g521 = -51752.104 + 218913.95 * em - 309468.16 * emsq + 146349.42 * eoc
-            g532 = -40023.880 + 170470.89 * em - 242699.48 * emsq + 115605.82 * eoc
+            g532 = -40023.88 + 170470.89 * em - 242699.48 * emsq + 115605.82 * eoc
 
         out.em = em
         sini2 = sinim**2
-        f220 = 0.75 * (1.0 + 2.0 * cosim + cosisq)
+        f220 = 0.75 * (1 + 2 * cosim + cosisq)
         f221 = 1.5 * sini2
         f321 = 1.875 * sinim * (1 - 2 * cosim - 3 * cosisq)
         f322 = -1.875 * sinim * (1 + 2 * cosim - 3 * cosisq)
         f441 = 35 * sini2 * f220
-        f442 = 39.3750 * sini2**2
+        f442 = 39.375 * sini2**2
         f522 = (
             9.84375
             * sinim

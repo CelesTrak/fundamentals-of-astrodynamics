@@ -312,7 +312,7 @@ class SGP4:
 
         # Calculate auxiliary epoch quantities
         out.eccsq = self.satrec.ecco**2
-        out.omeosq = 1.0 - out.eccsq
+        out.omeosq = 1 - out.eccsq
         out.rteosq = np.sqrt(out.omeosq)
         out.cosio = np.cos(self.satrec.inclo)
         out.cosio2 = out.cosio**2
