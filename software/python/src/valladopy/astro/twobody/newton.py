@@ -17,7 +17,7 @@ def newtone(ecc: float, e0: float) -> Tuple[float, float]:
     hyperbolic anomalies.
 
     References:
-        vallado: 2001, p. 85, Algorithm 6
+        Vallado: 2022, p. 78, Algorithm 6
 
     Args:
         ecc (float): Eccentricity
@@ -36,13 +36,13 @@ def newtone(ecc: float, e0: float) -> Tuple[float, float]:
     if ecc < 0.999:
         # Elliptical orbit
         m = e0 - ecc * np.sin(e0)
-        sinv = (np.sqrt(1 - ecc * ecc) * np.sin(e0)) / (1 - ecc * np.cos(e0))
+        sinv = (np.sqrt(1 - ecc**2) * np.sin(e0)) / (1 - ecc * np.cos(e0))
         cosv = (np.cos(e0) - ecc) / (1 - ecc * np.cos(e0))
         nu = np.arctan2(sinv, cosv)
     elif ecc > 1.0001:
         # Hyperbolic orbit
         m = ecc * np.sinh(e0) - e0
-        sinv = (np.sqrt(ecc * ecc - 1) * np.sinh(e0)) / (1 - ecc * np.cosh(e0))
+        sinv = (np.sqrt(ecc**2 - 1) * np.sinh(e0)) / (1 - ecc * np.cosh(e0))
         cosv = (np.cosh(e0) - ecc) / (1 - ecc * np.cosh(e0))
         nu = np.arctan2(sinv, cosv)
     else:
@@ -64,7 +64,7 @@ def newtonnu(
     hyperbolic sine is used because it's not double-valued.
 
     References:
-        vallado: 2007, p. 85, Algorithm 5
+        Vallado: 2022, p. 78, Algorithm 5
 
     Args:
         ecc (float): Eccentricity of the orbit
@@ -115,7 +115,8 @@ def newtonm(ecc: float, m: float, n_iter: int = 50) -> Tuple[float, float]:
     Newton-Raphson iteration.
 
     References:
-        vallado: 2001, p. 72-75, Algorithm 2, Ex. 2-1
+        Vallado: 2022, p. 65, Algorithm 2
+        Oltrogge: JAS 2015
 
     Args:
         ecc (float): Eccentricity of the orbit
@@ -123,8 +124,9 @@ def newtonm(ecc: float, m: float, n_iter: int = 50) -> Tuple[float, float]:
         n_iter (int): Number of iterations for eccentric anomaly solving
 
     Returns:
-        e0 (float): Eccentric anomaly in radians
-        nu (float): True anomaly in radians
+        tuple: (e0, nu)
+            e0 (float): Eccentric anomaly in radians
+            nu (float): True anomaly in radians
     """
     # Define eccentricity thresholds
     # TODO: better definition/notes

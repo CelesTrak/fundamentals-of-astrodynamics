@@ -67,7 +67,7 @@ def site(latgd: float, lon: float, alt: float) -> Tuple[np.ndarray, np.ndarray]:
     Note that the velocity is zero because the coordinate system is fixed to the Earth.
 
     References:
-        Vallado: 2001, p. 404-407, Algorithm 47
+        Vallado: 2022, p. 432-437, Algorithm 51
 
     Args:
         latgd (float): Geodetic latitude in radians
@@ -97,7 +97,7 @@ def findc2c3(znew: float) -> Tuple[float, float]:
     """Calculates the c2 and c3 functions for the universal variable z.
 
     References:
-        Vallado: 2001, p. 70-71, Algorithm 1
+        Vallado: 2022, p. 63, Algorithm 1
 
     Args:
         znew (float): z variable in rad^2
@@ -128,6 +128,9 @@ def lon2nu(jdut1: float, lon: float, incl: float, raan: float, argp: float) -> f
     This function calculates the true anomaly (`nu`) of an object at a given Julian date
     using the Greenwich Mean Sidereal Time (GMST) and orbital elements.
 
+    References:
+        Vallado: 2022, p. 112, Eq. 2-103
+
     Args:
         jdut1 (float): Julian date of UT1 (days from 4713 BC)
         lon (float): Longitude of the ascending node in radians
@@ -140,7 +143,7 @@ def lon2nu(jdut1: float, lon: float, incl: float, raan: float, argp: float) -> f
     """
     # Calculate GMST
     ed = jdut1 - J2000_UTC
-    gmst = 99.96779469 + 360.9856473662860 * ed + 0.29079e-12 * ed * ed  # deg
+    gmst = 99.96779469 + 360.985647366286 * ed + 0.29079e-12 * ed * ed  # deg
     gmst = np.remainder(np.radians(gmst), TWOPI)
 
     # Check quadrants
@@ -168,7 +171,7 @@ def gc2gd(latgc: float) -> float:
     the Earth.
 
     References:
-        Vallado: 2001, p. 146, Eq. 3-11
+        Vallado: 2022, p. 142, Eq. 3-11
 
     Args:
         latgc (float): Geocentric latitude in radians
@@ -184,7 +187,7 @@ def gd2gc(latgd: float) -> float:
     the Earth.
 
     References:
-        Vallado: 2001, p. 146, Eq. 3-11
+        Vallado: 2022, p. 142, Eq. 3-11
 
     Args:
         latgd (float): Geodetic latitude in radians
@@ -201,7 +204,7 @@ def checkhitearth(
     """Checks if the trajectory impacts Earth during the transfer.
 
     References:
-        Vallado: 2013, p. 503, Algorithm 60
+        Vallado: 2022, p. 483-485, Algorithm 58
 
     Args:
         altpad (float): Altitude pad above the Earth's surface in km
@@ -292,7 +295,7 @@ def findtof(ro: ArrayLike, r: ArrayLike, p: float) -> float:
     """Finds the time of flight for orbital transfer using p-iteration theory.
 
     References:
-        Vallado: 2007, p. 134-135, Algorithm 11
+        Vallado: 2022, p. 125-129, Algorithm 11
 
     Args:
         ro (array_like): Interceptor position vector in km

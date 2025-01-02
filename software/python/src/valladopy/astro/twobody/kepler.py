@@ -27,6 +27,9 @@ def kepler(
     """Solves Kepler's problem for orbit determination and returns a future geocentric
     equatorial (ECI) position and velocity vector using universal variables.
 
+    References:
+        Vallado: 2022, p. 94-96, Algorithm 8
+
     Args:
         ro (array_like): Initial ECI position vector in km
         vo (array_like): Initial ECI velocity vector in km/s
@@ -148,6 +151,9 @@ def pkepler(
     """Propagates a satellite's position and velocity vectors over a given time period
     accounting for J2 perturbations.
 
+    References:
+        Vallado: 2022, p. 715-717, Algorithm 66
+
     Args:
         ro (array_like): Initial ECI position vector in km
         vo (array_like): Initial ECI velocity vector in km/s
@@ -159,6 +165,9 @@ def pkepler(
         tuple: (r, v)
             r (np.ndarray): Propagated ECI position vector in km
             v (np.ndarray): Propagated ECI velocity vector in km/s
+
+    TODO:
+        - Move to perturbations?
     """
     # Convert position and velocity to orbital elements
     output = rv2coe(ro, vo)

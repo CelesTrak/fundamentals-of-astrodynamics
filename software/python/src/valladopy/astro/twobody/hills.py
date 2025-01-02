@@ -21,7 +21,7 @@ def hillsr(
     equations.
 
     References:
-        Vallado: 2007, p. 397, Algorithm 47
+        Vallado: 2022, p. 397-401, Algorithm 48
 
     Args:
         r (array_like): Initial relative position of the interceptor in km
@@ -77,7 +77,7 @@ def hillsv(r: ArrayLike, alt: float, dts: float, tol: float = 1e-6) -> np.ndarra
     """Calculate the initial velocity for Hill's (Clohessy-Wiltshire) equations.
 
     References:
-        Vallado: 2007, p. 410, Eq. 6-60
+        Vallado: 2022, p. 410-414, Eq. 6-66
 
     Args:
         r (array_like): Initial position vector of the interceptor in km

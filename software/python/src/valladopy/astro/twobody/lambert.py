@@ -74,6 +74,9 @@ def calculate_mag_and_angle(r1: ArrayLike, r2: ArrayLike) -> Tuple[float, float,
             magr1 (float): Magnitude of the initial position vector
             magr2 (float): Magnitude of the final position vector
             cosdeltanu (float): Cosine of the angle between the two position
+
+    TODO:
+        - Move to mathtime utils?
     """
     magr1 = float(np.linalg.norm(r1))
     magr2 = float(np.linalg.norm(r2))
@@ -91,6 +94,9 @@ def min_energy(
     r1: ArrayLike, r2: ArrayLike, dm: DirectionOfMotion, nrev: int
 ) -> Tuple[np.ndarray, float, float, float]:
     """Solves the Lambert minimum energy problem.
+
+    References:
+        Vallado: 2022, p. 479-481, Algorithm 56
 
     Args:
         r1 (array_like): Initial ECI position vector in km
@@ -112,7 +118,7 @@ def min_energy(
     magr1, magr2, cosdeltanu = calculate_mag_and_angle(r1, r2)
 
     # Compute the minimum energy semi-major axis
-    c = np.sqrt(magr1**2 + magr2**2 - 2.0 * magr1 * magr2 * cosdeltanu)
+    c = np.sqrt(magr1**2 + magr2**2 - 2 * magr1 * magr2 * cosdeltanu)
     s = 0.5 * (magr1 + magr2 + c)
     aminenergy = 0.5 * s
 
@@ -157,7 +163,7 @@ def min_time(
     multi-revolution cases.
 
     References:
-        Vallado: 2013, p. 494, Algorithm 59
+        Vallado: 2022, p. 481-482, Algorithm 57
         Prussing: JAS 2000
 
     Args:
@@ -172,14 +178,10 @@ def min_time(
                                  min TOF (defaults to 20)
 
     Returns:
-        tuple:
+        tuple: (tmin, tminp, tminenergy)
             tmin (float): Minimum time of flight in seconds
             tminp (float): Minimum time of flight (parabolic) in seconds
             tminenergy (float): Minimum energy time of flight in seconds
-
-    Raises:
-        ValueError: If `dm` or `de` are not of type `DirectionOfMotion` or
-                    `DirectionOfEnergy`, respectively
     """
     # Validate the Pydantic model
     _ = LambertParams(r1=r1, r2=r2, dm=dm, de=de, nrev=nrev)
@@ -464,9 +466,9 @@ def battin(
     defined differently than the traditional Gaussian technique.
 
     References:
-        Vallado: 2013, p. 493-497
+        Vallado: 2022, p. 505-510, Algorithm 61
         Battin: 1987, p. 325-342
-        Thompson: 2018
+        Thompson: AAS GNC 2018
 
     Args:
         r1 (array_like): Initial ECI position vector in km
@@ -824,8 +826,7 @@ def universal(
     updating psi.
 
     References:
-        Vallado: 2013, p. 489-493, Algorithm 58
-        Arora and Russell: 2010
+        Vallado: 2022, p. 499-505, Algorithm 60
 
     Args:
         r1 (array_like): Initial position vector in km
@@ -851,7 +852,7 @@ def universal(
           Battin method or a Hohmann transfer
         - This method is sensitive to inputs, specifically `dtsec` and `psi` values in
           `psi_vec` (for multi-rev cases) - a bad combination can lead to no solutions
-          (see Vallado 2013, Figure 7-16)
+          (see Vallado 2022, Figure 7-16)
     """
     # Validate the Pydantic model
     _ = LambertParams(r1=r1, v1=v1, r2=r2, dtsec=dtsec, dm=dm, de=de, nrev=nrev)
@@ -865,7 +866,7 @@ def universal(
 
     # Determine vara based on direction of motion
     sign = -1 if dm == DirectionOfMotion.LONG else 1
-    vara = sign * np.sqrt(magr1 * magr2 * (1.0 + cosdeltanu))
+    vara = sign * np.sqrt(magr1 * magr2 * (1 + cosdeltanu))
 
     # Set up initial bounds for bisection
     if nrev == 0:

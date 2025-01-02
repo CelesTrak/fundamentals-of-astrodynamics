@@ -25,14 +25,11 @@ from .utils import OrbitType, determine_orbit_type, is_equatorial, site
 def adbar2rv(
     rmag: float, vmag: float, rtasc: float, decl: float, fpav: float, az: float
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Conversion from spherical elements to position & velocity vectors.
-
-    This function transforms the orbital elements (rtasc, decl, fpav, azimuth,
-    position and velocity magnitude) into ECI position and velocity vectors.
+    """Conversion from spherical elements to ECI position & velocity vectors.
 
     References:
         Vallado: 2001, XX
-        Chobotov       70
+        Chobotov: 2006, p. 70
 
     Args:
         rmag (float): ECI position vector magnitude in km
@@ -92,7 +89,7 @@ def rv2adbar(
 
     References:
         Vallado: 2001, xx
-        Chobotov       70
+        Chobotov: 2006, p. 70
 
     Args:
         r (array_like): ECI position vector
@@ -150,8 +147,8 @@ def coe2rv(
     """Convert from classical elements to position & velocity vectors.
 
     References:
-        Vallado: 2007, p. 126, Algorithm 10
-        Chobotov       70
+        Vallado: 2022, p. 120-121, Algorithm 10
+        Chobotov: 2006, p. 70
 
     Args:
         p (float): Semi-latus rectum of the orbit in km
@@ -224,7 +221,7 @@ def rv2coe(
         v (array_like): Velocity vector in km/s
 
     References:
-        Vallado: 2007, p. 121, Algorithm 9
+        Vallado: 2022, p. 115-116, Algorithm 9
 
     Returns:
         tuple: (p, a, ecc, incl, raan, argp, nu, m, arglat, truelon, lonper,
@@ -350,7 +347,7 @@ def eq2rv(
     system given the equinoctial orbit elements.
 
     References:
-        Vallado: 2013, p. 108
+        Vallado: 2022, p. 110-111
 
     Args:
         a (float): Semi-major axis in km
@@ -420,8 +417,8 @@ def rv2eq(
     """Convert from position & velocity vectors to equinoctial elements.
 
     References:
-        - Vallado: 2013, p. 108
-        - Chobotov:       30
+        Vallado: 2022, p. 110-111
+        Chobotov: 2006, p. 30
 
     Args:
         r (array_like): ECI position vector in km
@@ -507,7 +504,7 @@ def tradec2rv(
     rates) into geocentric equatorial (ECI) position and velocity vectors.
 
     References:
-        Vallado: 2022, p. 254, Eqs. 4-1 to 4-2
+        Vallado: 2022, p. 257, Algorithm 26
 
     Args:
         trr (float): Satellite range from site in km
@@ -634,9 +631,9 @@ def flt2rv(
     """Converts flight elements into ECI position and velocity vectors.
 
     References:
-        Vallado: 2013, XX
-        Escobal:      397
-        Chobotov:      67
+        Vallado: 2022, p. 111-112
+        Escobal: 1985, p. 397
+        Chobotov: 2006, p. 67
 
     Args:
         rmag (float): Position vector magnitude in km
@@ -729,7 +726,7 @@ def rv2flt(
     """Transforms a position and velocity vector to flight elements.
 
     References:
-        Vallado: 2001, XX
+        Vallado: 2022, p. 111-112
 
     Args:
         reci (array_like): ECI position vector in km
@@ -805,7 +802,7 @@ def ell2rv(
     """Transforms ecliptic latitude and longitude to position and velocity vectors.
 
     References:
-        Vallado: 2004, XX
+        Vallado: 2022, p. 265-267
 
     Args:
         rr (float): Radius of the satellite in km
@@ -858,7 +855,7 @@ def rv2ell(
     """Transforms position and velocity vectors to ecliptic latitude and longitude.
 
     References:
-        Vallado: 2004, XX
+        Vallado: 2022, p. 265-267
 
     Args:
         reci (array_like): ECI position vector in km
@@ -912,7 +909,7 @@ def radec2rv(
     velocity vectors.
 
     References:
-        Vallado: 2001, p. 246-248, Algorithm 25
+        Vallado: 2022, p. 254-256, Algorithm 25
 
     Args:
         rr (float): Radius of the satellite in km
@@ -962,7 +959,7 @@ def rv2radec(
     declination) elements.
 
     References:
-        Vallado: 2001, p. 246-248, Algorithm 25
+        Vallado: 2022, p. 254-256, Algorithm 25
 
     Args:
         r (array_like): ECI position vector in km
@@ -1013,7 +1010,7 @@ def raz2rvs(
     vectors for a satellite from a radar site in the topocentric horizon (SEZ) system.
 
     References:
-        Vallado: 2001, p. 250-251, Eqs. 4-4 and 4-5
+        Vallado: 2022, p. 258-259, Eqs. 4-4 and 4-5
 
     Args:
         rho (float): Satellite range from site in km
@@ -1054,14 +1051,14 @@ def rvs2raz(
     and their rates.
 
     References:
-        Vallado: 2022, p. 249, Eqs. 4-4 and 4-5
+        Vallado: 2022, p. 259-263, Algorithm 27
 
     Args:
         rhosez (array_like): SEZ range vector in km
         drhosez (array_like): SEZ velocity vector in km/s
 
     Returns:
-        tuple:
+        tuple: (rho, az, el, drho, daz, del_el)
             rho (float): Satellite range from site in km
             az (float): Azimuth in radians (0 to 2pi)
             el (float): Elevation in radians (-pi/2 to pi/2)
@@ -1128,7 +1125,7 @@ def razel2rv(
     equatorial (ECI) position and velocity vectors.
 
     References:
-        Vallado: 2001, p. 250-255, Algorithm 27
+        Vallado: 2022, p. 259-263, Algorithm 27
 
     Args:
         rho (float): Satellite range from site in km
@@ -1198,7 +1195,7 @@ def rv2razel(
     terms are not observable unless the acceleration vector is available.
 
     References:
-        Vallado: 2007, p. 268-269, Algorithm 27
+        Vallado: 2022, p. 259-263, Algorithm 27
 
     Args:
         reci (array_like): ECI position vector in km
@@ -1249,13 +1246,10 @@ def rv2razel(
     temp = np.sqrt(rhosez[0] ** 2 + rhosez[1] ** 2)
     if temp < const.SMALL:
         el = np.sign(rhosez[2]) * const.HALFPI
+        az = np.arctan2(drhosez[1], -drhosez[0])
     else:
         magrhosez = np.linalg.norm(rhosez)
         el = np.arcsin(rhosez[2] / magrhosez)
-
-    if temp < const.SMALL:
-        az = np.arctan2(drhosez[1], -drhosez[0])
-    else:
         az = np.arctan2(rhosez[1] / temp, -rhosez[0] / temp)
 
     # Calculate range, azimuth, and elevation rates
@@ -1285,7 +1279,7 @@ def rv2rsw(
     Vallado. The reverse values are found using the transmat transpose.
 
     References:
-        Vallado: 2007, p. 172
+        Vallado: 2022, p. 166
 
     Args:
         reci (array_like): ECI position vector in km
@@ -1325,7 +1319,7 @@ def rv2ntw(
     is always aligned with the velocity vector. This is the NTW system of Vallado.
 
     References:
-        Vallado: 2007, p. 172
+        Vallado: 2022, p. 166
 
     Args:
         reci (array_like): ECI position vector in km
@@ -1365,7 +1359,7 @@ def ecef2ll(r: ArrayLike) -> Tuple[float, float, float, float]:
     longitude, and height above the ellipsoid using the Astronomical Almanac method.
 
     References:
-        Vallado: 2001, p. 174-179, Algorithm 12, Example 3-3
+        Vallado: 2022, p. 174, Algorithm 12
 
     Args:
         r (array_like): ECEF position vector in km
@@ -1423,7 +1417,7 @@ def ecef2llb(r: ArrayLike) -> Tuple[float, float, float, float]:
     longitude, and height above the ellipsoid using the Borkowski method.
 
     References:
-        Vallado: 2001, p. 174-179, Algorithm 13
+        Vallado: 2022, p. 175-176, Algorithm 13
 
     Args:
         r (array_like): ECEF position vector in km
