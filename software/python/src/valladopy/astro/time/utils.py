@@ -33,8 +33,7 @@ def fundarg(
     float,
     float,
 ]:
-    """Calculates the Delaunay variables and planetary values for several
-    theories.
+    """Calculates the Delaunay variables and planetary values for several theories.
 
     References:
         Vallado: 2022, p. 210-212, 226
@@ -363,8 +362,7 @@ def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, floa
 def nutation(
     ttt: float, ddpsi: float, ddeps: float
 ) -> Tuple[float, float, float, float, np.ndarray]:
-    """Calculates the transformation matrix that accounts for the effects of
-    nutation.
+    """Calculates the transformation matrix that accounts for the effects of nutation.
 
     References:
         Vallado: 2022, p. 225-227
