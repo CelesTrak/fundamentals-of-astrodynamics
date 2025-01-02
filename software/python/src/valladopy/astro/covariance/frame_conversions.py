@@ -293,7 +293,7 @@ def covct2cl(
     elements.
 
     References:
-        Vallado and Alfano 2015
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         cartcov (array_like): 6x6 Cartesian covariance matrix in m and m/s
@@ -318,7 +318,7 @@ def covct2cl(
     n = np.sqrt(MUM / a**3)
 
     # Common quantities
-    sqrt1me2 = np.sqrt(1.0 - ecc**2)
+    sqrt1me2 = np.sqrt(1 - ecc**2)
     magr = np.linalg.norm(reci_m)
     magv = np.linalg.norm(veci_m)
 
@@ -329,7 +329,7 @@ def covct2cl(
 
     # Node vector
     h_vec = np.cross(reci_m, veci_m)
-    node_vec = np.cross([0.0, 0.0, 1.0], h_vec)
+    node_vec = np.cross([0, 0, 1], h_vec)
     node = np.linalg.norm(node_vec)
 
     # Additional terms for argument of periapsis and true anomaly
@@ -361,18 +361,18 @@ def covct2cl(
 
     # Update partials for mean anomaly, if specified
     if use_mean_anom:
-        dmdnu = (sqrt1me2**2) ** 1.5 / (1.0 + ecc * np.cos(nu)) ** 2
+        dmdnu = (sqrt1me2**2) ** 1.5 / (1 + ecc * np.cos(nu)) ** 2
         dmde = (
             -np.sin(nu)
             * (
                 (ecc * np.cos(nu) + 1)
                 * (ecc + np.cos(nu))
                 / np.sqrt((ecc + np.cos(nu)) ** 2)
-                + 1.0
-                - 2.0 * ecc**2
+                + 1
+                - 2 * ecc**2
                 - ecc**3 * np.cos(nu)
             )
-            / ((ecc * np.cos(nu) + 1.0) ** 2 * sqrt1me2)
+            / ((ecc * np.cos(nu) + 1) ** 2 * sqrt1me2)
         )
         tm[5, :] = tm[5, :] * dmdnu + tm[1, :] * dmde
 
@@ -388,7 +388,7 @@ def covcl2ct(
     """Transforms a 6x6 covariance matrix from classical elements to Cartesian elements.
 
     References:
-        Vallado and Alfano 2015
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         classcov (array_like): 6x6 Classical orbital elements covariance matrix
@@ -546,7 +546,7 @@ def newton_mean_anomaly(
     for ktr in range(max_iter):
         # Compute the function value and its derivative
         f1 = f0 - (f0 + ag * np.cos(f0) - af * np.sin(f0) - meanlon_m) / (
-            1.0 - ag * np.sin(f0) - af * np.cos(f0)
+            1 - ag * np.sin(f0) - af * np.cos(f0)
         )
 
         # Check for convergence
@@ -566,7 +566,7 @@ def covct2eq(
     """Transforms a 6x6 covariance matrix from Cartesian to equinoctial elements.
 
     References:
-        Vallado and Alfano 2015
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         cartcov (array_like): 6x6 Cartesian covariance matrix in m and m/s
@@ -588,19 +588,17 @@ def covct2eq(
     magv = np.linalg.norm(veci_m)
 
     # Classical orbital elements
-    a = 1.0 / (2.0 / magr - magv**2 / MUM)
+    a = 1 / (2 / magr - magv**2 / MUM)
     n = np.sqrt(MUM / a**3)
     h_vec = np.cross(reci_m, veci_m)
     w_vec = h_vec / np.linalg.norm(h_vec)
-    chi = w_vec[0] / (1.0 + fr * w_vec[2])
-    psi = -w_vec[1] / (1.0 + fr * w_vec[2])
+    chi = w_vec[0] / (1 + fr * w_vec[2])
+    psi = -w_vec[1] / (1 + fr * w_vec[2])
 
     # Equinoctial components
-    p0 = 1.0 / (1.0 + chi**2 + psi**2)
-    f_vec = p0 * np.array([1.0 - chi**2 + psi**2, 2.0 * chi * psi, -2.0 * fr * chi])
-    g_vec = p0 * np.array(
-        [2.0 * fr * chi * psi, fr * (1.0 + chi**2 - psi**2), 2.0 * psi]
-    )
+    p0 = 1 / (1 + chi**2 + psi**2)
+    f_vec = p0 * np.array([1 - chi**2 + psi**2, 2 * chi * psi, -2 * fr * chi])
+    g_vec = p0 * np.array([2 * fr * chi * psi, fr * (1 + chi**2 - psi**2), 2 * psi])
 
     # Compute eccentricity vector
     r_dot_v = np.dot(reci_m, veci_m)
@@ -615,19 +613,19 @@ def covct2eq(
     x = np.dot(reci_m, f_vec)
     y = np.dot(reci_m, g_vec)
 
-    b = 1.0 / (1.0 + np.sqrt(1.0 - af**2 - ag**2))
-    p0 = 1.0 / (a * np.sqrt(1.0 - af**2 - ag**2))
-    sinf = ag + p0 * ((1.0 - ag**2 * b) * y - ag * af * b * x)
-    cosf = af + p0 * ((1.0 - af**2 * b) * x - ag * af * b * y)
+    b = 1 / (1 + np.sqrt(1 - af**2 - ag**2))
+    p0 = 1 / (a * np.sqrt(1 - af**2 - ag**2))
+    sinf = ag + p0 * ((1 - ag**2 * b) * y - ag * af * b * x)
+    cosf = af + p0 * ((1 - af**2 * b) * x - ag * af * b * y)
     f = np.arctan2(sinf, cosf) % TWOPI
 
-    xd = n * a**2 / magr * (af * ag * b * np.cos(f) - (1.0 - ag**2 * b) * np.sin(f))
-    yd = n * a**2 / magr * ((1.0 - af**2 * b) * np.cos(f) - af * ag * b * np.sin(f))
+    xd = n * a**2 / magr * (af * ag * b * np.cos(f) - (1 - ag**2 * b) * np.sin(f))
+    yd = n * a**2 / magr * ((1 - af**2 * b) * np.cos(f) - af * ag * b * np.sin(f))
 
     # Compute partial derivatives
     a_ = np.sqrt(MUM * a)
-    b_ = np.sqrt(1.0 - ag**2 - af**2)
-    c_ = 1.0 + chi**2 + psi**2
+    b_ = np.sqrt(1 - ag**2 - af**2)
+    c_ = 1 + chi**2 + psi**2
 
     a_term = a_ / magr**3
     term1_b = a / (1 + b_)
@@ -643,11 +641,11 @@ def covct2eq(
 
     # Partials of sma w.r.t. (rx ry rz vx vy vz)
     if use_mean_anom:
-        p0 = 2.0 * a**2 / magr**3
-        p1 = 2.0 / (n**2 * a)
+        p0 = 2 * a**2 / magr**3
+        p1 = 2 / (n**2 * a)
     else:
-        p0 = -3.0 * n * a / magr**3
-        p1 = -3.0 / (n * a**2)
+        p0 = -3 * n * a / magr**3
+        p1 = -3 / (n * a**2)
 
     tm[0, :3] = p0 * reci_m
     tm[0, 3:] = p1 * veci_m
@@ -656,12 +654,12 @@ def covct2eq(
     tm_v_ag_parts = partxdag * f_vec + partydag * g_vec
 
     # Partials of af w.r.t. (rx ry rz vx vy vz)
-    p0 = 1.0 / MUM
+    p0 = 1 / MUM
     af_term = -a * b * af * b_ / (magr**3)
     chi_psi_term = ag * (chi * xd - psi * fr * yd) / (a_ * b_)
     tm[1, :3] = af_term * reci_m - chi_psi_term * w_vec + (b_ / a_) * tm_v_ag_parts
 
-    xy_term = p0 * ((2.0 * x * yd - xd * y) * g_vec - y * yd * f_vec)
+    xy_term = p0 * ((2 * x * yd - xd * y) * g_vec - y * yd * f_vec)
     psi_chi_term = ag * (psi * fr * y - chi * x) / (a_ * b_)
     tm[1, 3:] = xy_term - psi_chi_term * w_vec
 
@@ -673,12 +671,12 @@ def covct2eq(
     chi_psi_term_af = af * (chi * xd - psi * fr * yd) / (a_ * b_)
     tm[2, :3] = ag_term * reci_m + chi_psi_term_af * w_vec - (b_ / a_) * tm_v_af_parts
 
-    xy_term = p0 * ((2.0 * xd * y - x * yd) * f_vec - x * xd * g_vec)
+    xy_term = p0 * ((2 * xd * y - x * yd) * f_vec - x * xd * g_vec)
     psi_chi_term_af = af * (psi * fr * y - chi * x) / (a_ * b_)
     tm[2, 3:] = xy_term + psi_chi_term_af * w_vec
 
     # Partials of chi w.r.t. (rx ry rz vx vy vz)
-    den = 2.0 * a_ * b_
+    den = 2 * a_ * b_
     tm[3, :3] = -c_ * yd * w_vec / den
     tm[3, 3:] = c_ * y * w_vec / den
 
@@ -696,7 +694,7 @@ def covct2eq(
         )
         tm[5, 3:] = (
             -2.0 * reci_m / a_
-            + (af * tm[2, 3:6] - ag * tm[1, 3:6]) / (1.0 + b_)
+            + (af * tm[2, 3:6] - ag * tm[1, 3:6]) / (1 + b_)
             + (fr * psi * y - chi * x) * w_vec / a_
         )
 
@@ -712,7 +710,7 @@ def coveq2ct(
     """Transforms a 6x6 covariance matrix from equinoctial to cartesian elements.
 
     References:
-        Vallado and Alfano 2015
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         eqcov (array_like): 6x6 equinoctial covariance matrix in m and m/s
@@ -736,7 +734,7 @@ def coveq2ct(
         n = np.sqrt(MUM / a**3)
     else:
         n = eqstate[0]  # rad/s
-        a = (MUM / n**2) ** (1.0 / 3.0)  # in meters
+        a = (MUM / n**2) ** (1 / 3)  # in meters
 
     # Get orbital elements
     af, ag, chi, psi = eqstate[1:5]
@@ -761,25 +759,23 @@ def coveq2ct(
 
     # Constants for transformation
     a_ = n * a**2
-    b_ = np.sqrt(1.0 - ag**2 - af**2)
-    c_ = 1.0 + chi**2 + psi**2
-    b = 1.0 / (1.0 + b_)
+    b_ = np.sqrt(1 - ag**2 - af**2)
+    c_ = 1 + chi**2 + psi**2
+    b = 1 / (1 + b_)
     g_ = a_ * b_
 
     # Compute partial derivatives
     f_ = newton_mean_anomaly(meanlon_m, af, ag)
-    x = a * ((1.0 - ag**2 * b) * np.cos(f_) + af * ag * b * np.sin(f_) - af)
-    y = a * ((1.0 - af**2 * b) * np.sin(f_) + af * ag * b * np.cos(f_) - ag)
-    xd = n * a**2 / magr * (af * ag * b * np.cos(f_) - (1.0 - ag**2 * b) * np.sin(f_))
-    yd = n * a**2 / magr * ((1.0 - af**2 * b) * np.cos(f_) - af * ag * b * np.sin(f_))
+    x = a * ((1 - ag**2 * b) * np.cos(f_) + af * ag * b * np.sin(f_) - af)
+    y = a * ((1 - af**2 * b) * np.sin(f_) + af * ag * b * np.cos(f_) - ag)
+    xd = n * a**2 / magr * (af * ag * b * np.cos(f_) - (1 - ag**2 * b) * np.sin(f_))
+    yd = n * a**2 / magr * ((1 - af**2 * b) * np.cos(f_) - af * ag * b * np.sin(f_))
 
     # Equinoctial system components
-    p0 = 1.0 / (1.0 + chi**2 + psi**2)
-    f_vec = p0 * np.array([1.0 - chi**2 + psi**2, 2.0 * chi * psi, -2.0 * fr * chi])
-    g_vec = p0 * np.array(
-        [2.0 * fr * chi * psi, fr * (1.0 + chi**2 - psi**2), 2.0 * psi]
-    )
-    w_vec = p0 * np.array([2.0 * chi, -2.0 * psi, fr * (1.0 - chi**2 - psi**2)])
+    p0 = 1 / (1 + chi**2 + psi**2)
+    f_vec = p0 * np.array([1 - chi**2 + psi**2, 2 * chi * psi, -2 * fr * chi])
+    g_vec = p0 * np.array([2 * fr * chi * psi, fr * (1 + chi**2 - psi**2), 2 * psi])
+    w_vec = p0 * np.array([2 * chi, -2 * psi, fr * (1 - chi**2 - psi**2)])
 
     # Partial derivatives wrt af and ag
     partxaf = ag * b * xd / n + a * y * xd / g_ - a
@@ -797,11 +793,11 @@ def coveq2ct(
 
     # Partials of (rx ry rz vx vy vz) w.r.t. sma
     if use_anom_a:
-        p0 = 1.0 / a
-        p1 = -1.0 / (2 * a)
+        p0 = 1 / a
+        p1 = -1 / (2 * a)
     else:
-        p0 = -2.0 / (3 * n)
-        p1 = 1.0 / (3 * n)
+        p0 = -2 / (3 * n)
+        p1 = 1 / (3 * n)
 
     tm[:3, 0] = p0 * reci_m
     tm[3:, 0] = p1 * veci_m
@@ -813,14 +809,14 @@ def coveq2ct(
     tm[3:, 2] = partxdag * f_vec + partydag * g_vec
 
     # Partials of (rx ry rz vx vy vz) w.r.t. chi and psi
-    p0 = 2.0 * fr / c_
+    p0 = 2 * fr / c_
     tm[:3, 3] = p0 * (psi * (y * f_vec - x * g_vec) - x * w_vec)
     tm[3:, 3] = p0 * (psi * (yd * f_vec - xd * g_vec) - xd * w_vec)
     tm[:3, 4] = p0 * (chi * (x * g_vec - y * f_vec) + y * w_vec)
     tm[3:, 4] = p0 * (chi * (xd * g_vec - yd * f_vec) + yd * w_vec)
 
     # Partials of (rx ry rz vx vy vz) w.r.t. mean longitude
-    p0 = 1.0 / n
+    p0 = 1 / n
     p1 = -n * a**3 / magr**3
     tm[:3, 5] = p0 * veci_m
     tm[3:, 5] = p1 * reci_m
@@ -842,7 +838,7 @@ def covcl2eq(
     """Transforms a 6x6 covariance matrix from classical to equinoctial elements.
 
     References:
-        Vallado and Alfano 2015
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         classcov (array_like): 6x6 Classical orbital elements covariance matrix
@@ -866,9 +862,9 @@ def covcl2eq(
 
     # Partials of a/n wrt (a, ecc, incl, node, argp, nu/M)
     if anom in {AnomalyType.TRUE_A, AnomalyType.MEAN_A}:
-        tm[0, 0] = 1.0
+        tm[0, 0] = 1
     else:
-        tm[0, 0] = -(3.0 * np.sqrt(MUM / a**3)) / (2.0 * a)
+        tm[0, 0] = -(3 * np.sqrt(MUM / a**3)) / (2 * a)
 
     # Partials of af wrt (a, ecc, incl, node, argp, nu/M)
     tm[1, 1] = np.cos(fr * omega + argp)
@@ -891,7 +887,7 @@ def covcl2eq(
 
     # Partials of meanlonM/meanlonNu wrt (a, ecc, incl, node, argp, nu/M)
     tm[5, 3] = fr
-    tm[5, 4] = tm[5, 5] = 1.0
+    tm[5, 4] = tm[5, 5] = 1
 
     # Calculate the output covariance matrix
     eqcov = tm @ classcov @ tm.T
@@ -905,7 +901,7 @@ def coveq2cl(
     """Transforms a 6x6 covariance matrix from equinoctial to classical elements.
 
     References:
-        Vallado and Alfano 2015
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         eqcov (array_like): 6x6 Equinoctial covariance matrix in m and m/s
@@ -934,27 +930,27 @@ def coveq2cl(
 
     # Partials for semi-major axis or mean motion
     if anom in {AnomalyType.TRUE_A, AnomalyType.MEAN_A}:
-        tm[0, 0] = 1.0
+        tm[0, 0] = 1
     else:
-        tm[0, 0] = -2.0 / (3 * n) * (MUM / n**2) ** (1 / 3)
+        tm[0, 0] = -2 / (3 * n) * (MUM / n**2) ** (1 / 3)
 
     # Partials for eccentricity
-    p0 = 1.0 / np.sqrt(af**2 + ag**2)
+    p0 = 1 / np.sqrt(af**2 + ag**2)
     tm[1, 1] = p0 * af
     tm[1, 2] = p0 * ag
 
     # Partials for inclination
-    p1 = 2.0 * fr / ((1.0 + chi**2 + psi**2) * np.sqrt(chi**2 + psi**2))
+    p1 = 2 * fr / ((1 + chi**2 + psi**2) * np.sqrt(chi**2 + psi**2))
     tm[2, 3] = p1 * chi
     tm[2, 4] = p1 * psi
 
     # Partials for RAAN (node)
-    p2 = 1.0 / (chi**2 + psi**2)
+    p2 = 1 / (chi**2 + psi**2)
     tm[3, 3] = p2 * psi
     tm[3, 4] = -p2 * chi
 
     # Partials for argument of perigee
-    p3 = 1.0 / (af**2 + ag**2)
+    p3 = 1 / (af**2 + ag**2)
     tm[4, 1] = -p3 * ag
     tm[4, 2] = p3 * af
     tm[4, 3] = -fr * p2 * psi
@@ -962,14 +958,14 @@ def coveq2cl(
 
     # Partials for anomaly
     if anom in {AnomalyType.TRUE_A, AnomalyType.TRUE_N}:
-        p4 = 1.0 / (af**2 + ag**2)
+        p4 = 1 / (af**2 + ag**2)
         tm[5, 1] = p4 * ag
         tm[5, 2] = -p4 * af
     else:
         tm[5, 1] = p3 * ag
         tm[5, 2] = -p3 * af
 
-    tm[5, 5] = 1.0
+    tm[5, 5] = 1
 
     # Compute the transformed covariance matrix
     classcov = tm @ eqcov @ tm.T
@@ -991,7 +987,7 @@ def _compute_partials_az(reci_m, veci_m):
     rdotv = np.dot(reci_m, veci_m)
 
     # Sal from mathcad methoc
-    p2 = 1.0 / ((magv**2 - (rdotv / magr) ** 2) * (rx**2 + ry**2))
+    p2 = 1 / ((magv**2 - (rdotv / magr) ** 2) * (rx**2 + ry**2))
     k1 = np.linalg.norm(reci_m) * np.cross(reci_m[:2], veci_m[:2])
     k2 = ry * (ry * vz - rz * vy) + rx * (rx * vz - rz * vx)
     k12_sq = k1**2 + k2**2
@@ -1002,7 +998,7 @@ def _compute_partials_az(reci_m, veci_m):
         vy * (magr * vz - rz * rdotv / magr)
         - (rx * vy - ry * vx) / magr * (rx * vz - rz * vx + rx * rdotv / magr)
     )
-    p2 = 1.0 / (magr * k12_sq)
+    p2 = 1 / (magr * k12_sq)
     tm_az[0] = p2 * (
         k1 * magr * (rz * vx - 2 * rx * vz)
         + k2 * (-ry * vx * rx + vy * rx**2 + vy * magr**2)
@@ -1013,7 +1009,7 @@ def _compute_partials_az(reci_m, veci_m):
     )
     p2 = k1 / (magr**2 * k12_sq)
     tm_az[2] = p2 * (k2 * rz + (rx * vx + ry * vy) * magr**2)
-    p2 = 1.0 / k12_sq
+    p2 = 1 / k12_sq
     tm_az[3] = p2 * (k1 * rx * rz - k2 * ry * magr)
     tm_az[4] = p2 * (k1 * ry * rz + k2 * rx * magr)
     tm_az[5] = -p2 * (k1 * (rx**2 + ry**2))
@@ -1037,7 +1033,7 @@ def covct2fl(
     """Transforms a 6x6 covariance matrix from Cartesian to flight parameters.
 
     References:
-        Vallado and Alfano 2015
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         cartcov (array_like): 6x6 Cartesian covariance matrix in m and m/s
@@ -1094,16 +1090,16 @@ def covct2fl(
     r_xy2 = np.sum(r[:2] ** 2)
     r_xy = np.sqrt(r_xy2)
 
-    p0 = 1.0 / r_xy2
+    p0 = 1 / r_xy2
     tm[0, 0:2] = [-p0 * r[1], p0 * r[0]]
 
-    p0 = 1.0 / (magr**2 * r_xy)
+    p0 = 1 / (magr**2 * r_xy)
     tm[1, 0:2] = -p0 * r[:2] * r[2]
     tm[1, 2] = r_xy / magr**2
 
     # Partial of flight path angle (fpa) wrt (x, y, z, vx, vy, vz)
-    p0 = 1.0 / (magr**2 * h)
-    p1 = 1.0 / (magv**2 * h)
+    p0 = 1 / (magr**2 * h)
+    p1 = 1 / (magv**2 * h)
     tm[2, :3] = p0 * (veci_m * np.sum(reci_m**2) - reci_m * np.sum(reci_m * veci_m))
     tm[2, 3:] = p1 * (reci_m * np.sum(veci_m**2) - veci_m * np.sum(reci_m * veci_m))
 
@@ -1136,7 +1132,7 @@ def covfl2ct(
     """Transforms a 6x6 covariance matrix from flight parameters to Cartesian elements.
 
     References:
-        Vallado and Alfano 2015
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         flcov (array_like): 6x6 Flight parameters covariance matrix in m and m/s
@@ -1270,6 +1266,9 @@ def covct2rsw(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Transforms a 6x6 Cartesian covariance matrix to an orbit plane RSW frame.
 
+    References:
+        Vallado and Alfano 2015, AAS 15-537
+
     Args:
         cartcov (array_like): 6x6 Cartesian covariance matrix in (m, m/s) or (km, km/s)
         cartstate (array_like): 6x1 Cartesian state vector in km and km/s
@@ -1313,6 +1312,9 @@ def covct2ntw(
     cartcov: ArrayLike, cartstate: ArrayLike
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Transforms a 6x6 Cartesian covariance matrix to an orbit plane NTW frame.
+
+    References:
+        Vallado and Alfano 2015, AAS 15-537
 
     Args:
         cartcov (array_like): 6x6 Cartesian covariance matrix in (m, m/s) or (km, km/s)
