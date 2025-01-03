@@ -6,44 +6,60 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
-import numpy as np
 import os
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Tuple
+
+import numpy as np
 
 from ...constants import ARCSEC2RAD
 
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+# Default data directory
+ROOT_DIR = Path(__file__).resolve().parents[6]
+DATA_DIR = ROOT_DIR / "datalib"
+
+# Old data directory
+DATA_DIR_OLD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 
-def iau80in() -> Tuple[np.ndarray, np.ndarray]:
+@dataclass
+class IAU80Array:
+    # fmt: off
+    """Data class for IAU 1980 nutation data."""
+    iar80: np.ndarray = None
+    rar80: np.ndarray = None
+
+
+def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
     """Initializes the nutation matrices needed for reduction calculations.
 
     References:
         Vallado, 2022, Section 3.7.1
 
+    Args:
+        data_dir (str, optional): Directory containing the nutation data file
+                                  "nut80.dat" (default: DATA_DIR)
+
     Returns:
-        tuple: (iar80, rar80)
+        IAU80Array: Data object containing the nutation matrices
             iar80 (np.ndarray): Integers for FK5 1980
             rar80 (np.ndarray): Reals for FK5 1980 in radians
-
-    TODO: Update with latest MATLAB updates
     """
-    # Define the path to the nut80.dat file
-    file_path = os.path.join(DATA_DIR, "nut80.dat")
-
-    # Load the nutation data
-    nut80 = np.loadtxt(file_path)
+    # Load the nutation data and initialize data object
+    nut80 = np.loadtxt(os.path.join(data_dir, "nut80.dat"))
+    iau80arr = IAU80Array()
 
     # Split into integer and real parts
-    iar80 = nut80[:, :5].astype(int)
-    rar80 = nut80[:, 5:9]
+    iau80arr.iar80 = nut80[:, :5].astype(int)
+    iau80arr.rar80 = nut80[:, 5:9]
 
     # Convert from 0.0001 arcseconds to radians
     convrt = 1e-4 * ARCSEC2RAD
-    rar80 *= convrt
+    iau80arr.rar80 *= convrt
 
-    return iar80, rar80
+    return iau80arr
 
 
 def iau06in() -> (
@@ -101,7 +117,7 @@ def iau06in() -> (
         filename, columns_real, columns_int, conv_factor, convert_exclude_last=False
     ):
         """Helper function to load and process data."""
-        filepath = os.path.join(DATA_DIR, filename)
+        filepath = os.path.join(DATA_DIR_OLD, filename)
         data = np.loadtxt(filepath)
         reals = data[:, columns_real]
         if convert_exclude_last:

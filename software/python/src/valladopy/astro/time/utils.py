@@ -381,7 +381,8 @@ def nutation(
             nut (np.ndarray): Transformation matrix for TOD - MOD
     """
     # Load nutation coefficients
-    iar80, rar80 = iau80in()
+    iau80arr = iau80in()
+    iar80, rar80 = iau80arr.iar80, iau80arr.rar80
 
     # Calculate powers of ttt
     ttt2 = ttt * ttt
