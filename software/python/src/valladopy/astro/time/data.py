@@ -20,9 +20,6 @@ from ...constants import ARCSEC2RAD
 ROOT_DIR = Path(__file__).resolve().parents[6]
 DATA_DIR = ROOT_DIR / "datalib"
 
-# Old data directory
-DATA_DIR_OLD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-
 
 @dataclass
 class IAU80Array:
@@ -117,7 +114,7 @@ def iau06in() -> (
         filename, columns_real, columns_int, conv_factor, convert_exclude_last=False
     ):
         """Helper function to load and process data."""
-        filepath = os.path.join(DATA_DIR_OLD, filename)
+        filepath = os.path.join(DATA_DIR, filename)
         data = np.loadtxt(filepath)
         reals = data[:, columns_real]
         if convert_exclude_last:
