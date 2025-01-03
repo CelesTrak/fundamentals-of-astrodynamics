@@ -35,6 +35,18 @@ class CalendarType(Enum):
     GREGORIAN = "g"
 
 
+def jd2sse(julian_date: float) -> float:
+    """Converts Julian Date to seconds since epoch.
+
+    Args:
+        julian_date (float): The Julian Date (days from 4713 BC)
+
+    Returns:
+        float: Seconds since epoch (1 Jan 2000 00:00:00 UTC)
+    """
+    return (julian_date - const.J2000_UTC) * const.DAY2SEC
+
+
 def jday(
     year: int, month: int, day: int, hour: int = 0, minute: int = 0, second: float = 0.0
 ) -> Tuple[float, float]:
@@ -43,7 +55,7 @@ def jday(
     This function finds the Julian Date given the year, month, day, and time.
 
     References:
-        Vallado: 2007, p. 189, Algorithm 14, Example 3-14
+        Vallado: 2022, p. 184-185, Algorithm 14
 
     Args:
         year (int): Year (e.g., 2024)
@@ -93,7 +105,7 @@ def jday_all(
     The Julian Date is defined by each elapsed day since noon, Jan 1, 4713 BC.
 
     References:
-        Vallado: 2001, p. 187
+        Vallado: 2022, p. 185
 
     Args:
         year (int): Year (e.g., 1900 .. 2100)
@@ -147,6 +159,9 @@ def jday_all(
 
 def invjday(jd: float, jdfrac: float) -> Tuple[int, int, int, int, int, float]:
     """Converts Julian Date and fractional day to calendar date and time.
+
+    References:
+        Vallado: 2022, p. 203-204, Algorithm 22
 
     Args:
         jd (float): Julian Date (days from 4713 BC)
@@ -207,7 +222,7 @@ def day_of_week(jd: float) -> int:
     """Finds the day of the week for a given Julian date.
 
     References:
-        Vallado: 2007, p. 188, Eq. 3-39
+        Vallado: 2022, p. 183, Eq. 3-42
 
     Args:
         jd (float): Julian date (days from 4713 BC)
@@ -254,7 +269,7 @@ def daylight_savings(year: int, lon: float) -> Tuple[int, int, float, float]:
     """Find the start and stop dates for daylight savings time (DST) in a given year.
 
     References:
-        Vallado: 2007, p. 188
+        Vallado: 2022, p. 183
 
     This function uses U.S.-specific DST rules:
         - Before 2007: DST starts on the first Sunday of April and ends on the last
@@ -352,7 +367,7 @@ def convtime(
     time; otherwise it should be zero.
 
     References:
-        Vallado: 2007, p. 201, Algorithm 16, Example 3-7
+        Vallado: 2022, p. 196, Algorithm 16
 
     Args:
         year (int): Year (1900 .. 2100)

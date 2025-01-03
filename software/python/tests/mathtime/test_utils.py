@@ -76,7 +76,3 @@ def test_hms_rad_conversions(hours, minutes, seconds, radians):
 def test_dms_rad_conversions(degrees, minutes, seconds, radians):
     assert custom_isclose(utils.dms2rad(degrees, minutes, seconds), radians)
     assert utils.rad2dms(radians) == (degrees, minutes, seconds)
-
-
-def test_jd2sse():
-    assert np.isclose(utils.jd2sse(2460647.567), 786504988.7999833)

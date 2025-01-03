@@ -6,6 +6,10 @@ import src.valladopy.mathtime.julian_date as julian_date
 from ..conftest import DEFAULT_TOL
 
 
+def test_jd2sse():
+    assert np.isclose(julian_date.jd2sse(2460647.567), 786504988.7999833)
+
+
 def test_jday():
     year, month, day, hour, minute, second = (1992, 8, 20, 12, 14, 33)
     jd, jd_frac = julian_date.jday(year, month, day, hour, minute, second)

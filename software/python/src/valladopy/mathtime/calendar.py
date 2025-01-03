@@ -112,6 +112,9 @@ def find_days(
 ) -> float:
     """Finds the fractional days through a year.
 
+    References:
+        Vallado: 2022, p. 202
+
     Args:
         year (int): Year (1900 .. 2100)
         month (int): Month (1 .. 12)

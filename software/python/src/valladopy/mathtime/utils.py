@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------------------
+# Author: David Vallado
+# Date: 27 May 2002
+#
+# Copyright (c) 2024
+# For license information, see LICENSE file
+# --------------------------------------------------------------------------------------
+
 from typing import Tuple
 
 import numpy as np
@@ -41,7 +49,7 @@ def hms2sec(hours: int, minutes: int, seconds: float) -> float:
     return hours * const.HR2SEC + minutes * const.MIN2SEC + seconds
 
 
-def sec2hms(seconds: float) -> tuple[int, int, float]:
+def sec2hms(seconds: float) -> Tuple[int, int, float]:
     """Convert seconds to hours, minutes, and seconds.
 
     Args:
@@ -103,6 +111,9 @@ def ut2hms(ut: float) -> Tuple[int, int, float]:
 def hms2rad(hours: int, minutes: int, seconds: float) -> float:
     """Convert hours, minutes, and seconds to radians.
 
+    References:
+        Vallado: 2022, p. 199, Algorithm 19
+
     Args:
         hours (int): The number of hours
         minutes (int): The number of minutes
@@ -114,8 +125,11 @@ def hms2rad(hours: int, minutes: int, seconds: float) -> float:
     return (hours + minutes / const.MIN2SEC + seconds / const.HR2SEC) * const.HR2RAD
 
 
-def rad2hms(radians: float) -> tuple[int, int, float]:
+def rad2hms(radians: float) -> Tuple[int, int, float]:
     """Convert radians to hours, minutes, and seconds.
+
+    References:
+        Vallado: 2022, p. 199-200, Algorithm 20
 
     Args:
         radians (float): The total number of radians
@@ -136,6 +150,9 @@ def rad2hms(radians: float) -> tuple[int, int, float]:
 def dms2rad(degrees: int, minutes: int, seconds: float) -> float:
     """Convert degrees, minutes, and seconds to radians.
 
+    References:
+        Vallado: 2022, p. 198, Algorithm 17
+
     Args:
         degrees (int): The number of degrees
         minutes (int): The number of minutes
@@ -149,8 +166,11 @@ def dms2rad(degrees: int, minutes: int, seconds: float) -> float:
     )
 
 
-def rad2dms(radians: float) -> tuple[int, int, float]:
+def rad2dms(radians: float) -> Tuple[int, int, float]:
     """Convert radians to degrees, minutes, and seconds.
+
+    References:
+        Vallado: 2022, p. 199, Algorithm 18
 
     Args:
         radians (float): The total number of radians
@@ -174,15 +194,3 @@ def rad2dms(radians: float) -> tuple[int, int, float]:
     secs = round(secs) if abs(secs - round(secs)) < const.SMALL else secs
 
     return degrees, minutes, secs
-
-
-def jd2sse(julian_date: float) -> float:
-    """Converts Julian Date to seconds since epoch.
-
-    Args:
-        julian_date (float): The Julian Date (days from 4713 BC)
-
-    Returns:
-        float: Seconds since epoch (1 Jan 2000 00:00:00 UTC)
-    """
-    return (julian_date - const.J2000_UTC) * const.DAY2SEC
