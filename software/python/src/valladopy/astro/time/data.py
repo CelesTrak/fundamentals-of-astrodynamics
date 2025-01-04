@@ -20,6 +20,10 @@ from ...constants import ARCSEC2RAD
 ROOT_DIR = Path(__file__).resolve().parents[6]
 DATA_DIR = ROOT_DIR / "datalib"
 
+# Conversion factors
+CONVRTU = 1e-6 * ARCSEC2RAD  # microarcseconds to radians
+CONVRTM = 1e-3 * ARCSEC2RAD  # milliarcseconds to radians
+
 
 @dataclass
 class IAU80Array:
@@ -27,6 +31,24 @@ class IAU80Array:
     """Data class for IAU 1980 nutation data."""
     iar80: np.ndarray = None
     rar80: np.ndarray = None
+
+
+@dataclass
+class IAU06Array:
+    ax0: np.ndarray = None
+    ax0i: np.ndarray = None
+    ay0: np.ndarray = None
+    ay0i: np.ndarray = None
+    as0: np.ndarray = None
+    as0i: np.ndarray = None
+    agst: np.ndarray = None
+    agsti: np.ndarray = None
+    apn0: np.ndarray = None
+    apn0i: np.ndarray = None
+    apl0: np.ndarray = None
+    apl0i: np.ndarray = None
+    aapn0: np.ndarray = None
+    aapn0i: np.ndarray = None
 
 
 def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
@@ -164,3 +186,64 @@ def iau06in() -> (
     )
 
     return axs0, a0xi, ays0, a0yi, ass0, a0si, apn, apni, appl, appli, agst, agsti
+
+
+def iau06in2(data_dir: str = DATA_DIR) -> IAU06Array:
+    """Initializes the matrices needed for IAU 2006 reduction calculations.
+
+    Args:
+        data_dir: Path to the directory containing the IAU 2006 data files.
+
+    Returns:
+        IAU06Array: Dataclass containing all coefficients for IAU 2006 calculations.
+    """
+
+    def load_data(filename, cols_real, cols_int, conv_factor):
+        """Helper function to load and process data."""
+        filepath = os.path.join(data_dir, filename)
+        data = np.loadtxt(filepath, skiprows=2)
+        reals = data[:, cols_real[0] : cols_real[1]]
+        if conv_factor:
+            reals *= conv_factor
+        integers = data[:, cols_int[0] : cols_int[1]].astype(int)
+        return reals, integers
+
+    # Load all data files
+    ax0, ax0i = load_data(
+        "iau06xtab5.2.a.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTU
+    )
+    ay0, ay0i = load_data(
+        "iau06ytab5.2.b.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTU
+    )
+    as0, as0i = load_data(
+        "iau06stab5.2.d.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTU
+    )
+    agst, agsti = load_data(
+        "iau06gsttab5.2.e.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTU
+    )
+    aapn0, aapn0i = load_data(
+        "iau06ansofa.dat", cols_real=(5, 11), cols_int=(0, 5), conv_factor=CONVRTM
+    )
+    apl0, apl0i = load_data(
+        "iau06anplsofa.dat", cols_real=(14, 18), cols_int=(0, 14), conv_factor=CONVRTM
+    )
+    apn0, apn0i = load_data(
+        "iau06nlontab5.3.a.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTM
+    )
+
+    return IAU06Array(
+        ax0,
+        ax0i,
+        ay0,
+        ay0i,
+        as0,
+        as0i,
+        agst,
+        agsti,
+        apn0,
+        apn0i,
+        apl0,
+        apl0i,
+        aapn0,
+        aapn0i,
+    )
