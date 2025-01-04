@@ -68,7 +68,7 @@ def current_dir():
 @pytest.fixture()
 def iau80_mat_data(current_dir):
     file_path = os.path.join(current_dir, "data", "iau80in_data.mat")
-    return load_matlab_data(file_path, keys=["iar80", "rar80"])
+    return load_matlab_data2(file_path, keys=["iau80arr"])
 
 
 @pytest.fixture()
@@ -98,15 +98,14 @@ def iau06_mat_data2(current_dir):
 
 
 def test_iau80in(iau80_mat_data):
-    matlab_iar80 = iau80_mat_data["iar80"]
-    matlab_rar80 = iau80_mat_data["rar80"]
+    matlab_data = iau80_mat_data["iau80arr"]
 
     # Load Python data using iau80in
     iau80arr = iau80in()
 
     # Check that they are the same
-    assert np.array_equal(iau80arr.iar80, matlab_iar80)
-    assert custom_allclose(iau80arr.rar80, matlab_rar80)
+    assert np.array_equal(iau80arr.iar80, matlab_data.iar80)
+    assert custom_allclose(iau80arr.rar80, matlab_data.rar80)
 
 
 def test_iau06in(iau06_mat_data):
