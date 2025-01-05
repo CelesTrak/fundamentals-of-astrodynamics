@@ -12,6 +12,7 @@ from numpy.typing import ArrayLike
 from typing import Literal, Tuple
 
 from . import iau_transform as iau
+from .data import IAU06pnOldArray, IAU06Array
 from .sidereal import gstime, sidereal
 from .utils import precess, nutation, polarm
 from ... import constants as const
@@ -79,6 +80,8 @@ def compute_iau06_matrices(
     xp: float,
     yp: float,
     option: Literal["06a", "06b", "06c"],
+    iau06arr: IAU06Array,
+    iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
     ddy: float = 0.0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -92,6 +95,8 @@ def compute_iau06_matrices(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
         ddy (float, optional): EOP correction for y in radians (default 0.0)
 
@@ -102,16 +107,22 @@ def compute_iau06_matrices(
             pm (np.ndarray): Polar motion matrix
             omegaearth (np.ndarray): Earth rotation vector
     """
+    # Check that the old IAU06 array is provided for 06a and 06b options
+    if option in ["06a", "06b"] and not iau06_pnold_arr:
+        raise ValueError(
+            "IAU06 old nutation coefficients `iau06_pnold_arr` must be provided!"
+        )
+
     # Precession/nutation and sidereal time matrices
     if option == "06c":
-        *_, pnb = iau.iau06xys(ttt, ddx, ddy)
+        *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy)
         st = iau.iau06era(jdut1)
     elif option == "06a":
-        deltapsi, pnb, _, _, *_ = iau.iau06pna(ttt)
-        _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_)
+        deltapsi, pnb, _, _, *_ = iau.iau06pna(ttt, iau06_pnold_arr)
+        _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_, iau06arr)
     elif option == "06b":
-        deltapsi, pnb, _, _, *_ = iau.iau06pnb(ttt)
-        _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_)
+        deltapsi, pnb, _, _, *_ = iau.iau06pnb(ttt, iau06_pnold_arr)
+        _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_, iau06arr)
     else:
         raise ValueError("Invalid option. Use '06a', '06b', or '06c'.")
 
@@ -196,6 +207,8 @@ def eci2ecef06(
     xp: float,
     yp: float,
     option: Literal["06a", "06b", "06c"],
+    iau06arr: IAU06Array,
+    iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
     ddy: float = 0.0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -215,6 +228,8 @@ def eci2ecef06(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
         ddy (float, optional): EOP correction for y in radians (default 0.0)
 
@@ -226,7 +241,7 @@ def eci2ecef06(
     """
     # Compute the IAU 2006 matrices
     pnb, st, pm, omegaearth = compute_iau06_matrices(
-        ttt, jdut1, lod, xp, yp, option, ddx, ddy
+        ttt, jdut1, lod, xp, yp, option, iau06arr, iau06_pnold_arr, ddx, ddy
     )
 
     # Transform position
