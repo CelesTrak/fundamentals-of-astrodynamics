@@ -205,6 +205,8 @@ def test_ecef2eci(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs):
     ],
 )
 def test_ecef2eci06(
+    iau06arr,
+    iau06data_old,
     rva_ecef,
     t_inputs,
     orbit_effects_inputs,
@@ -219,7 +221,7 @@ def test_ecef2eci06(
 
     # Call the function with test inputs
     reci_out, veci_out, aeci_out = fc.ecef2eci06(
-        *rva_ecef, *t_inputs, xp, yp, opt, *eop_corrections
+        *rva_ecef, *t_inputs, xp, yp, opt, iau06arr, iau06data_old, *eop_corrections
     )
 
     # Check if the output vectors are close to the expected values

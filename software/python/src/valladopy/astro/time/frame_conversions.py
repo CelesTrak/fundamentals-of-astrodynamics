@@ -333,6 +333,8 @@ def ecef2eci06(
     xp: float,
     yp: float,
     option: Literal["06a", "06b", "06c"],
+    iau06arr: IAU06Array,
+    iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
     ddy: float = 0.0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -351,6 +353,8 @@ def ecef2eci06(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
         ddy (float, optional): EOP correction for y in radians (default 0.0)
 
@@ -362,7 +366,7 @@ def ecef2eci06(
     """
     # Compute the IAU 2006 matrices
     pnb, st, pm, omegaearth = compute_iau06_matrices(
-        ttt, jdut1, lod, xp, yp, option, ddx, ddy
+        ttt, jdut1, lod, xp, yp, option, iau06arr, iau06_pnold_arr, ddx, ddy
     )
 
     # Transform position
