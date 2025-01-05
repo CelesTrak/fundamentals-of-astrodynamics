@@ -399,7 +399,9 @@ def compute_iau_matrices(
     lod: float,
     ddpsi: float,
     ddeps: float,
-    opt: Literal["80", "06a", "06b", "06c"],
+    option: Literal["80", "06a", "06b", "06c"],
+    iau06arr: IAU06Array,
+    iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
     ddy: float = 0.0,
     eqeterms: bool = True,
@@ -413,7 +415,10 @@ def compute_iau_matrices(
         lod (float): Excess length of day in seconds
         ddpsi (float): Nutation correction for delta psi in radians
         ddeps (float): Nutation correction for delta epsilon in radians
-        opt (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation model
+        option (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation
+                                                     model
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
         ddy (float, optional): EOP correction for y in radians (default 0.0)
         eqeterms (bool, optional): Add terms for ast calculation (default True)
@@ -424,35 +429,38 @@ def compute_iau_matrices(
             nut (np.ndarray): Nutation matrix
             st (np.ndarray): Sidereal time matrix
             omegaearth (np.ndarray): Earth rotation vector
+
+    TODO:
+        - Consolidate with compute_iau06_matrices
     """
     # Get the precession matrix and the Earth's rotation vector
-    iau_opt = "06" if "06" in opt else opt
+    iau_opt = "06" if "06" in option else option
     prec, *_, omegaearth = calc_orbit_effects(
         ttt, jdut1, lod, 0, 0, ddpsi, ddeps, opt=iau_opt, eqeterms=eqeterms
     )
 
     # Get orbit effects based on the option
-    if opt == "80":
+    if option == "80":
         # IAU 1980 model
         deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps)
         st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms)
     else:
-        if opt == "06c":
+        if option == "06c":
             # CEO based, IAU 2006 precession/nutation model
-            *_, pnb = iau.iau06xys(ttt, ddx, ddy)
+            *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy)
             st = iau.iau06era(jdut1)
-        elif opt == "06a":
+        elif option == "06a":
             # Classical equinox-based IAU 2006A model
-            deltapsi, pnb, prec, nut, *_ = iau.iau06pna(ttt)
-            _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_)
-        elif opt == "06b":
+            deltapsi, pnb, prec, nut, *_ = iau.iau06pna(ttt, iau06_pnold_arr)
+            _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_, iau06arr)
+        elif option == "06b":
             # Classical equinox-based IAU 2006B model
-            deltapsi, pnb, prec, nut, *_ = iau.iau06pnb(ttt)
-            _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_)
+            deltapsi, pnb, prec, nut, *_ = iau.iau06pnb(ttt, iau06_pnold_arr)
+            _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_, iau06arr)
         else:
             # Invalid option
             raise ValueError(
-                f"Invalid opt value: {opt}. Must be '80', '6a', '6b', or '6c'."
+                f"Invalid opt value: {option}. Must be '80', '6a', '6b', or '6c'."
             )
         prec = np.eye(3)
         nut = pnb
@@ -469,7 +477,9 @@ def eci2pef(
     lod: float,
     ddpsi: float,
     ddeps: float,
-    opt: Literal["80", "06a", "06b", "06c"],
+    option: Literal["80", "06a", "06b", "06c"],
+    iau06arr: IAU06Array,
+    iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
     ddy: float = 0.0,
     eqeterms: bool = True,
@@ -489,7 +499,10 @@ def eci2pef(
         lod (float): Excess length of day in seconds
         ddpsi (float): Nutation correction for delta psi in radians
         ddeps (float): Nutation correction for delta epsilon in radians
-        opt (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation model
+        option (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation
+                                                     model
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
         ddy (float, optional): EOP correction for y in radians (default 0.0)
         eqeterms (bool): Add terms for ast calculation (default True)
@@ -502,7 +515,17 @@ def eci2pef(
     """
     # Compute the IAU matrices
     prec, nut, st, omegaearth = compute_iau_matrices(
-        ttt, jdut1, lod, ddpsi, ddeps, opt, ddx, ddy, eqeterms=eqeterms
+        ttt,
+        jdut1,
+        lod,
+        ddpsi,
+        ddeps,
+        option,
+        iau06arr,
+        iau06_pnold_arr,
+        ddx,
+        ddy,
+        eqeterms=eqeterms,
     )
 
     # Transform vectors
@@ -585,7 +608,9 @@ def eci2tod(
     ttt: float,
     ddpsi: float,
     ddeps: float,
-    opt: Literal["80", "06a", "06b", "06c"],
+    option: Literal["80", "06a", "06b", "06c"],
+    iau06arr: IAU06Array,
+    iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
     ddy: float = 0.0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -602,7 +627,10 @@ def eci2tod(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
-        opt (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation model
+        option (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation
+                                                     model
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
         ddy (float, optional): EOP correction for y in radians (default 0.0)
 
@@ -614,7 +642,17 @@ def eci2tod(
     """
     # Compute the IAU matrices
     prec, nut, *_ = compute_iau_matrices(
-        ttt, 0, 0, ddpsi, ddeps, opt, ddx, ddy, eqeterms=False
+        ttt,
+        0,
+        0,
+        ddpsi,
+        ddeps,
+        option,
+        iau06arr,
+        iau06_pnold_arr,
+        ddx,
+        ddy,
+        eqeterms=False,
     )
 
     # Transform vectors
@@ -872,7 +910,7 @@ def ecef2pef(
     xp: float,
     yp: float,
     ttt: float,
-    opt: Literal["80", "06"],
+    option: Literal["80", "06"],
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the Earth-fixed (ITRF) frame to the pseudo
     Earth-fixed (PEF) frame.
@@ -887,7 +925,7 @@ def ecef2pef(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         ttt (float): Julian centuries of TT
-        opt (Literal["80", "06"]): Polar motion model option ('80' or '06')
+        option (Literal["80", "06"]): Polar motion model option ('80' or '06')
 
     Returns:
         tuple: (rpef, vpef, apef)
@@ -898,7 +936,7 @@ def ecef2pef(
     TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Compute polar motion matrix
-    use_iau80 = True if opt == "80" else False
+    use_iau80 = True if option == "80" else False
     pm = polarm(xp, yp, ttt, use_iau80)
 
     # Transform vectors
@@ -916,7 +954,7 @@ def pef2ecef(
     xp: float,
     yp: float,
     ttt: float,
-    opt: Literal["80", "06"],
+    option: Literal["80", "06"],
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the pseudo Earth-fixed (PEF) frame to the
     Earth-fixed (ITRF) frame.
@@ -931,7 +969,7 @@ def pef2ecef(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         ttt (float): Julian centuries of TT
-        opt (Literal["80", "06"]): Polar motion model option ('80' or '06')
+        option (Literal["80", "06"]): Polar motion model option ('80' or '06')
 
     Returns:
         tuple: (recef, vecef, aecef)
@@ -942,7 +980,7 @@ def pef2ecef(
     TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Compute polar motion matrix
-    use_iau80 = True if opt == "80" else False
+    use_iau80 = True if option == "80" else False
     pm = polarm(xp, yp, ttt, use_iau80)
 
     # Transform vectors

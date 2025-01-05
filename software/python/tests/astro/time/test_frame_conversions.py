@@ -255,6 +255,8 @@ def test_ecef2eci06(
     ],
 )
 def test_eci2pef(
+    iau06arr,
+    iau06data_old,
     rva_eci,
     t_inputs,
     orbit_effects_inputs,
@@ -269,7 +271,15 @@ def test_eci2pef(
 
     # Call the function with test inputs
     rpef_out, vpef_out, apef_out = fc.eci2pef(
-        *rva_eci, *t_inputs, ddpsi, ddeps, opt, *eop_corrections, eqeterms
+        *rva_eci,
+        *t_inputs,
+        ddpsi,
+        ddeps,
+        opt,
+        iau06arr,
+        iau06data_old,
+        *eop_corrections,
+        eqeterms,
     )
 
     # Check if the output vectors are close to the expected values
@@ -321,6 +331,8 @@ def test_pef2eci(t_inputs, orbit_effects_inputs, rva_eci, rva_pef):
     ],
 )
 def test_eci2tod(
+    iau06arr,
+    iau06data_old,
     rva_eci,
     t_inputs,
     orbit_effects_inputs,
@@ -336,7 +348,7 @@ def test_eci2tod(
 
     # Call the function with test inputs
     rtod_out, vtod_out, atod_out = fc.eci2tod(
-        *rva_eci, ttt, ddpsi, ddeps, opt, *eop_corrections
+        *rva_eci, ttt, ddpsi, ddeps, opt, iau06arr, iau06data_old, *eop_corrections
     )
 
     # Check if the output vectors are close to the expected values
@@ -440,7 +452,7 @@ def test_ecef2pef(rva_ecef, rva_pef, t_inputs, orbit_effects_inputs):
     xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
-    rpef_out, vpef_out, apef_out = fc.ecef2pef(*rva_ecef, xp, yp, ttt, opt="80")
+    rpef_out, vpef_out, apef_out = fc.ecef2pef(*rva_ecef, xp, yp, ttt, option="80")
 
     # Check if the output vectors are close to the expected values
     assert custom_allclose(rpef, rpef_out)
@@ -459,7 +471,7 @@ def test_pef2ecef(rva_ecef, rva_pef, t_inputs, orbit_effects_inputs):
     xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
-    recef_out, vecef_out, aecef_out = fc.pef2ecef(*rva_pef, xp, yp, ttt, opt="80")
+    recef_out, vecef_out, aecef_out = fc.pef2ecef(*rva_pef, xp, yp, ttt, option="80")
 
     # Check if the output vectors are close to the expected values
     assert custom_allclose(recef, recef_out)
