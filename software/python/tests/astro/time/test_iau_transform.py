@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from src.valladopy.astro.time.data import iau06in2
 import src.valladopy.astro.time.iau_transform as iau_transform
 from src.valladopy.constants import ARCSEC2RAD
 from ...conftest import custom_isclose, custom_allclose, DEFAULT_TOL
@@ -216,9 +215,11 @@ def test_iau06pnb(ttt):
     assert custom_isclose(precrate, 0.0)
 
 
-def test_iau06xys_series(ttt, delunay_elems, planet_lon, precrate):
+def test_iau06xys_series(ttt, delunay_elems, planet_lon, precrate, iau06arr):
     # Call function
-    x, y, s = iau_transform.iau06xys_series(ttt, *delunay_elems, *planet_lon, precrate)
+    x, y, s = iau_transform.iau06xys_series(
+        ttt, *delunay_elems, *planet_lon, precrate, iau06arr
+    )
 
     # Check against expected values
     assert custom_isclose(x, 0.0010033097412569085)
@@ -226,13 +227,13 @@ def test_iau06xys_series(ttt, delunay_elems, planet_lon, precrate):
     assert custom_isclose(s, 7.765595105574456e-09)
 
 
-def test_iau06xys(ttt):
+def test_iau06xys(ttt, iau06arr):
     # Define EOP corrections
     ddx = -0.000205 * ARCSEC2RAD
     ddy = -0.000136 * ARCSEC2RAD
 
     # Call function
-    x, y, s, nut = iau_transform.iau06xys(ttt, ddx, ddy)
+    x, y, s, nut = iau_transform.iau06xys(ttt, iau06arr, ddx, ddy)
 
     # Check against expected values
     nut_exp = np.array(

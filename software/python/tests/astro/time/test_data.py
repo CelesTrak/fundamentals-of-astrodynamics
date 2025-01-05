@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 import scipy
 
-from src.valladopy.astro.time.data import iau80in, iau06in, iau06in2
+from src.valladopy.astro.time.data import iau80in, iau06in
 from ...conftest import custom_allclose
 
 

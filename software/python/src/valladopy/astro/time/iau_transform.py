@@ -9,7 +9,7 @@
 import numpy as np
 from typing import Tuple
 
-from .data import IAU06Array, iau06in, iau06in2
+from .data import IAU06Array, iau06in
 from .utils import fundarg, precess
 from ...constants import ARCSEC2RAD, DEG2ARCSEC, J2000, TWOPI
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
@@ -95,10 +95,10 @@ def iau06gst(
     epsa = (
         84381.406
         - 46.836769 * ttt
-        - 0.0001831 * ttt ** 2
-        + 0.0020034 * ttt ** 3
-        - 0.000000576 * ttt ** 4
-        - 0.0000000434 * ttt ** 5
+        - 0.0001831 * ttt**2
+        + 0.0020034 * ttt**3
+        - 0.000000576 * ttt**4
+        - 0.0000000434 * ttt**5
     )  # arcseconds
     epsa = np.mod(np.radians(epsa / DEG2ARCSEC), TWOPI)
 
@@ -161,10 +161,10 @@ def iau06gst(
         (
             0.014506
             + 4612.156534 * ttt
-            + 1.3915817 * ttt ** 2
-            - 0.00000044 * ttt ** 3
-            + 0.000029956 * ttt ** 4
-            + 0.0000000368 * ttt ** 5
+            + 1.3915817 * ttt**2
+            - 0.00000044 * ttt**3
+            + 0.000029956 * ttt**4
+            + 0.0000000368 * ttt**5
         )
         * ARCSEC2RAD
     )
@@ -533,6 +533,7 @@ def iau06xys_series(
     lonurn: float,
     lonnep: float,
     precrate: float,
+    iau06arr: IAU06Array,
 ) -> Tuple[float, float, float]:
     """Calculates the XYS parameters for the IAU2006 CIO theory.
 
@@ -558,6 +559,7 @@ def iau06xys_series(
         lonurn (float): Longitude of Uranus in radians
         lonnep (float): Longitude of Neptune in radians
         precrate (float): Precession rate in radians per Julian century
+        iau06arr (IAU06Array): IAU 2006 data
 
     Returns:
         tuple: (x, y, s)
@@ -566,13 +568,7 @@ def iau06xys_series(
             s (float): Coordinate in radians
     """
     # Powers of TTT
-    ttt2 = ttt * ttt
-    ttt3 = ttt2 * ttt
-    ttt4 = ttt2 * ttt2
-    ttt5 = ttt3 * ttt2
-
-    # Load IAU 2006 data
-    axs0, a0xi, ays0, a0yi, ass0, a0si, *_ = iau06in()
+    ttt2, ttt3, ttt4, ttt5 = ttt**2, ttt**3, ttt**4, ttt**5
 
     # Limits for the x, y, and s series. These numbers correspond to the ranges of
     # terms used in the calculations for each group:
@@ -592,24 +588,24 @@ def iau06xys_series(
         for i in range(limit):
             idx = start_index + i
             tempval = (
-                a0xi[idx, 0] * l
-                + a0xi[idx, 1] * l1
-                + a0xi[idx, 2] * f
-                + a0xi[idx, 3] * d
-                + a0xi[idx, 4] * omega
-                + a0xi[idx, 5] * lonmer
-                + a0xi[idx, 6] * lonven
-                + a0xi[idx, 7] * lonear
-                + a0xi[idx, 8] * lonmar
-                + a0xi[idx, 9] * lonjup
-                + a0xi[idx, 10] * lonsat
-                + a0xi[idx, 11] * lonurn
-                + a0xi[idx, 12] * lonnep
-                + a0xi[idx, 13] * precrate
+                iau06arr.ax0i[idx, 0] * l
+                + iau06arr.ax0i[idx, 1] * l1
+                + iau06arr.ax0i[idx, 2] * f
+                + iau06arr.ax0i[idx, 3] * d
+                + iau06arr.ax0i[idx, 4] * omega
+                + iau06arr.ax0i[idx, 5] * lonmer
+                + iau06arr.ax0i[idx, 6] * lonven
+                + iau06arr.ax0i[idx, 7] * lonear
+                + iau06arr.ax0i[idx, 8] * lonmar
+                + iau06arr.ax0i[idx, 9] * lonjup
+                + iau06arr.ax0i[idx, 10] * lonsat
+                + iau06arr.ax0i[idx, 11] * lonurn
+                + iau06arr.ax0i[idx, 12] * lonnep
+                + iau06arr.ax0i[idx, 13] * precrate
             )
-            x_sums[group] += axs0[idx, 0] * np.sin(tempval) + axs0[idx, 1] * np.cos(
-                tempval
-            )
+            x_sums[group] += iau06arr.ax0[idx, 0] * np.sin(tempval) + iau06arr.ax0[
+                idx, 1
+            ] * np.cos(tempval)
 
     # Final value for x
     x = (
@@ -632,24 +628,24 @@ def iau06xys_series(
         for i in range(limit):
             idx = start_index + i
             tempval = (
-                a0yi[idx, 0] * l
-                + a0yi[idx, 1] * l1
-                + a0yi[idx, 2] * f
-                + a0yi[idx, 3] * d
-                + a0yi[idx, 4] * omega
-                + a0yi[idx, 5] * lonmer
-                + a0yi[idx, 6] * lonven
-                + a0yi[idx, 7] * lonear
-                + a0yi[idx, 8] * lonmar
-                + a0yi[idx, 9] * lonjup
-                + a0yi[idx, 10] * lonsat
-                + a0yi[idx, 11] * lonurn
-                + a0yi[idx, 12] * lonnep
-                + a0yi[idx, 13] * precrate
+                iau06arr.ay0i[idx, 0] * l
+                + iau06arr.ay0i[idx, 1] * l1
+                + iau06arr.ay0i[idx, 2] * f
+                + iau06arr.ay0i[idx, 3] * d
+                + iau06arr.ay0i[idx, 4] * omega
+                + iau06arr.ay0i[idx, 5] * lonmer
+                + iau06arr.ay0i[idx, 6] * lonven
+                + iau06arr.ay0i[idx, 7] * lonear
+                + iau06arr.ay0i[idx, 8] * lonmar
+                + iau06arr.ay0i[idx, 9] * lonjup
+                + iau06arr.ay0i[idx, 10] * lonsat
+                + iau06arr.ay0i[idx, 11] * lonurn
+                + iau06arr.ay0i[idx, 12] * lonnep
+                + iau06arr.ay0i[idx, 13] * precrate
             )
-            y_sums[group] += ays0[idx, 0] * np.sin(tempval) + ays0[idx, 1] * np.cos(
-                tempval
-            )
+            y_sums[group] += iau06arr.ay0[idx, 0] * np.sin(tempval) + iau06arr.ay0[
+                idx, 1
+            ] * np.cos(tempval)
 
     # Final value for y
     y = (
@@ -672,24 +668,24 @@ def iau06xys_series(
         for i in range(limit):
             idx = start_index + i
             tempval = (
-                a0si[idx, 0] * l
-                + a0si[idx, 1] * l1
-                + a0si[idx, 2] * f
-                + a0si[idx, 3] * d
-                + a0si[idx, 4] * omega
-                + a0si[idx, 5] * lonmer
-                + a0si[idx, 6] * lonven
-                + a0si[idx, 7] * lonear
-                + a0si[idx, 8] * lonmar
-                + a0si[idx, 9] * lonjup
-                + a0si[idx, 10] * lonsat
-                + a0si[idx, 11] * lonurn
-                + a0si[idx, 12] * lonnep
-                + a0si[idx, 13] * precrate
+                iau06arr.as0i[idx, 0] * l
+                + iau06arr.as0i[idx, 1] * l1
+                + iau06arr.as0i[idx, 2] * f
+                + iau06arr.as0i[idx, 3] * d
+                + iau06arr.as0i[idx, 4] * omega
+                + iau06arr.as0i[idx, 5] * lonmer
+                + iau06arr.as0i[idx, 6] * lonven
+                + iau06arr.as0i[idx, 7] * lonear
+                + iau06arr.as0i[idx, 8] * lonmar
+                + iau06arr.as0i[idx, 9] * lonjup
+                + iau06arr.as0i[idx, 10] * lonsat
+                + iau06arr.as0i[idx, 11] * lonurn
+                + iau06arr.as0i[idx, 12] * lonnep
+                + iau06arr.as0i[idx, 13] * precrate
             )
-            s_sums[group] += ass0[idx, 0] * np.sin(tempval) + ass0[idx, 1] * np.cos(
-                tempval
-            )
+            s_sums[group] += iau06arr.as0[idx, 0] * np.sin(tempval) + iau06arr.as0[
+                idx, 1
+            ] * np.cos(tempval)
 
     # Final value for s
     s = (
@@ -710,7 +706,7 @@ def iau06xys_series(
 
 
 def iau06xys(
-    ttt: float, ddx: float = 0.0, ddy: float = 0.0
+    ttt: float, iau06arr: IAU06Array, ddx: float = 0.0, ddy: float = 0.0
 ) -> Tuple[float, float, float, np.ndarray]:
     """Calculates the transformation matrix that accounts for the effects of
     precession-nutation using the IAU2006 theory.
@@ -720,6 +716,7 @@ def iau06xys(
 
     Args:
         ttt (float): Julian centuries of TT
+        iau06arr (IAU06Array): IAU 2006 data
         ddx (float, optional): EOP correction for x in radians
         ddy (float, optional): EOP correction for y in radians
 
@@ -765,6 +762,7 @@ def iau06xys(
         lonurn,
         lonnep,
         precrate,
+        iau06arr,
     )
 
     # Apply any corrections for x and y
