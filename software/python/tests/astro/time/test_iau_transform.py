@@ -66,13 +66,10 @@ def test_iau06era():
     assert np.allclose(era, era_exp, rtol=DEFAULT_TOL, atol=DEFAULT_TOL)
 
 
-def test_iau06gst(ttt, delunay_elems, planet_lon, precrate, iau06_mat_data2):
+def test_iau06gst(ttt, delunay_elems, planet_lon, precrate, iau06arr):
     # Definitions
     judt1 = 2448855.009722  # Julian date of UT1
     deltapsi = -5.978331920752922e-05  # change in longitude
-
-    # Load the IAU 2006 data (GST coefficients)
-    iau06arr = iau06in2()
 
     # Call function
     gst, st = iau_transform.iau06gst(
@@ -91,7 +88,7 @@ def test_iau06gst(ttt, delunay_elems, planet_lon, precrate, iau06_mat_data2):
     assert custom_allclose(st, st_exp)
 
 
-def test_iau06pna(ttt):
+def test_iau06pna(ttt, iau06arr):
     (
         deltapsi,
         pnb,

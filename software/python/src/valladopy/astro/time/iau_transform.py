@@ -267,6 +267,7 @@ def iau06pna(
 
     Args:
         ttt (float): Julian centuries of TT
+        iau06arr (IAU06Array): IAU 2006 data
 
     Returns:
         tuple:
