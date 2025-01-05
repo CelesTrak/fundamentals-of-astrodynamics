@@ -6,33 +6,37 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
-
 import math
-import numpy as np
+from dataclasses import dataclass
 from typing import Tuple
+
+import numpy as np
 
 from .data import iau80in
 from ...constants import ARCSEC2RAD, DEG2ARCSEC, TWOPI
 
 
-def fundarg(
-    ttt: float, opt: str
-) -> Tuple[
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-]:
+@dataclass
+class FundArgs:
+    # fmt: off
+    """Data class for Delaunay fundamental arguments."""
+    l: float = 0         # delaunay element in radians
+    l1: float = 0        # delaunay element in radians
+    f: float = 0         # delaunay element in radians
+    d: float = 0         # delaunay element in radians
+    omega: float = 0     # delaunay element in radians
+    lonmer: float = 0    # longitude of Mercury in radians
+    lonven: float = 0    # longitude of Venus in radians
+    lonear: float = 0    # longitude of Earth in radians
+    lonmar: float = 0    # longitude of Mars in radians
+    lonjup: float = 0    # longitude of Jupiter in radians
+    lonsat: float = 0    # longitude of Saturn in radians
+    lonurn: float = 0    # longitude of Uranus in radians
+    lonnep: float = 0    # longitude of Neptune in radians
+    precrate: float = 0  # precession rate in radians per Julian century
+
+
+def fundarg(ttt: float, opt: str) -> FundArgs:
     """Calculates the Delaunay variables and planetary values for several theories.
 
     References:
@@ -43,22 +47,7 @@ def fundarg(
         opt (str): Method option ('06', '02', '96', or '80')
 
     Returns:
-        tuple: (l, l1, f, d, omega, lonmer, lonven, lonear, lonmar, lonjup, lonsat,
-                lonurn, lonnep, precrate)
-            l (float): Delaunay element in radians
-            l1 (float): Delaunay element in radians
-            f (float): Delaunay element in radians
-            d (float): Delaunay element in radians
-            omega (float): Delaunay element in radians
-            lonmer (float): Longitude of Mercury in radians
-            lonven (float): Longitude of Venus in radians
-            lonear (float): Longitude of Earth in radians
-            lonmar (float): Longitude of Mars in radians
-            lonjup (float): Longitude of Jupiter in radians
-            lonsat (float): Longitude of Saturn in radians
-            lonurn (float): Longitude of Uranus in radians
-            lonnep (float): Longitude of Neptune in radians
-            precrate (float): Precession rate in radians per Julian century
+        FundArgs: Delaunay fundamental arguments and planetary values
 
     TODO:
         - Implement commented out methods (from m-file)?
@@ -100,12 +89,12 @@ def fundarg(
         lonmer = np.mod((4.402608842 + 2608.7903141574 * ttt), TWOPI)
         lonven = np.mod((3.176146697 + 1021.3285546211 * ttt), TWOPI)
         lonear = np.mod((1.753470314 + 628.3075849991 * ttt), TWOPI)
-        lonmar = np.mod((6.203480913 + 334.0612426700 * ttt), TWOPI)
+        lonmar = np.mod((6.203480913 + 334.06124267 * ttt), TWOPI)
         lonjup = np.mod((0.599546497 + 52.9690962641 * ttt), TWOPI)
-        lonsat = np.mod((0.874016757 + 21.3299104960 * ttt), TWOPI)
+        lonsat = np.mod((0.874016757 + 21.329910496 * ttt), TWOPI)
         lonurn = np.mod((5.481293872 + 7.4781598567 * ttt), TWOPI)
         lonnep = np.mod((5.311886287 + 3.8133035638 * ttt), TWOPI)
-        precrate = (0.024381750 + 0.00000538691 * ttt) * ttt
+        precrate = (0.02438175 + 0.00000538691 * ttt) * ttt
 
     # Determine coefficients from IAU 2000b theory
     elif opt == "02":
@@ -113,7 +102,7 @@ def fundarg(
         l = 134.96340251 + (1717915923.2178 * ttt) / DEG2ARCSEC  # noqa
         l1 = 357.52910918 + (129596581.0481 * ttt) / DEG2ARCSEC
         f = 93.27209062 + (1739527262.8478 * ttt) / DEG2ARCSEC
-        d = 297.85019547 + (1602961601.2090 * ttt) / DEG2ARCSEC
+        d = 297.85019547 + (1602961601.209 * ttt) / DEG2ARCSEC
         omega = 125.04455501 + (-6962890.5431 * ttt) / DEG2ARCSEC
 
         # Planetary arguments in deg
@@ -125,7 +114,7 @@ def fundarg(
     elif opt == "96":
         # Delaunay fundamental arguments in deg
         l = (  # noqa
-            calc_delunay_elem(ttt, [-0.00024470, 0.051635, 31.8792, 1717915923.2178, 0])
+            calc_delunay_elem(ttt, [-0.0002447, 0.051635, 31.8792, 1717915923.2178, 0])
             + 134.96340251
         )
         l1 = (
@@ -150,7 +139,7 @@ def fundarg(
         lonven = 181.979800853 + 58517.8156748 * ttt
         lonear = 100.466448494 + 35999.3728521 * ttt
         lonmar = 355.433274605 + 19140.299314 * ttt
-        lonjup = 34.351483900 + 3034.90567464 * ttt
+        lonjup = 34.3514839 + 3034.90567464 * ttt
         lonsat = 50.0774713998 + 1222.11379404 * ttt
         precrate = 1.39697137214 * ttt + 0.0003086 * ttt**2
 
@@ -178,39 +167,25 @@ def fundarg(
             "Method must be one of the following: '06', '02', '96', or '80'"
         )
 
-    # Convert units to radians
+    # Create data object and convert to radians
+    fundargs = FundArgs()
     twopi_deg = np.degrees(TWOPI)
-    l = float(np.radians(np.mod(l, twopi_deg)))  # noqa
-    l1 = float(np.radians(np.mod(l1, twopi_deg)))
-    f = float(np.radians(np.mod(f, twopi_deg)))
-    d = float(np.radians(np.mod(d, twopi_deg)))
-    omega = float(np.radians(np.mod(omega, twopi_deg)))
-    lonmer = float(np.radians(np.mod(lonmer, twopi_deg)))
-    lonven = float(np.radians(np.mod(lonven, twopi_deg)))
-    lonear = float(np.radians(np.mod(lonear, twopi_deg)))
-    lonmar = float(np.radians(np.mod(lonmar, twopi_deg)))
-    lonjup = float(np.radians(np.mod(lonjup, twopi_deg)))
-    lonsat = float(np.radians(np.mod(lonsat, twopi_deg)))
-    lonurn = float(np.radians(np.mod(lonurn, twopi_deg)))
-    lonnep = float(np.radians(np.mod(lonnep, twopi_deg)))
-    precrate = float(np.radians(np.mod(precrate, twopi_deg)))
+    fundargs.l = float(np.radians(np.mod(l, twopi_deg)))  # noqa
+    fundargs.l1 = float(np.radians(np.mod(l1, twopi_deg)))
+    fundargs.f = float(np.radians(np.mod(f, twopi_deg)))
+    fundargs.d = float(np.radians(np.mod(d, twopi_deg)))
+    fundargs.omega = float(np.radians(np.mod(omega, twopi_deg)))
+    fundargs.lonmer = float(np.radians(np.mod(lonmer, twopi_deg)))
+    fundargs.lonven = float(np.radians(np.mod(lonven, twopi_deg)))
+    fundargs.lonear = float(np.radians(np.mod(lonear, twopi_deg)))
+    fundargs.lonmar = float(np.radians(np.mod(lonmar, twopi_deg)))
+    fundargs.lonjup = float(np.radians(np.mod(lonjup, twopi_deg)))
+    fundargs.lonsat = float(np.radians(np.mod(lonsat, twopi_deg)))
+    fundargs.lonurn = float(np.radians(np.mod(lonurn, twopi_deg)))
+    fundargs.lonnep = float(np.radians(np.mod(lonnep, twopi_deg)))
+    fundargs.precrate = float(np.radians(np.mod(precrate, twopi_deg)))
 
-    return (
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    )
+    return fundargs
 
 
 def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, float]:
@@ -248,8 +223,7 @@ def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, floa
         ) * ttt
 
     # Initialize some variables
-    ttt2 = ttt * ttt
-    ttt3 = ttt2 * ttt
+    ttt2, ttt3 = ttt**2, ttt**3
     prec = np.eye(3)
 
     # FK4 B1950 precession angles
@@ -384,41 +358,22 @@ def nutation(
     iau80arr = iau80in()
     iar80, rar80 = iau80arr.iar80, iau80arr.rar80
 
-    # Calculate powers of ttt
-    ttt2 = ttt * ttt
-    ttt3 = ttt2 * ttt
-
     # Mean obliquity of the ecliptic
-    meaneps = -46.815 * ttt - 0.00059 * ttt2 + 0.001813 * ttt3 + 84381.448
+    meaneps = -46.815 * ttt - 0.00059 * ttt**2 + 0.001813 * ttt**3 + 84381.448
     meaneps = float(np.radians(np.remainder(meaneps / DEG2ARCSEC, np.degrees(TWOPI))))
 
     # Fundamental arguments using the IAU80 theory
-    (
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    ) = fundarg(ttt, "80")
+    fundargs = fundarg(ttt, "80")
 
     # Calculate nutation parameters
     deltapsi, deltaeps = 0, 0
     for i in range(len(iar80)):
         tempval = (
-            iar80[i, 0] * l
-            + iar80[i, 1] * l1
-            + iar80[i, 2] * f
-            + iar80[i, 3] * d
-            + iar80[i, 4] * omega
+            iar80[i, 0] * fundargs.l
+            + iar80[i, 1] * fundargs.l1
+            + iar80[i, 2] * fundargs.f
+            + iar80[i, 3] * fundargs.d
+            + iar80[i, 4] * fundargs.omega
         )
         deltapsi += (rar80[i, 0] + rar80[i, 1] * ttt) * np.sin(tempval)
         deltaeps += (rar80[i, 2] + rar80[i, 3] * ttt) * np.cos(tempval)
@@ -448,7 +403,7 @@ def nutation(
     nut[2, 1] = costrueeps * sineps * cospsi - sintrueeps * coseps
     nut[2, 2] = sintrueeps * sineps * cospsi + costrueeps * coseps
 
-    return deltapsi, trueeps, meaneps, omega, nut
+    return deltapsi, trueeps, meaneps, fundargs.omega, nut
 
 
 def polarm(xp: float, yp: float, ttt: float, use_iau80: bool = True) -> np.ndarray:

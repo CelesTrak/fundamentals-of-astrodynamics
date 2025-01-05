@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import src.valladopy.astro.time.iau_transform as iau_transform
+from src.valladopy.astro.time.utils import FundArgs
 from src.valladopy.constants import ARCSEC2RAD
 from ...conftest import custom_isclose, custom_allclose, DEFAULT_TOL
 
@@ -16,36 +17,23 @@ def ttt():
 
 
 @pytest.fixture()
-def delunay_elems():
-    """Delunay elements in radians"""
-    return [
-        5.844239313494585,  # l
-        6.23840254543787,  # l1
-        3.0276889929096353,  # f
-        3.2212027489393993,  # d
-        5.089920270731961,  # omega
-    ]
-
-
-@pytest.fixture()
-def planet_lon():
-    """Planet longitudes in radians"""
-    return [
-        0.02422268041366862,  # mercury
-        0.08339248169484563,  # venus
-        0.030584726431970796,  # earth
-        0.03334439906671072,  # mars
-        0.1029125735528856,  # jupiter
-        0.05248218685834288,  # saturn
-        0.10871847648477687,  # uranus
-        0.09936537545632083,  # neptune
-    ]
-
-
-@pytest.fixture()
-def precrate():
-    """Precession rate in radians per Julian century"""
-    return 4.2555121682972836e-05
+def fundargs():
+    return FundArgs(
+        l=5.844239313494585,
+        l1=6.23840254543787,
+        f=3.0276889929096353,
+        d=3.2212027489393993,
+        omega=5.089920270731961,
+        lonmer=0.02422268041366862,
+        lonven=0.08339248169484563,
+        lonear=0.030584726431970796,
+        lonmar=0.03334439906671072,
+        lonjup=0.1029125735528856,
+        lonsat=0.05248218685834288,
+        lonurn=0.10871847648477687,
+        lonnep=0.09936537545632083,
+        precrate=4.2555121682972836e-05,
+    )
 
 
 def test_iau06era():
@@ -65,15 +53,13 @@ def test_iau06era():
     assert np.allclose(era, era_exp, rtol=DEFAULT_TOL, atol=DEFAULT_TOL)
 
 
-def test_iau06gst(ttt, delunay_elems, planet_lon, precrate, iau06arr):
+def test_iau06gst(ttt, fundargs, iau06arr):
     # Definitions
     judt1 = 2448855.009722  # Julian date of UT1
     deltapsi = -5.978331920752922e-05  # change in longitude
 
     # Call function
-    gst, st = iau_transform.iau06gst(
-        judt1, ttt, deltapsi, *delunay_elems, *planet_lon, precrate, iau06arr
-    )
+    gst, st = iau_transform.iau06gst(judt1, ttt, deltapsi, fundargs, iau06arr)
 
     # Check against expected values
     st_exp = np.array(
@@ -89,26 +75,7 @@ def test_iau06gst(ttt, delunay_elems, planet_lon, precrate, iau06arr):
 
 def test_iau06pna(ttt, iau06data_old):
     # Call function
-    (
-        deltapsi,
-        pnb,
-        prec,
-        nut,
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    ) = iau_transform.iau06pna(ttt, iau06data_old)
+    deltapsi, pnb, prec, nut, fundargs = iau_transform.iau06pna(ttt, iau06data_old)
 
     # Check against expected values
     pnb_exp = np.array(
@@ -136,44 +103,25 @@ def test_iau06pna(ttt, iau06data_old):
     assert custom_allclose(prec, prec_exp, rtol=ROTATION_MATRIX_TOL)
     assert custom_allclose(nut, nut_exp, rtol=ROTATION_MATRIX_TOL)
     assert custom_isclose(deltapsi, 7.97497241593155e-05)
-    assert custom_isclose(l, 5.844239313494585)
-    assert custom_isclose(l1, 6.23840254543787)
-    assert custom_isclose(f, 3.0276889929096353)
-    assert custom_isclose(d, 3.2212027489393993)
-    assert custom_isclose(omega, 5.089920270731961)
-    assert custom_isclose(lonmer, 0.02422268041366862)
-    assert custom_isclose(lonven, 0.08339248169484563)
-    assert custom_isclose(lonear, 0.030584726431970796)
-    assert custom_isclose(lonmar, 0.03334439906671072)
-    assert custom_isclose(lonjup, 0.1029125735528856)
-    assert custom_isclose(lonsat, 0.05248218685834288)
-    assert custom_isclose(lonurn, 0.10871847648477687)
-    assert custom_isclose(lonnep, 0.09936537545632083)
-    assert custom_isclose(precrate, 4.2555121682972836e-05)
+    assert custom_isclose(fundargs.l, 5.844239313494585)
+    assert custom_isclose(fundargs.l1, 6.23840254543787)
+    assert custom_isclose(fundargs.f, 3.0276889929096353)
+    assert custom_isclose(fundargs.d, 3.2212027489393993)
+    assert custom_isclose(fundargs.omega, 5.089920270731961)
+    assert custom_isclose(fundargs.lonmer, 0.02422268041366862)
+    assert custom_isclose(fundargs.lonven, 0.08339248169484563)
+    assert custom_isclose(fundargs.lonear, 0.030584726431970796)
+    assert custom_isclose(fundargs.lonmar, 0.03334439906671072)
+    assert custom_isclose(fundargs.lonjup, 0.1029125735528856)
+    assert custom_isclose(fundargs.lonsat, 0.05248218685834288)
+    assert custom_isclose(fundargs.lonurn, 0.10871847648477687)
+    assert custom_isclose(fundargs.lonnep, 0.09936537545632083)
+    assert custom_isclose(fundargs.precrate, 4.2555121682972836e-05)
 
 
 def test_iau06pnb(ttt, iau06data_old):
     # Call function
-    (
-        deltapsi,
-        pnb,
-        prec,
-        nut,
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    ) = iau_transform.iau06pnb(ttt, iau06data_old)
+    deltapsi, pnb, prec, nut, fundargs = iau_transform.iau06pnb(ttt, iau06data_old)
 
     # Check against expected values
     pnb_exp = np.array(
@@ -201,27 +149,25 @@ def test_iau06pnb(ttt, iau06data_old):
     assert custom_allclose(prec, prec_exp, rtol=ROTATION_MATRIX_TOL)
     assert custom_allclose(nut, nut_exp, rtol=ROTATION_MATRIX_TOL)
     assert custom_isclose(deltapsi, 7.974405939816953e-05)
-    assert custom_isclose(l, 5.844237767697117)
-    assert custom_isclose(l1, 6.2384025722571055)
-    assert custom_isclose(f, 3.02768961111037)
-    assert custom_isclose(d, 3.2212030577628026)
-    assert custom_isclose(omega, 5.08991990843217)
-    assert custom_isclose(lonmer, 0.0)
-    assert custom_isclose(lonven, 0.0)
-    assert custom_isclose(lonear, 0.0)
-    assert custom_isclose(lonmar, 0.0)
-    assert custom_isclose(lonjup, 0.0)
-    assert custom_isclose(lonsat, 0.0)
-    assert custom_isclose(lonurn, 0.0)
-    assert custom_isclose(lonnep, 0.0)
-    assert custom_isclose(precrate, 0.0)
+    assert custom_isclose(fundargs.l, 5.844237767697117)
+    assert custom_isclose(fundargs.l1, 6.2384025722571055)
+    assert custom_isclose(fundargs.f, 3.02768961111037)
+    assert custom_isclose(fundargs.d, 3.2212030577628026)
+    assert custom_isclose(fundargs.omega, 5.08991990843217)
+    assert custom_isclose(fundargs.lonmer, 0)
+    assert custom_isclose(fundargs.lonven, 0)
+    assert custom_isclose(fundargs.lonear, 0)
+    assert custom_isclose(fundargs.lonmar, 0)
+    assert custom_isclose(fundargs.lonjup, 0)
+    assert custom_isclose(fundargs.lonsat, 0)
+    assert custom_isclose(fundargs.lonurn, 0)
+    assert custom_isclose(fundargs.lonnep, 0)
+    assert custom_isclose(fundargs.precrate, 0)
 
 
-def test_iau06xys_series(ttt, delunay_elems, planet_lon, precrate, iau06arr):
+def test_iau06xys_series(ttt, fundargs, iau06arr):
     # Call function
-    x, y, s = iau_transform.iau06xys_series(
-        ttt, *delunay_elems, *planet_lon, precrate, iau06arr
-    )
+    x, y, s = iau_transform.iau06xys_series(ttt, fundargs, iau06arr)
 
     # Check against expected values
     assert custom_isclose(x, 0.0010033097412569085)

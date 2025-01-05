@@ -10,7 +10,7 @@ import numpy as np
 from typing import Tuple
 
 from .data import IAU06pnOldArray, IAU06Array
-from .utils import fundarg, precess
+from .utils import FundArgs, fundarg, precess
 from ...constants import ARCSEC2RAD, DEG2ARCSEC, J2000, TWOPI
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
 
@@ -42,24 +42,7 @@ def iau06era(jdut1: float) -> np.ndarray:
 
 
 def iau06gst(
-    jdut1: float,
-    ttt: float,
-    deltapsi: float,
-    l: float,
-    l1: float,
-    f: float,
-    d: float,
-    omega: float,
-    lonmer: float,
-    lonven: float,
-    lonear: float,
-    lonmar: float,
-    lonjup: float,
-    lonsat: float,
-    lonurn: float,
-    lonnep: float,
-    precrate: float,
-    iau06arr: IAU06Array,
+    jdut1: float, ttt: float, deltapsi: float, fundargs: FundArgs, iau06arr: IAU06Array
 ) -> Tuple[float, np.ndarray]:
     """Calculates the IAU 2006 Greenwich Sidereal Time (GST) and transformation matrix.
 
@@ -70,24 +53,11 @@ def iau06gst(
         jdut1 (float): Julian date of UT1 (days from 4713 BC)
         ttt (float): Julian centuries of TT
         deltapsi (float): Change in longitude in radians
-        l (float): Delaunay element in radians
-        l1 (float): Delaunay element in radians
-        f (float): Delaunay element in radians
-        d (float): Delaunay element in radians
-        omega (float): Delaunay element in radians
-        lonmer (float): Longitude of Mercury in radians
-        lonven (float): Longitude of Venus in radians
-        lonear (float): Longitude of Earth in radians
-        lonmar (float): Longitude of Mars in radians
-        lonjup (float): Longitude of Jupiter in radians
-        lonsat (float): Longitude of Saturn in radians
-        lonurn (float): Longitude of Uranus in radians
-        lonnep (float): Longitude of Neptune in radians
-        precrate (float): Precession rate in radians per Julian century
+        fundargs (FundArgs): Delaunay and planetary arguments
         iau06arr (IAU06Array): IAU 2006 data
 
     Returns:
-        tuple[float, np.ndarray]: (gst, st)
+        tuple: (gst, st)
             gst (float): Greenwich Sidereal Time in radians (0 to 2pi)
             st (np.ndarray): 3x3 transformation matrix
     """
@@ -107,20 +77,20 @@ def iau06gst(
     n_elem = len(iau06arr.agsti) - 1
     for i in range(n_elem):
         tempval = (
-            iau06arr.agsti[i, 0] * l
-            + iau06arr.agsti[i, 1] * l1
-            + iau06arr.agsti[i, 2] * f
-            + iau06arr.agsti[i, 3] * d
-            + iau06arr.agsti[i, 4] * omega
-            + iau06arr.agsti[i, 5] * lonmer
-            + iau06arr.agsti[i, 6] * lonven
-            + iau06arr.agsti[i, 7] * lonear
-            + iau06arr.agsti[i, 8] * lonmar
-            + iau06arr.agsti[i, 9] * lonjup
-            + iau06arr.agsti[i, 10] * lonsat
-            + iau06arr.agsti[i, 11] * lonurn
-            + iau06arr.agsti[i, 12] * lonnep
-            + iau06arr.agsti[i, 13] * precrate
+            iau06arr.agsti[i, 0] * fundargs.l
+            + iau06arr.agsti[i, 1] * fundargs.l1
+            + iau06arr.agsti[i, 2] * fundargs.f
+            + iau06arr.agsti[i, 3] * fundargs.d
+            + iau06arr.agsti[i, 4] * fundargs.omega
+            + iau06arr.agsti[i, 5] * fundargs.lonmer
+            + iau06arr.agsti[i, 6] * fundargs.lonven
+            + iau06arr.agsti[i, 7] * fundargs.lonear
+            + iau06arr.agsti[i, 8] * fundargs.lonmar
+            + iau06arr.agsti[i, 9] * fundargs.lonjup
+            + iau06arr.agsti[i, 10] * fundargs.lonsat
+            + iau06arr.agsti[i, 11] * fundargs.lonurn
+            + iau06arr.agsti[i, 12] * fundargs.lonnep
+            + iau06arr.agsti[i, 13] * fundargs.precrate
         )
         gstsum0 += iau06arr.agst[i, 0] * np.sin(tempval) + iau06arr.agst[i, 1] * np.cos(
             tempval
@@ -128,20 +98,20 @@ def iau06gst(
 
     # MATLAB's j = 1 translates to Python index 33 (last valid index)
     tempval = (
-        iau06arr.agsti[n_elem, 0] * l
-        + iau06arr.agsti[n_elem, 1] * l1
-        + iau06arr.agsti[n_elem, 2] * f
-        + iau06arr.agsti[n_elem, 3] * d
-        + iau06arr.agsti[n_elem, 4] * omega
-        + iau06arr.agsti[n_elem, 5] * lonmer
-        + iau06arr.agsti[n_elem, 6] * lonven
-        + iau06arr.agsti[n_elem, 7] * lonear
-        + iau06arr.agsti[n_elem, 8] * lonmar
-        + iau06arr.agsti[n_elem, 9] * lonjup
-        + iau06arr.agsti[n_elem, 10] * lonsat
-        + iau06arr.agsti[n_elem, 11] * lonurn
-        + iau06arr.agsti[n_elem, 12] * lonnep
-        + iau06arr.agsti[n_elem, 13] * precrate
+        iau06arr.agsti[n_elem, 0] * fundargs.l
+        + iau06arr.agsti[n_elem, 1] * fundargs.l1
+        + iau06arr.agsti[n_elem, 2] * fundargs.f
+        + iau06arr.agsti[n_elem, 3] * fundargs.d
+        + iau06arr.agsti[n_elem, 4] * fundargs.omega
+        + iau06arr.agsti[n_elem, 5] * fundargs.lonmer
+        + iau06arr.agsti[n_elem, 6] * fundargs.lonven
+        + iau06arr.agsti[n_elem, 7] * fundargs.lonear
+        + iau06arr.agsti[n_elem, 8] * fundargs.lonmar
+        + iau06arr.agsti[n_elem, 9] * fundargs.lonjup
+        + iau06arr.agsti[n_elem, 10] * fundargs.lonsat
+        + iau06arr.agsti[n_elem, 11] * fundargs.lonurn
+        + iau06arr.agsti[n_elem, 12] * fundargs.lonnep
+        + iau06arr.agsti[n_elem, 13] * fundargs.precrate
     )
     gstsum1 += iau06arr.agst[n_elem, 0] * ttt * np.sin(tempval) + iau06arr.agst[
         n_elem, 1
@@ -238,26 +208,7 @@ def _build_transformation_matrices(
 
 def iau06pna(
     ttt: float, iau06arr: IAU06pnOldArray
-) -> Tuple[
-    float,
-    np.ndarray,
-    np.ndarray,
-    np.ndarray,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-]:
+) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray, FundArgs]:
     """Calculates the transformation matrix that accounts for the effects of
     precession-nutation using the IAU2006 precession theory and the IAU2000A nutation
     model.
@@ -270,53 +221,25 @@ def iau06pna(
         iau06arr (IAU06pnOldArray): IAU 2006 data (old nutation coefficients)
 
     Returns:
-        tuple:
+        tuple: (deltapsi, pnb, prec, nut, fundargs)
             deltapsi (float): Change in longitude in radians
             pnb (np.ndarray): Combined precession-nutation matrix
             prec (np.ndarray): Precession transformation matrix (MOD to J2000)
             nut (np.ndarray): Nutation transformation matrix (IRE to GCRF)
-            l (float): Delaunay element in radians
-            l1 (float): Delaunay element in radians
-            f (float): Delaunay element in radians
-            d (float): Delaunay element in radians
-            omega (float): Delaunay element in radians
-            lonmer (float): Longitude of Mercury in radians
-            lonven (float): Longitude of Venus in radians
-            lonear (float): Longitude of Earth in radians
-            lonmar (float): Longitude of Mars in radians
-            lonjup (float): Longitude of Jupiter in radians
-            lonsat (float): Longitude of Saturn in radians
-            lonurn (float): Longitude of Uranus in radians
-            lonnep (float): Longitude of Neptune in radians
-            precrate (float): Precession rate in radians per Julian century
+            fundargs (FundArgs): Delaunay and planetary arguments
     """
     # Obtain data for calculations from the IAU 2006 nutation theory
-    (
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    ) = fundarg(ttt, opt="06")
+    fundargs = fundarg(ttt, opt="06")
 
     # Compute luni-solar nutation
     pnsum, ensum = 0, 0
     for i in range(len(iau06arr.apni) - 1, -1, -1):
         tempval = (
-            iau06arr.apni[i, 0] * l
-            + iau06arr.apni[i, 1] * l1
-            + iau06arr.apni[i, 2] * f
-            + iau06arr.apni[i, 3] * d
-            + iau06arr.apni[i, 4] * omega
+            iau06arr.apni[i, 0] * fundargs.l
+            + iau06arr.apni[i, 1] * fundargs.l1
+            + iau06arr.apni[i, 2] * fundargs.f
+            + iau06arr.apni[i, 3] * fundargs.d
+            + iau06arr.apni[i, 4] * fundargs.omega
         )
         tempval = np.mod(tempval, TWOPI)
         pnsum += (iau06arr.apn[i, 0] + iau06arr.apn[i, 1] * ttt) * np.sin(
@@ -330,20 +253,20 @@ def iau06pna(
     pplnsum, eplnsum = 0, 0
     for i in range(len(iau06arr.appli)):
         tempval = (
-            iau06arr.appli[i, 0] * l
-            + iau06arr.appli[i, 1] * l1
-            + iau06arr.appli[i, 2] * f
-            + iau06arr.appli[i, 3] * d
-            + iau06arr.appli[i, 4] * omega
-            + iau06arr.appli[i, 5] * lonmer
-            + iau06arr.appli[i, 6] * lonven
-            + iau06arr.appli[i, 7] * lonear
-            + iau06arr.appli[i, 8] * lonmar
-            + iau06arr.appli[i, 9] * lonjup
-            + iau06arr.appli[i, 10] * lonsat
-            + iau06arr.appli[i, 11] * lonurn
-            + iau06arr.appli[i, 12] * lonnep
-            + iau06arr.appli[i, 13] * precrate
+            iau06arr.appli[i, 0] * fundargs.l
+            + iau06arr.appli[i, 1] * fundargs.l1
+            + iau06arr.appli[i, 2] * fundargs.f
+            + iau06arr.appli[i, 3] * fundargs.d
+            + iau06arr.appli[i, 4] * fundargs.omega
+            + iau06arr.appli[i, 5] * fundargs.lonmer
+            + iau06arr.appli[i, 6] * fundargs.lonven
+            + iau06arr.appli[i, 7] * fundargs.lonear
+            + iau06arr.appli[i, 8] * fundargs.lonmar
+            + iau06arr.appli[i, 9] * fundargs.lonjup
+            + iau06arr.appli[i, 10] * fundargs.lonsat
+            + iau06arr.appli[i, 11] * fundargs.lonurn
+            + iau06arr.appli[i, 12] * fundargs.lonnep
+            + iau06arr.appli[i, 13] * fundargs.precrate
         )
         pplnsum += iau06arr.appl[i, 0] * np.sin(tempval) + iau06arr.appl[i, 1] * np.cos(
             tempval
@@ -364,50 +287,12 @@ def iau06pna(
     # Build transformation matrices
     nut, prec, pnb = _build_transformation_matrices(ttt, deltaeps, deltapsi, False)
 
-    return (
-        deltapsi,
-        pnb,
-        prec,
-        nut,
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    )
+    return deltapsi, pnb, prec, nut, fundargs
 
 
 def iau06pnb(
     ttt: float, iau06arr: IAU06pnOldArray
-) -> Tuple[
-    float,
-    np.ndarray,
-    np.ndarray,
-    np.ndarray,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-]:
+) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray, FundArgs]:
     """Calculates the transformation matrix that accounts for the effects of
     precession-nutation using the IAU2006 precession theory and a simplified nutation
     model based on IAU2000B.
@@ -425,51 +310,23 @@ def iau06pnb(
             pnb (np.ndarray): Combined precession-nutation matrix
             prec (np.ndarray): Precession transformation matrix (MOD to J2000)
             nut (np.ndarray): Nutation transformation matrix (IRE to GCRF)
-            l (float): Delaunay element in radians
-            l1 (float): Delaunay element in radians
-            f (float): Delaunay element in radians
-            d (float): Delaunay element in radians
-            omega (float): Delaunay element in radians
-            lonmer (float): Longitude of Mercury in radians
-            lonven (float): Longitude of Venus in radians
-            lonear (float): Longitude of Earth in radians
-            lonmar (float): Longitude of Mars in radians
-            lonjup (float): Longitude of Jupiter in radians
-            lonsat (float): Longitude of Saturn in radians
-            lonurn (float): Longitude of Uranus in radians
-            lonnep (float): Longitude of Neptune in radians
-            precrate (float): Precession rate in radians per Julian century
+            fundargs (FundArgs): Delaunay and planetary arguments
     """
     # Definitions
     iau2000b_terms = 77
 
     # Obtain data for calculations from the 2000b theory
-    (
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    ) = fundarg(ttt, opt="02")
+    fundargs = fundarg(ttt, opt="02")
 
     # Compute luni-solar nutation
     pnsum, ensum = 0, 0
     for i in range(iau2000b_terms - 1, -1, -1):
         tempval = (
-            iau06arr.apni[i, 0] * l
-            + iau06arr.apni[i, 1] * l1
-            + iau06arr.apni[i, 2] * f
-            + iau06arr.apni[i, 3] * d
-            + iau06arr.apni[i, 4] * omega
+            iau06arr.apni[i, 0] * fundargs.l
+            + iau06arr.apni[i, 1] * fundargs.l1
+            + iau06arr.apni[i, 2] * fundargs.f
+            + iau06arr.apni[i, 3] * fundargs.d
+            + iau06arr.apni[i, 4] * fundargs.omega
         )
         pnsum += (iau06arr.apn[i, 0] + iau06arr.apn[i, 1] * ttt) * np.sin(tempval) + (
             iau06arr.apn[i, 4] + iau06arr.apn[i, 5] * ttt
@@ -489,26 +346,7 @@ def iau06pnb(
     # Build transformation matrices
     nut, prec, pnb = _build_transformation_matrices(ttt, deltaeps, deltapsi, True)
 
-    return (
-        deltapsi,
-        pnb,
-        prec,
-        nut,
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    )
+    return deltapsi, pnb, prec, nut, fundargs
 
 
 ########################################################################################
@@ -517,22 +355,7 @@ def iau06pnb(
 
 
 def iau06xys_series(
-    ttt: float,
-    l: float,
-    l1: float,
-    f: float,
-    d: float,
-    omega: float,
-    lonmer: float,
-    lonven: float,
-    lonear: float,
-    lonmar: float,
-    lonjup: float,
-    lonsat: float,
-    lonurn: float,
-    lonnep: float,
-    precrate: float,
-    iau06arr: IAU06Array,
+    ttt: float, fundargs: FundArgs, iau06arr: IAU06Array
 ) -> Tuple[float, float, float]:
     """Calculates the XYS parameters for the IAU2006 CIO theory.
 
@@ -544,20 +367,7 @@ def iau06xys_series(
 
     Args:
         ttt (float): Julian centuries of TT
-        l (float): Delaunay element in radians
-        l1 (float): Delaunay element in radians
-        f (float): Delaunay element in radians
-        d (float): Delaunay element in radians
-        omega (float): Delaunay element in radians
-        lonmer (float): Longitude of Mercury in radians
-        lonven (float): Longitude of Venus in radians
-        lonear (float): Longitude of Earth in radians
-        lonmar (float): Longitude of Mars in radians
-        lonjup (float): Longitude of Jupiter in radians
-        lonsat (float): Longitude of Saturn in radians
-        lonurn (float): Longitude of Uranus in radians
-        lonnep (float): Longitude of Neptune in radians
-        precrate (float): Precession rate in radians per Julian century
+        fundargs (FundArgs): Delaunay and planetary arguments
         iau06arr (IAU06Array): IAU 2006 data
 
     Returns:
@@ -587,20 +397,20 @@ def iau06xys_series(
         for i in range(limit):
             idx = start_index + i
             tempval = (
-                iau06arr.ax0i[idx, 0] * l
-                + iau06arr.ax0i[idx, 1] * l1
-                + iau06arr.ax0i[idx, 2] * f
-                + iau06arr.ax0i[idx, 3] * d
-                + iau06arr.ax0i[idx, 4] * omega
-                + iau06arr.ax0i[idx, 5] * lonmer
-                + iau06arr.ax0i[idx, 6] * lonven
-                + iau06arr.ax0i[idx, 7] * lonear
-                + iau06arr.ax0i[idx, 8] * lonmar
-                + iau06arr.ax0i[idx, 9] * lonjup
-                + iau06arr.ax0i[idx, 10] * lonsat
-                + iau06arr.ax0i[idx, 11] * lonurn
-                + iau06arr.ax0i[idx, 12] * lonnep
-                + iau06arr.ax0i[idx, 13] * precrate
+                iau06arr.ax0i[idx, 0] * fundargs.l
+                + iau06arr.ax0i[idx, 1] * fundargs.l1
+                + iau06arr.ax0i[idx, 2] * fundargs.f
+                + iau06arr.ax0i[idx, 3] * fundargs.d
+                + iau06arr.ax0i[idx, 4] * fundargs.omega
+                + iau06arr.ax0i[idx, 5] * fundargs.lonmer
+                + iau06arr.ax0i[idx, 6] * fundargs.lonven
+                + iau06arr.ax0i[idx, 7] * fundargs.lonear
+                + iau06arr.ax0i[idx, 8] * fundargs.lonmar
+                + iau06arr.ax0i[idx, 9] * fundargs.lonjup
+                + iau06arr.ax0i[idx, 10] * fundargs.lonsat
+                + iau06arr.ax0i[idx, 11] * fundargs.lonurn
+                + iau06arr.ax0i[idx, 12] * fundargs.lonnep
+                + iau06arr.ax0i[idx, 13] * fundargs.precrate
             )
             x_sums[group] += iau06arr.ax0[idx, 0] * np.sin(tempval) + iau06arr.ax0[
                 idx, 1
@@ -627,20 +437,20 @@ def iau06xys_series(
         for i in range(limit):
             idx = start_index + i
             tempval = (
-                iau06arr.ay0i[idx, 0] * l
-                + iau06arr.ay0i[idx, 1] * l1
-                + iau06arr.ay0i[idx, 2] * f
-                + iau06arr.ay0i[idx, 3] * d
-                + iau06arr.ay0i[idx, 4] * omega
-                + iau06arr.ay0i[idx, 5] * lonmer
-                + iau06arr.ay0i[idx, 6] * lonven
-                + iau06arr.ay0i[idx, 7] * lonear
-                + iau06arr.ay0i[idx, 8] * lonmar
-                + iau06arr.ay0i[idx, 9] * lonjup
-                + iau06arr.ay0i[idx, 10] * lonsat
-                + iau06arr.ay0i[idx, 11] * lonurn
-                + iau06arr.ay0i[idx, 12] * lonnep
-                + iau06arr.ay0i[idx, 13] * precrate
+                iau06arr.ay0i[idx, 0] * fundargs.l
+                + iau06arr.ay0i[idx, 1] * fundargs.l1
+                + iau06arr.ay0i[idx, 2] * fundargs.f
+                + iau06arr.ay0i[idx, 3] * fundargs.d
+                + iau06arr.ay0i[idx, 4] * fundargs.omega
+                + iau06arr.ay0i[idx, 5] * fundargs.lonmer
+                + iau06arr.ay0i[idx, 6] * fundargs.lonven
+                + iau06arr.ay0i[idx, 7] * fundargs.lonear
+                + iau06arr.ay0i[idx, 8] * fundargs.lonmar
+                + iau06arr.ay0i[idx, 9] * fundargs.lonjup
+                + iau06arr.ay0i[idx, 10] * fundargs.lonsat
+                + iau06arr.ay0i[idx, 11] * fundargs.lonurn
+                + iau06arr.ay0i[idx, 12] * fundargs.lonnep
+                + iau06arr.ay0i[idx, 13] * fundargs.precrate
             )
             y_sums[group] += iau06arr.ay0[idx, 0] * np.sin(tempval) + iau06arr.ay0[
                 idx, 1
@@ -667,20 +477,20 @@ def iau06xys_series(
         for i in range(limit):
             idx = start_index + i
             tempval = (
-                iau06arr.as0i[idx, 0] * l
-                + iau06arr.as0i[idx, 1] * l1
-                + iau06arr.as0i[idx, 2] * f
-                + iau06arr.as0i[idx, 3] * d
-                + iau06arr.as0i[idx, 4] * omega
-                + iau06arr.as0i[idx, 5] * lonmer
-                + iau06arr.as0i[idx, 6] * lonven
-                + iau06arr.as0i[idx, 7] * lonear
-                + iau06arr.as0i[idx, 8] * lonmar
-                + iau06arr.as0i[idx, 9] * lonjup
-                + iau06arr.as0i[idx, 10] * lonsat
-                + iau06arr.as0i[idx, 11] * lonurn
-                + iau06arr.as0i[idx, 12] * lonnep
-                + iau06arr.as0i[idx, 13] * precrate
+                iau06arr.as0i[idx, 0] * fundargs.l
+                + iau06arr.as0i[idx, 1] * fundargs.l1
+                + iau06arr.as0i[idx, 2] * fundargs.f
+                + iau06arr.as0i[idx, 3] * fundargs.d
+                + iau06arr.as0i[idx, 4] * fundargs.omega
+                + iau06arr.as0i[idx, 5] * fundargs.lonmer
+                + iau06arr.as0i[idx, 6] * fundargs.lonven
+                + iau06arr.as0i[idx, 7] * fundargs.lonear
+                + iau06arr.as0i[idx, 8] * fundargs.lonmar
+                + iau06arr.as0i[idx, 9] * fundargs.lonjup
+                + iau06arr.as0i[idx, 10] * fundargs.lonsat
+                + iau06arr.as0i[idx, 11] * fundargs.lonurn
+                + iau06arr.as0i[idx, 12] * fundargs.lonnep
+                + iau06arr.as0i[idx, 13] * fundargs.precrate
             )
             s_sums[group] += iau06arr.as0[idx, 0] * np.sin(tempval) + iau06arr.as0[
                 idx, 1
@@ -716,8 +526,8 @@ def iau06xys(
     Args:
         ttt (float): Julian centuries of TT
         iau06arr (IAU06Array): IAU 2006 data
-        ddx (float, optional): EOP correction for x in radians
-        ddy (float, optional): EOP correction for y in radians
+        ddx (float, optional): EOP correction for x in radians (default is 0)
+        ddy (float, optional): EOP correction for y in radians (default is 0)
 
     Returns:
         tuple: (x, y, s, nut)
@@ -727,42 +537,10 @@ def iau06xys(
             nut (np.ndarray): Transformation matrix for TIRS-GCRF
     """
     # Obtain data for calculations from the IAU 2006 nutation theory
-    (
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-    ) = fundarg(ttt, opt="06")
+    fundargs = fundarg(ttt, opt="06")
 
     # Calculate X, Y, and S series parameters
-    x, y, s = iau06xys_series(
-        ttt,
-        l,
-        l1,
-        f,
-        d,
-        omega,
-        lonmer,
-        lonven,
-        lonear,
-        lonmar,
-        lonjup,
-        lonsat,
-        lonurn,
-        lonnep,
-        precrate,
-        iau06arr,
-    )
+    x, y, s = iau06xys_series(ttt, fundargs, iau06arr)
 
     # Apply any corrections for x and y
     x += ddx
