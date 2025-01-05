@@ -77,14 +77,11 @@ def test_iau80in(iau80_mat_data):
 
 
 def test_iau06in_pnold(iau06data_old, iau06_pnold_mat_data):
-    # Unpack the data
-    apn, apni, appl, appli = iau06data_old
-
-    # Check that they are the same
-    assert custom_allclose(apn, iau06_pnold_mat_data["apn"])
-    assert np.array_equal(apni, iau06_pnold_mat_data["apni"])
-    assert custom_allclose(appl, iau06_pnold_mat_data["appl"])
-    assert np.array_equal(appli, iau06_pnold_mat_data["appli"])
+    # Check that the data is the same
+    assert custom_allclose(iau06data_old.apn, iau06_pnold_mat_data["apn"])
+    assert np.array_equal(iau06data_old.apni, iau06_pnold_mat_data["apni"])
+    assert custom_allclose(iau06data_old.appl, iau06_pnold_mat_data["appl"])
+    assert np.array_equal(iau06data_old.appli, iau06_pnold_mat_data["appli"])
 
 
 def test_iau06in(iau06arr, iau06_mat_data):

@@ -9,7 +9,6 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 
@@ -31,6 +30,16 @@ class IAU80Array:
     """Data class for IAU 1980 nutation data."""
     iar80: np.ndarray = None
     rar80: np.ndarray = None
+
+
+@dataclass
+class IAU06pnOldArray:
+    # fmt: off
+    """Data class for IAU 2006 precession-nutation data (older version)."""
+    apn: np.ndarray = None
+    apni: np.ndarray = None
+    appl: np.ndarray = None
+    appli: np.ndarray = None
 
 
 @dataclass
@@ -83,9 +92,7 @@ def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
     return iau80arr
 
 
-def iau06in_pnold(
-    data_dir: str = DATA_DIR,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def iau06in_pnold(data_dir: str = DATA_DIR) -> IAU06pnOldArray:
     """Initializes the nutation matrices needed for IAU 2006 reduction calculations.
 
     This is an older version of the function that loads the data from the IAU 2006,
@@ -95,11 +102,11 @@ def iau06in_pnold(
         Vallado, 2022, Section 3.7.1
 
     Returns:
-        tuple: (apn, apni, appl, appli)
-            apn (np.ndarray): Real coefficients for nutation in radians
-            apni (np.ndarray): Integer coefficients for nutation
-            appl (np.ndarray): Real coefficients for planetary nutation in radians
-            appli (np.ndarray): Integer coefficients for planetary nutation
+        IAU06pnOldArray: Data object containing the nutation coefficients
+            apn (np.ndarray): Nutation coefficients for IAU 2006
+            apni (np.ndarray): Integers for nutation coefficients
+            appl (np.ndarray): Planetary nutation coefficients for IAU 2006
+            appli (np.ndarray): Integers for planetary nutation coefficients
 
     Notes:
         Data files are from the IAU 2006 precession-nutation model:
@@ -124,13 +131,17 @@ def iau06in_pnold(
         integers = data[:, columns_int].astype(int)
         return reals, integers
 
-    apn, apni = load_data(
+    # Initialize data object
+    iau06arr = IAU06pnOldArray()
+
+    # Load all data files
+    iau06arr.apn, iau06arr.apni = load_data(
         "iau03n.dat",
         columns_real=range(6, 14),
         columns_int=range(0, 5),
         conv_factor=CONVRTM,
     )
-    appl, appli = load_data(
+    iau06arr.appl, iau06arr.appli = load_data(
         "iau03pl.dat",
         columns_real=range(16, 21),  # include column 21 (extra)
         columns_int=range(1, 15),
@@ -138,7 +149,7 @@ def iau06in_pnold(
         convert_exclude_last=True,
     )
 
-    return apn, apni, appl, appli
+    return iau06arr
 
 
 def iau06in(data_dir: str = DATA_DIR) -> IAU06Array:
@@ -172,42 +183,30 @@ def iau06in(data_dir: str = DATA_DIR) -> IAU06Array:
         integers = data[:, cols_int[0] : cols_int[1]].astype(int)
         return reals, integers
 
+    # Initialize data object
+    iau06arr = IAU06Array()
+
     # Load all data files
-    ax0, ax0i = load_data(
+    iau06arr.ax0, iau06arr.ax0i = load_data(
         "iau06xtab5.2.a.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTU
     )
-    ay0, ay0i = load_data(
+    iau06arr.ay0, iau06arr.ay0i = load_data(
         "iau06ytab5.2.b.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTU
     )
-    as0, as0i = load_data(
+    iau06arr.as0, iau06arr.as0i = load_data(
         "iau06stab5.2.d.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTU
     )
-    agst, agsti = load_data(
+    iau06arr.agst, iau06arr.agsti = load_data(
         "iau06gsttab5.2.e.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTU
     )
-    aapn0, aapn0i = load_data(
+    iau06arr.aapn0, iau06arr.aapn0i = load_data(
         "iau06ansofa.dat", cols_real=(5, 11), cols_int=(0, 5), conv_factor=CONVRTM
     )
-    apl0, apl0i = load_data(
+    iau06arr.apl0, iau06arr.apl0i = load_data(
         "iau06anplsofa.dat", cols_real=(14, 18), cols_int=(0, 14), conv_factor=CONVRTM
     )
-    apn0, apn0i = load_data(
+    iau06arr.apn0, iau06arr.apn0i = load_data(
         "iau06nlontab5.3.a.dat", cols_real=(1, 3), cols_int=(3, 17), conv_factor=CONVRTM
     )
 
-    return IAU06Array(
-        ax0,
-        ax0i,
-        ay0,
-        ay0i,
-        as0,
-        as0i,
-        agst,
-        agsti,
-        apn0,
-        apn0i,
-        apl0,
-        apl0i,
-        aapn0,
-        aapn0i,
-    )
+    return iau06arr

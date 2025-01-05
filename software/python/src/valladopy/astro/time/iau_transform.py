@@ -9,7 +9,7 @@
 import numpy as np
 from typing import Tuple
 
-from .data import IAU06Array
+from .data import IAU06pnOldArray, IAU06Array
 from .utils import fundarg, precess
 from ...constants import ARCSEC2RAD, DEG2ARCSEC, J2000, TWOPI
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
@@ -237,7 +237,7 @@ def _build_transformation_matrices(
 
 
 def iau06pna(
-    ttt: float, apn: np.ndarray, apni: np.ndarray, appl: np.ndarray, appli: np.ndarray
+    ttt: float, iau06arr: IAU06pnOldArray
 ) -> Tuple[
     float,
     np.ndarray,
@@ -267,10 +267,7 @@ def iau06pna(
 
     Args:
         ttt (float): Julian centuries of TT
-        apn (np.ndarray): Real coefficients for nutation in radians
-        apni (np.ndarray): Integer coefficients for nutation
-        appl (np.ndarray): Real coefficients for planetary nutation in radians
-        appli (np.ndarray): Integer coefficients for planetary nutation
+        iau06arr (IAU06pnOldArray): IAU 2006 data (old nutation coefficients)
 
     Returns:
         tuple:
@@ -313,43 +310,47 @@ def iau06pna(
 
     # Compute luni-solar nutation
     pnsum, ensum = 0, 0
-    for i in range(len(apni) - 1, -1, -1):
+    for i in range(len(iau06arr.apni) - 1, -1, -1):
         tempval = (
-            apni[i, 0] * l
-            + apni[i, 1] * l1
-            + apni[i, 2] * f
-            + apni[i, 3] * d
-            + apni[i, 4] * omega
+            iau06arr.apni[i, 0] * l
+            + iau06arr.apni[i, 1] * l1
+            + iau06arr.apni[i, 2] * f
+            + iau06arr.apni[i, 3] * d
+            + iau06arr.apni[i, 4] * omega
         )
         tempval = np.mod(tempval, TWOPI)
-        pnsum += (apn[i, 0] + apn[i, 1] * ttt) * np.sin(tempval) + apn[i, 4] * np.cos(
+        pnsum += (iau06arr.apn[i, 0] + iau06arr.apn[i, 1] * ttt) * np.sin(
             tempval
-        )
-        ensum += (apn[i, 2] + apn[i, 3] * ttt) * np.cos(tempval) + apn[i, 6] * np.sin(
+        ) + iau06arr.apn[i, 4] * np.cos(tempval)
+        ensum += (iau06arr.apn[i, 2] + iau06arr.apn[i, 3] * ttt) * np.cos(
             tempval
-        )
+        ) + iau06arr.apn[i, 6] * np.sin(tempval)
 
     # Compute planetary nutation
     pplnsum, eplnsum = 0, 0
-    for i in range(len(appli)):
+    for i in range(len(iau06arr.appli)):
         tempval = (
-            appli[i, 0] * l
-            + appli[i, 1] * l1
-            + appli[i, 2] * f
-            + appli[i, 3] * d
-            + appli[i, 4] * omega
-            + appli[i, 5] * lonmer
-            + appli[i, 6] * lonven
-            + appli[i, 7] * lonear
-            + appli[i, 8] * lonmar
-            + appli[i, 9] * lonjup
-            + appli[i, 10] * lonsat
-            + appli[i, 11] * lonurn
-            + appli[i, 12] * lonnep
-            + appli[i, 13] * precrate
+            iau06arr.appli[i, 0] * l
+            + iau06arr.appli[i, 1] * l1
+            + iau06arr.appli[i, 2] * f
+            + iau06arr.appli[i, 3] * d
+            + iau06arr.appli[i, 4] * omega
+            + iau06arr.appli[i, 5] * lonmer
+            + iau06arr.appli[i, 6] * lonven
+            + iau06arr.appli[i, 7] * lonear
+            + iau06arr.appli[i, 8] * lonmar
+            + iau06arr.appli[i, 9] * lonjup
+            + iau06arr.appli[i, 10] * lonsat
+            + iau06arr.appli[i, 11] * lonurn
+            + iau06arr.appli[i, 12] * lonnep
+            + iau06arr.appli[i, 13] * precrate
         )
-        pplnsum += appl[i, 0] * np.sin(tempval) + appl[i, 1] * np.cos(tempval)
-        eplnsum += appl[i, 2] * np.sin(tempval) + appl[i, 3] * np.cos(tempval)
+        pplnsum += iau06arr.appl[i, 0] * np.sin(tempval) + iau06arr.appl[i, 1] * np.cos(
+            tempval
+        )
+        eplnsum += iau06arr.appl[i, 2] * np.sin(tempval) + iau06arr.appl[i, 3] * np.cos(
+            tempval
+        )
 
     # Combine nutation components
     deltapsi = pnsum + pplnsum
@@ -386,7 +387,7 @@ def iau06pna(
 
 
 def iau06pnb(
-    ttt: float, apn: np.ndarray, apni: np.ndarray
+    ttt: float, iau06arr: IAU06pnOldArray
 ) -> Tuple[
     float,
     np.ndarray,
@@ -416,10 +417,7 @@ def iau06pnb(
 
     Args:
         ttt (float): Julian centuries of TT
-        apn (np.ndarray): Real coefficients for nutation in radians
-        apni (np.ndarray): Integer coefficients for nutation
-        appl (np.ndarray): Real coefficients for planetary nutation in radians
-        appli (np.ndarray): Integer coefficients for planetary nutation
+        iau06arr (IAU06pnOldArray): IAU 2006 data (old nutation coefficients)
 
     Returns:
         tuple:
@@ -467,17 +465,17 @@ def iau06pnb(
     pnsum, ensum = 0, 0
     for i in range(iau2000b_terms - 1, -1, -1):
         tempval = (
-            apni[i, 0] * l
-            + apni[i, 1] * l1
-            + apni[i, 2] * f
-            + apni[i, 3] * d
-            + apni[i, 4] * omega
+            iau06arr.apni[i, 0] * l
+            + iau06arr.apni[i, 1] * l1
+            + iau06arr.apni[i, 2] * f
+            + iau06arr.apni[i, 3] * d
+            + iau06arr.apni[i, 4] * omega
         )
-        pnsum += (apn[i, 0] + apn[i, 1] * ttt) * np.sin(tempval) + (
-            apn[i, 4] + apn[i, 5] * ttt
+        pnsum += (iau06arr.apn[i, 0] + iau06arr.apn[i, 1] * ttt) * np.sin(tempval) + (
+            iau06arr.apn[i, 4] + iau06arr.apn[i, 5] * ttt
         ) * np.cos(tempval)
-        ensum += (apn[i, 2] + apn[i, 3] * ttt) * np.cos(tempval) + (
-            apn[i, 6] + apn[i, 7] * ttt
+        ensum += (iau06arr.apn[i, 2] + iau06arr.apn[i, 3] * ttt) * np.cos(tempval) + (
+            iau06arr.apn[i, 6] + iau06arr.apn[i, 7] * ttt
         ) * np.sin(tempval)
 
     # Planetary nutation constants
