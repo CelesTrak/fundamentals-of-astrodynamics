@@ -1,15 +1,15 @@
 import pytest
 
-from src.valladopy.astro.time.data import iau06in, iau06in2
+from src.valladopy.astro.time.data import iau06in_pnold, iau06in
 
 
 @pytest.fixture()
 def iau06arr():
     """Load the IAU 2006 data"""
-    return iau06in2()
+    return iau06in()
 
 
 @pytest.fixture()
 def iau06data_old():
     """Load the IAU 2006 data"""
-    return iau06in()
+    return iau06in_pnold()

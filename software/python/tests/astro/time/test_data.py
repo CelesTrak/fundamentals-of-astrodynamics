@@ -4,29 +4,11 @@ import pytest
 import numpy as np
 import scipy
 
-from src.valladopy.astro.time.data import iau80in, iau06in
+from src.valladopy.astro.time.data import iau80in
 from ...conftest import custom_allclose
 
 
 def load_matlab_data(file_path: str, keys: list) -> dict:
-    """Load MATLAB .mat file data
-
-    Args:
-        file_path (str): Path to the .mat file
-        keys (list): list of variable names to grab
-
-    Returns:
-        dict [str, np.ndarray]: Dictionary of the input keys and their associated matlab
-                                data as numpy arrays
-    """
-    # Load the .m data file
-    data = scipy.io.loadmat(file_path)
-
-    # Grab data for each key
-    return {key: data[key] for key in keys}
-
-
-def load_matlab_data2(file_path: str, keys: list) -> dict:
     """Load MATLAB .mat file data and handle structures.
 
     Args:
@@ -68,33 +50,19 @@ def current_dir():
 @pytest.fixture()
 def iau80_mat_data(current_dir):
     file_path = os.path.join(current_dir, "data", "iau80in_data.mat")
-    return load_matlab_data2(file_path, keys=["iau80arr"])
+    return load_matlab_data(file_path, keys=["iau80arr"])
+
+
+@pytest.fixture()
+def iau06_pnold_mat_data(current_dir):
+    file_path = os.path.join(current_dir, "data", "iau06in_pnold_data.mat")
+    return load_matlab_data(file_path, keys=["apn", "apni", "appl", "appli"])
 
 
 @pytest.fixture()
 def iau06_mat_data(current_dir):
     file_path = os.path.join(current_dir, "data", "iau06in_data.mat")
-    keys = [
-        "axs0",
-        "a0xi",
-        "ays0",
-        "a0yi",
-        "ass0",
-        "a0si",
-        "apn",
-        "apni",
-        "appl",
-        "appli",
-        "agst",
-        "agsti",
-    ]
-    return load_matlab_data(file_path, keys=keys)
-
-
-@pytest.fixture()
-def iau06_mat_data2(current_dir):
-    file_path = os.path.join(current_dir, "data", "iau06in2_data.mat")
-    return load_matlab_data2(file_path, keys=["iau06arr"])
+    return load_matlab_data(file_path, keys=["iau06arr"])
 
 
 def test_iau80in(iau80_mat_data):
@@ -108,31 +76,20 @@ def test_iau80in(iau80_mat_data):
     assert custom_allclose(iau80arr.rar80, matlab_data.rar80)
 
 
-def test_iau06in(iau06_mat_data):
-    # Load MATLAB data
-    matlab_data = iau06_mat_data
-
-    # Load Python data using iau06in
-    axs0, a0xi, ays0, a0yi, ass0, a0si, apn, apni, appl, appli, agst, agsti = iau06in()
+def test_iau06in_pnold(iau06data_old, iau06_pnold_mat_data):
+    # Unpack the data
+    apn, apni, appl, appli = iau06data_old
 
     # Check that they are the same
-    assert custom_allclose(axs0, matlab_data["axs0"])
-    assert np.array_equal(a0xi, matlab_data["a0xi"])
-    assert custom_allclose(ays0, matlab_data["ays0"])
-    assert np.array_equal(a0yi, matlab_data["a0yi"])
-    assert custom_allclose(ass0, matlab_data["ass0"])
-    assert np.array_equal(a0si, matlab_data["a0si"])
-    assert custom_allclose(apn, matlab_data["apn"])
-    assert np.array_equal(apni, matlab_data["apni"])
-    assert custom_allclose(appl, matlab_data["appl"])
-    assert np.array_equal(appli, matlab_data["appli"])
-    assert custom_allclose(agst, matlab_data["agst"])
-    assert np.array_equal(agsti, matlab_data["agsti"])
+    assert custom_allclose(apn, iau06_pnold_mat_data["apn"])
+    assert np.array_equal(apni, iau06_pnold_mat_data["apni"])
+    assert custom_allclose(appl, iau06_pnold_mat_data["appl"])
+    assert np.array_equal(appli, iau06_pnold_mat_data["appli"])
 
 
-def test_iau06in2(iau06arr, iau06_mat_data2):
+def test_iau06in(iau06arr, iau06_mat_data):
     # Load MATLAB data
-    matlab_data = iau06_mat_data2["iau06arr"]
+    matlab_data = iau06_mat_data["iau06arr"]
 
     # Check that they are the same
     assert custom_allclose(iau06arr.ax0, matlab_data.ax0)

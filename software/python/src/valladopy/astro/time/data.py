@@ -83,62 +83,38 @@ def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
     return iau80arr
 
 
-def iau06in() -> (
-    Tuple[
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-    ]
-):
-    """Initializes the matrices needed for IAU 2006 reduction calculations.
+def iau06in_pnold(
+    data_dir: str = DATA_DIR,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Initializes the nutation matrices needed for IAU 2006 reduction calculations.
+
+    This is an older version of the function that loads the data from the IAU 2006,
+    and we're only returning the coefficients for nutation.
 
     References:
         Vallado, 2022, Section 3.7.1
 
     Returns:
-        tuple: (axs0, a0xi, ays0, a0yi, ass0, a0si, apn, apni, appl, appli, agst, agsti)
-            axs0 (np.ndarray): Real coefficients for X in radians
-            a0xi (np.ndarray): Integer coefficients for X
-            ays0 (np.ndarray): Real coefficients for Y in radians
-            a0yi (np.ndarray): Integer coefficients for Y
-            ass0 (np.ndarray): Real coefficients for S in radians
-            a0si (np.ndarray): Integer coefficients for S
+        tuple: (apn, apni, appl, appli)
             apn (np.ndarray): Real coefficients for nutation in radians
             apni (np.ndarray): Integer coefficients for nutation
             appl (np.ndarray): Real coefficients for planetary nutation in radians
             appli (np.ndarray): Integer coefficients for planetary nutation
-            agst (np.ndarray): Real coefficients for GST in radians
-            agsti (np.ndarray): Integer coefficients for GST
 
     Notes:
         Data files are from the IAU 2006 precession-nutation model:
-            - iau06xtab5.2.a.dat (file for X coefficients)
-            - iau06ytab5.2.b.dat (file for Y coefficients)
-            - iau06stab5.2.d.dat (file for S coefficients)
             - iau03n.dat (file for nutation coefficients)
             - iau03pl.dat (file for planetary nutation coefficients)
-            - iau06gsttab5.2.e.dat (file for GST coefficients)
 
-    TODO: Update with latest MATLAB updates
+    TODO:
+        - Deprecate when updates to iau06pna/b are complete.
     """
-    # Conversion factors
-    convrtu = 1e-6 * ARCSEC2RAD  # microarcseconds to radians
-    convrtm = 1e-3 * ARCSEC2RAD  # milliarcseconds to radians
 
     def load_data(
         filename, columns_real, columns_int, conv_factor, convert_exclude_last=False
     ):
         """Helper function to load and process data."""
-        filepath = os.path.join(DATA_DIR, filename)
+        filepath = os.path.join(data_dir, filename)
         data = np.loadtxt(filepath)
         reals = data[:, columns_real]
         if convert_exclude_last:
@@ -148,56 +124,42 @@ def iau06in() -> (
         integers = data[:, columns_int].astype(int)
         return reals, integers
 
-    # Load data
-    axs0, a0xi = load_data(
-        "iau06xtab5.2.a.dat",
-        columns_real=[1, 2],
-        columns_int=range(3, 17),
-        conv_factor=convrtu,
-    )
-    ays0, a0yi = load_data(
-        "iau06ytab5.2.b.dat",
-        columns_real=[1, 2],
-        columns_int=range(3, 17),
-        conv_factor=convrtu,
-    )
-    ass0, a0si = load_data(
-        "iau06stab5.2.d.dat",
-        columns_real=[1, 2],
-        columns_int=range(3, 17),
-        conv_factor=convrtu,
-    )
     apn, apni = load_data(
         "iau03n.dat",
         columns_real=range(6, 14),
         columns_int=range(0, 5),
-        conv_factor=convrtm,
+        conv_factor=CONVRTM,
     )
     appl, appli = load_data(
         "iau03pl.dat",
         columns_real=range(16, 21),  # include column 21 (extra)
         columns_int=range(1, 15),
-        conv_factor=convrtm,
+        conv_factor=CONVRTM,
         convert_exclude_last=True,
     )
-    agst, agsti = load_data(
-        "iau06gsttab5.2.e.dat",
-        columns_real=[1, 2],
-        columns_int=range(3, 17),
-        conv_factor=convrtu,
-    )
 
-    return axs0, a0xi, ays0, a0yi, ass0, a0si, apn, apni, appl, appli, agst, agsti
+    return apn, apni, appl, appli
 
 
-def iau06in2(data_dir: str = DATA_DIR) -> IAU06Array:
+def iau06in(data_dir: str = DATA_DIR) -> IAU06Array:
     """Initializes the matrices needed for IAU 2006 reduction calculations.
 
     Args:
-        data_dir: Path to the directory containing the IAU 2006 data files.
+        data_dir (str, optional): Path to the directory containing the IAU 2006 data
+                                  files (default: DATA_DIR)
 
     Returns:
-        IAU06Array: Dataclass containing all coefficients for IAU 2006 calculations.
+        IAU06Array: Dataclass containing all coefficients for IAU 2006 calculations
+
+    Notes:
+        Data files are from the IAU 2006 precession-nutation model:
+            - iau06xtab5.2.a.dat (file for X coefficients)
+            - iau06ytab5.2.b.dat (file for Y coefficients)
+            - iau06stab5.2.d.dat (file for S coefficients)
+            - iau06gsttab5.2.e.dat (file for GST coefficients)
+            - iau06ansofa.dat (file for SOFA luni-solar nutation coefficients)
+            - iau06anplsofa.dat (file for SOFA planetary nutation coefficients)
+            - iau06nlontab5.3.a.dat (file for nutation in obliquity coefficients
     """
 
     def load_data(filename, cols_real, cols_int, conv_factor):

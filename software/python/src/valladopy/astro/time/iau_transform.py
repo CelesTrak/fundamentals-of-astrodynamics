@@ -9,7 +9,7 @@
 import numpy as np
 from typing import Tuple
 
-from .data import IAU06Array, iau06in
+from .data import IAU06Array
 from .utils import fundarg, precess
 from ...constants import ARCSEC2RAD, DEG2ARCSEC, J2000, TWOPI
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
@@ -222,7 +222,7 @@ def _build_transformation_matrices(
 
     # ICRS to J2000
     a8 = rot1mat(-0.0068192 * ARCSEC2RAD)
-    a9 = rot2mat(0.0417750 * np.sin(oblo) * ARCSEC2RAD)
+    a9 = rot2mat(0.041775 * np.sin(oblo) * ARCSEC2RAD)
     a10 = rot3mat(0.0146 * ARCSEC2RAD)
 
     # Precession and combined matrices
@@ -237,7 +237,7 @@ def _build_transformation_matrices(
 
 
 def iau06pna(
-    ttt: float,
+    ttt: float, apn: np.ndarray, apni: np.ndarray, appl: np.ndarray, appli: np.ndarray
 ) -> Tuple[
     float,
     np.ndarray,
@@ -267,7 +267,10 @@ def iau06pna(
 
     Args:
         ttt (float): Julian centuries of TT
-        iau06arr (IAU06Array): IAU 2006 data
+        apn (np.ndarray): Real coefficients for nutation in radians
+        apni (np.ndarray): Integer coefficients for nutation
+        appl (np.ndarray): Real coefficients for planetary nutation in radians
+        appli (np.ndarray): Integer coefficients for planetary nutation
 
     Returns:
         tuple:
@@ -307,9 +310,6 @@ def iau06pna(
         lonnep,
         precrate,
     ) = fundarg(ttt, opt="06")
-
-    # Load IAU 2006 data
-    _, _, _, _, _, _, apn, apni, appl, appli, *_ = iau06in()
 
     # Compute luni-solar nutation
     pnsum, ensum = 0, 0
@@ -386,7 +386,7 @@ def iau06pna(
 
 
 def iau06pnb(
-    ttt: float,
+    ttt: float, apn: np.ndarray, apni: np.ndarray
 ) -> Tuple[
     float,
     np.ndarray,
@@ -416,6 +416,10 @@ def iau06pnb(
 
     Args:
         ttt (float): Julian centuries of TT
+        apn (np.ndarray): Real coefficients for nutation in radians
+        apni (np.ndarray): Integer coefficients for nutation
+        appl (np.ndarray): Real coefficients for planetary nutation in radians
+        appli (np.ndarray): Integer coefficients for planetary nutation
 
     Returns:
         tuple:
@@ -458,9 +462,6 @@ def iau06pnb(
         lonnep,
         precrate,
     ) = fundarg(ttt, opt="02")
-
-    # Load IAU 2006 data
-    _, _, _, _, _, _, apn, apni, *_ = iau06in()
 
     # Compute luni-solar nutation
     pnsum, ensum = 0, 0

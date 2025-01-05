@@ -87,7 +87,11 @@ def test_iau06gst(ttt, delunay_elems, planet_lon, precrate, iau06arr):
     assert custom_allclose(st, st_exp)
 
 
-def test_iau06pna(ttt, iau06arr):
+def test_iau06pna(ttt, iau06data_old):
+    # Unpack the data
+    apn, apni, appl, appli = iau06data_old
+
+    # Call function
     (
         deltapsi,
         pnb,
@@ -107,7 +111,7 @@ def test_iau06pna(ttt, iau06arr):
         lonurn,
         lonnep,
         precrate,
-    ) = iau_transform.iau06pna(ttt)
+    ) = iau_transform.iau06pna(ttt, apn, apni, appl, appli)
 
     # Check against expected values
     pnb_exp = np.array(
@@ -151,7 +155,11 @@ def test_iau06pna(ttt, iau06arr):
     assert custom_isclose(precrate, 4.2555121682972836e-05)
 
 
-def test_iau06pnb(ttt):
+def test_iau06pnb(ttt, iau06data_old):
+    # Unpack the data
+    apn, apni, *_ = iau06data_old
+
+    # Call function
     (
         deltapsi,
         pnb,
@@ -171,7 +179,7 @@ def test_iau06pnb(ttt):
         lonurn,
         lonnep,
         precrate,
-    ) = iau_transform.iau06pnb(ttt)
+    ) = iau_transform.iau06pnb(ttt, apn, apni)
 
     # Check against expected values
     pnb_exp = np.array(
