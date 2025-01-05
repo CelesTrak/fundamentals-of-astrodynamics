@@ -35,6 +35,8 @@ class IAU80Array:
 
 @dataclass
 class IAU06Array:
+    # fmt: off
+    """Data class for IAU 2006 precession-nutation data."""
     ax0: np.ndarray = None
     ax0i: np.ndarray = None
     ay0: np.ndarray = None

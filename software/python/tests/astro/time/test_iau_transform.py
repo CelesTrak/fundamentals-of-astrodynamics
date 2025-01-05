@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from src.valladopy.astro.time.data import iau06in2
 import src.valladopy.astro.time.iau_transform as iau_transform
 from src.valladopy.constants import ARCSEC2RAD
 from ...conftest import custom_isclose, custom_allclose, DEFAULT_TOL
@@ -52,9 +53,9 @@ def test_iau06era():
     # Expected values
     era_exp = np.array(
         [
-            [-0.8884015255896265, -0.4590672383540609, 0.0],
-            [0.4590672383540609, -0.8884015255896265, 0.0],
-            [0.0, 0.0, 1.0],
+            [-0.8884015255896265, -0.4590672383540609, 0],
+            [0.4590672383540609, -0.8884015255896265, 0],
+            [0, 0, 1],
         ]
     )
 
@@ -65,21 +66,25 @@ def test_iau06era():
     assert np.allclose(era, era_exp, rtol=DEFAULT_TOL, atol=DEFAULT_TOL)
 
 
-def test_iau06gst(ttt, delunay_elems, planet_lon, precrate):
+def test_iau06gst(ttt, delunay_elems, planet_lon, precrate, iau06_mat_data2):
+    # Definitions
     judt1 = 2448855.009722  # Julian date of UT1
     deltapsi = -5.978331920752922e-05  # change in longitude
 
+    # Load the IAU 2006 data (GST coefficients)
+    iau06arr = iau06in2()
+
     # Call function
     gst, st = iau_transform.iau06gst(
-        judt1, ttt, deltapsi, *delunay_elems, *planet_lon, precrate
+        judt1, ttt, deltapsi, *delunay_elems, *planet_lon, precrate, iau06arr
     )
 
     # Check against expected values
     st_exp = np.array(
         [
-            [-0.8894007799234658, -0.4571282671980926, 0.0],
-            [0.4571282671980926, -0.8894007799234658, 0.0],
-            [0.0, 0.0, 1.0],
+            [-0.8894007799234658, -0.4571282671980926, 0],
+            [0.4571282671980926, -0.8894007799234658, 0],
+            [0, 0, 1],
         ]
     )
     assert custom_allclose(gst, 2.6668289843344684)

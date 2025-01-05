@@ -9,7 +9,7 @@
 import numpy as np
 from typing import Tuple
 
-from .data import DATA_DIR, iau06in, iau06in2
+from .data import IAU06Array, iau06in, iau06in2
 from .utils import fundarg, precess
 from ...constants import ARCSEC2RAD, DEG2ARCSEC, J2000, TWOPI
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
@@ -59,7 +59,7 @@ def iau06gst(
     lonurn: float,
     lonnep: float,
     precrate: float,
-    data_dir: str = DATA_DIR,
+    iau06arr: IAU06Array,
 ) -> Tuple[float, np.ndarray]:
     """Calculates the IAU 2006 Greenwich Sidereal Time (GST) and transformation matrix.
 
@@ -84,6 +84,7 @@ def iau06gst(
         lonurn (float): Longitude of Uranus in radians
         lonnep (float): Longitude of Neptune in radians
         precrate (float): Precession rate in radians per Julian century
+        iau06arr (IAU06Array): IAU 2006 data
 
     Returns:
         tuple[float, np.ndarray]: (gst, st)
@@ -100,9 +101,6 @@ def iau06gst(
         - 0.0000000434 * ttt ** 5
     )  # arcseconds
     epsa = np.mod(np.radians(epsa / DEG2ARCSEC), TWOPI)
-
-    # Load the IAU 2006 data (GST coefficients)
-    iau06arr = iau06in2(data_dir)
 
     # Evaluate the EE complementary terms
     gstsum0, gstsum1 = 0, 0
