@@ -9,7 +9,7 @@
 import numpy as np
 from typing import Tuple
 
-from .data import iau06in
+from .data import DATA_DIR, iau06in, iau06in2
 from .utils import fundarg, precess
 from ...constants import ARCSEC2RAD, DEG2ARCSEC, J2000, TWOPI
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
@@ -59,6 +59,7 @@ def iau06gst(
     lonurn: float,
     lonnep: float,
     precrate: float,
+    data_dir: str = DATA_DIR,
 ) -> Tuple[float, np.ndarray]:
     """Calculates the IAU 2006 Greenwich Sidereal Time (GST) and transformation matrix.
 
@@ -90,65 +91,63 @@ def iau06gst(
             st (np.ndarray): 3x3 transformation matrix
     """
     # Mean obliquity of the ecliptic
-    ttt2 = ttt * ttt
-    ttt3 = ttt2 * ttt
-    ttt4 = ttt2 * ttt2
-    ttt5 = ttt3 * ttt2
     epsa = (
         84381.406
         - 46.836769 * ttt
-        - 0.0001831 * ttt2
-        + 0.00200340 * ttt3
-        - 0.000000576 * ttt4
-        - 0.0000000434 * ttt5
+        - 0.0001831 * ttt ** 2
+        + 0.0020034 * ttt ** 3
+        - 0.000000576 * ttt ** 4
+        - 0.0000000434 * ttt ** 5
     )  # arcseconds
     epsa = np.mod(np.radians(epsa / DEG2ARCSEC), TWOPI)
 
     # Load the IAU 2006 data (GST coefficients)
-    *_, agst, agsti = iau06in()
+    iau06arr = iau06in2(data_dir)
 
     # Evaluate the EE complementary terms
     gstsum0, gstsum1 = 0, 0
-    n_elem = len(agsti) - 1
+    n_elem = len(iau06arr.agsti) - 1
     for i in range(n_elem):
         tempval = (
-            agsti[i, 0] * l
-            + agsti[i, 1] * l1
-            + agsti[i, 2] * f
-            + agsti[i, 3] * d
-            + agsti[i, 4] * omega
-            + agsti[i, 5] * lonmer
-            + agsti[i, 6] * lonven
-            + agsti[i, 7] * lonear
-            + agsti[i, 8] * lonmar
-            + agsti[i, 9] * lonjup
-            + agsti[i, 10] * lonsat
-            + agsti[i, 11] * lonurn
-            + agsti[i, 12] * lonnep
-            + agsti[i, 13] * precrate
+            iau06arr.agsti[i, 0] * l
+            + iau06arr.agsti[i, 1] * l1
+            + iau06arr.agsti[i, 2] * f
+            + iau06arr.agsti[i, 3] * d
+            + iau06arr.agsti[i, 4] * omega
+            + iau06arr.agsti[i, 5] * lonmer
+            + iau06arr.agsti[i, 6] * lonven
+            + iau06arr.agsti[i, 7] * lonear
+            + iau06arr.agsti[i, 8] * lonmar
+            + iau06arr.agsti[i, 9] * lonjup
+            + iau06arr.agsti[i, 10] * lonsat
+            + iau06arr.agsti[i, 11] * lonurn
+            + iau06arr.agsti[i, 12] * lonnep
+            + iau06arr.agsti[i, 13] * precrate
         )
-        gstsum0 += agst[i, 0] * np.sin(tempval) + agst[i, 1] * np.cos(tempval)
+        gstsum0 += iau06arr.agst[i, 0] * np.sin(tempval) + iau06arr.agst[i, 1] * np.cos(
+            tempval
+        )
 
     # MATLAB's j = 1 translates to Python index 33 (last valid index)
     tempval = (
-        agsti[n_elem, 0] * l
-        + agsti[n_elem, 1] * l1
-        + agsti[n_elem, 2] * f
-        + agsti[n_elem, 3] * d
-        + agsti[n_elem, 4] * omega
-        + agsti[n_elem, 5] * lonmer
-        + agsti[n_elem, 6] * lonven
-        + agsti[n_elem, 7] * lonear
-        + agsti[n_elem, 8] * lonmar
-        + agsti[n_elem, 9] * lonjup
-        + agsti[n_elem, 10] * lonsat
-        + agsti[n_elem, 11] * lonurn
-        + agsti[n_elem, 12] * lonnep
-        + agsti[n_elem, 13] * precrate
+        iau06arr.agsti[n_elem, 0] * l
+        + iau06arr.agsti[n_elem, 1] * l1
+        + iau06arr.agsti[n_elem, 2] * f
+        + iau06arr.agsti[n_elem, 3] * d
+        + iau06arr.agsti[n_elem, 4] * omega
+        + iau06arr.agsti[n_elem, 5] * lonmer
+        + iau06arr.agsti[n_elem, 6] * lonven
+        + iau06arr.agsti[n_elem, 7] * lonear
+        + iau06arr.agsti[n_elem, 8] * lonmar
+        + iau06arr.agsti[n_elem, 9] * lonjup
+        + iau06arr.agsti[n_elem, 10] * lonsat
+        + iau06arr.agsti[n_elem, 11] * lonurn
+        + iau06arr.agsti[n_elem, 12] * lonnep
+        + iau06arr.agsti[n_elem, 13] * precrate
     )
-    gstsum1 += agst[n_elem, 0] * ttt * np.sin(tempval) + agst[n_elem, 1] * ttt * np.cos(
-        tempval
-    )
+    gstsum1 += iau06arr.agst[n_elem, 0] * ttt * np.sin(tempval) + iau06arr.agst[
+        n_elem, 1
+    ] * ttt * np.cos(tempval)
     eect2000 = gstsum0 + gstsum1 * ttt
 
     # Equation of the equinoxes
@@ -156,7 +155,7 @@ def iau06gst(
 
     # Earth rotation angle (ERA)
     tut1d = jdut1 - J2000  # days from the Jan 1, 2000 12h epoch (ut1)
-    era = TWOPI * (0.7790572732640 + 1.00273781191135448 * tut1d)
+    era = TWOPI * (0.779057273264 + 1.00273781191135448 * tut1d)
     era = np.mod(era, TWOPI)
 
     # Greenwich Mean Sidereal Time (GMST), IAU 2000
@@ -164,10 +163,10 @@ def iau06gst(
         (
             0.014506
             + 4612.156534 * ttt
-            + 1.3915817 * ttt2
-            - 0.00000044 * ttt3
-            + 0.000029956 * ttt4
-            + 0.0000000368 * ttt5
+            + 1.3915817 * ttt ** 2
+            - 0.00000044 * ttt ** 3
+            + 0.000029956 * ttt ** 4
+            + 0.0000000368 * ttt ** 5
         )
         * ARCSEC2RAD
     )
