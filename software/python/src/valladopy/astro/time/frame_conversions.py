@@ -60,7 +60,7 @@ def calc_orbit_effects(
     # Find matrices that account for various orbit effects
     prec, *_ = precess(ttt, opt=opt)
     deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
-    st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms)
+    st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, use_iau80, eqeterms)
     pm = polarm(xp, yp, ttt, use_iau80=use_iau80)
 
     # Calculate the effects of Earth's rotation
