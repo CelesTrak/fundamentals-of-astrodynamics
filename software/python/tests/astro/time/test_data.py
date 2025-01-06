@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 import scipy
 
-from src.valladopy.astro.time.data import iau80in
+from src.valladopy.astro.time.data import iau80in, readxys
 from ...conftest import custom_allclose
 
 
@@ -49,8 +49,9 @@ def current_dir():
 
 @pytest.fixture()
 def iau80_mat_data(current_dir):
+    struct_name = "iau80arr"
     file_path = os.path.join(current_dir, "data", "iau80in_data.mat")
-    return load_matlab_data(file_path, keys=["iau80arr"])
+    return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 
 @pytest.fixture()
@@ -61,19 +62,25 @@ def iau06_pnold_mat_data(current_dir):
 
 @pytest.fixture()
 def iau06_mat_data(current_dir):
+    struct_name = "iau06arr"
     file_path = os.path.join(current_dir, "data", "iau06in_data.mat")
-    return load_matlab_data(file_path, keys=["iau06arr"])
+    return load_matlab_data(file_path, keys=[struct_name])[struct_name]
+
+
+@pytest.fixture()
+def xys_data(current_dir):
+    struct_name = "xys06table_struct"
+    file_path = os.path.join(current_dir, "data", "xys_data.mat")
+    return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 
 def test_iau80in(iau80_mat_data):
-    matlab_data = iau80_mat_data["iau80arr"]
-
-    # Load Python data using iau80in
+    # Load data using iau80in
     iau80arr = iau80in()
 
     # Check that they are the same
-    assert np.array_equal(iau80arr.iar80, matlab_data.iar80)
-    assert custom_allclose(iau80arr.rar80, matlab_data.rar80)
+    assert np.array_equal(iau80arr.iar80, iau80_mat_data.iar80)
+    assert custom_allclose(iau80arr.rar80, iau80_mat_data.rar80)
 
 
 def test_iau06in_pnold(iau06data_old, iau06_pnold_mat_data):
@@ -85,21 +92,31 @@ def test_iau06in_pnold(iau06data_old, iau06_pnold_mat_data):
 
 
 def test_iau06in(iau06arr, iau06_mat_data):
-    # Load MATLAB data
-    matlab_data = iau06_mat_data["iau06arr"]
-
     # Check that they are the same
-    assert custom_allclose(iau06arr.ax0, matlab_data.ax0)
-    assert np.array_equal(iau06arr.ax0i, matlab_data.a0xi)
-    assert custom_allclose(iau06arr.ay0, matlab_data.ay0)
-    assert np.array_equal(iau06arr.ay0i, matlab_data.a0yi)
-    assert custom_allclose(iau06arr.as0, matlab_data.as0)
-    assert np.array_equal(iau06arr.as0i, matlab_data.a0si)
-    assert custom_allclose(iau06arr.agst, matlab_data.agst)
-    assert np.array_equal(iau06arr.agsti, matlab_data.agsti[:, :14])
-    assert custom_allclose(iau06arr.apn0, matlab_data.apn0)
-    assert np.array_equal(iau06arr.apn0i, matlab_data.apn0i)
-    assert custom_allclose(iau06arr.apl0, matlab_data.apl0)
-    assert np.array_equal(iau06arr.apl0i, matlab_data.apl0i)
-    assert custom_allclose(iau06arr.aapn0[:, :5], matlab_data.aapn0[:, :5])
-    assert np.array_equal(iau06arr.aapn0i, matlab_data.aapn0i)
+    assert custom_allclose(iau06arr.ax0, iau06_mat_data.ax0)
+    assert np.array_equal(iau06arr.ax0i, iau06_mat_data.a0xi)
+    assert custom_allclose(iau06arr.ay0, iau06_mat_data.ay0)
+    assert np.array_equal(iau06arr.ay0i, iau06_mat_data.a0yi)
+    assert custom_allclose(iau06arr.as0, iau06_mat_data.as0)
+    assert np.array_equal(iau06arr.as0i, iau06_mat_data.a0si)
+    assert custom_allclose(iau06arr.agst, iau06_mat_data.agst)
+    assert np.array_equal(iau06arr.agsti, iau06_mat_data.agsti[:, :14])
+    assert custom_allclose(iau06arr.apn0, iau06_mat_data.apn0)
+    assert np.array_equal(iau06arr.apn0i, iau06_mat_data.apn0i)
+    assert custom_allclose(iau06arr.apl0, iau06_mat_data.apl0)
+    assert np.array_equal(iau06arr.apl0i, iau06_mat_data.apl0i)
+    assert custom_allclose(iau06arr.aapn0[:, :5], iau06_mat_data.aapn0[:, :5])
+    assert np.array_equal(iau06arr.aapn0i, iau06_mat_data.aapn0i)
+
+
+def test_readxys(xys_data):
+    # Load data using readxys
+    iau06xysarr = readxys()
+
+    # Check that the data is the same
+    assert custom_allclose(iau06xysarr.jd, xys_data.jd)
+    assert custom_allclose(iau06xysarr.jdf, xys_data.jdf)
+    assert custom_allclose(iau06xysarr.x, xys_data.x)
+    assert custom_allclose(iau06xysarr.y, xys_data.y)
+    assert custom_allclose(iau06xysarr.s, xys_data.s)
+    assert custom_allclose(iau06xysarr.mjd_tt, xys_data.mjd_tt)

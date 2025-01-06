@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...constants import ARCSEC2RAD
+from ...constants import ARCSEC2RAD, JD_TO_MJD_OFFSET
 
 
 # Default data directory
@@ -60,6 +60,18 @@ class IAU06Array:
     apl0i: np.ndarray = None
     aapn0: np.ndarray = None
     aapn0i: np.ndarray = None
+
+
+@dataclass
+class IAU06xysArray:
+    # fmt: off
+    """Data class for IAU 2006 XYS data."""
+    jd: np.ndarray = None  # Julian Date
+    jdf: np.ndarray = None  # fractional Julian Date
+    x: np.ndarray = None  # x coordinate in radians
+    y: np.ndarray = None  # y coordinate in radians
+    s: np.ndarray = None  # s coordinate in radians
+    mjd_tt: np.ndarray = None  # modified Julian Date (computed)
 
 
 def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
@@ -210,3 +222,30 @@ def iau06in(data_dir: str = DATA_DIR) -> IAU06Array:
     )
 
     return iau06arr
+
+
+def readxys(data_dir: str = DATA_DIR) -> IAU06xysArray:
+    """Initializes the XYS IAU2006 data from the input file into a dataclass.
+
+    Args:
+        data_dir (str, optional): Directory containing the XYS data file "xysdata.dat"
+                                  (default: DATA_DIR)
+
+    Returns:
+        IAU06xysArray: Dataclass containing the XYS data
+    """
+    # Read the file as an np.ndarray
+    data = np.loadtxt(os.path.join(data_dir, "xysdata.dat"))
+
+    # Create instance and extract individual columns
+    iau06xysarr = IAU06xysArray()
+    iau06xysarr.jd = data[:, 0]
+    iau06xysarr.jdf = data[:, 1]
+    iau06xysarr.x = data[:, 2]
+    iau06xysarr.y = data[:, 3]
+    iau06xysarr.s = data[:, 4]
+
+    # Compute the derived column 'mjd_tt'
+    iau06xysarr.mjd_tt = iau06xysarr.jd + iau06xysarr.jdf - JD_TO_MJD_OFFSET
+
+    return iau06xysarr
