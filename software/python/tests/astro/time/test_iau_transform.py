@@ -165,6 +165,37 @@ def test_iau06pnb(ttt, iau06data_old):
     assert custom_isclose(fundargs.precrate, 0)
 
 
+@pytest.mark.parametrize(
+    "interp, x_exp, y_exp, s_exp",
+    [
+        (None, 0.000414038342, 4.7434075e-05, -8.602e-09),
+        (
+            iau_transform.InterpolationMode.LINEAR,
+            0.00041412564757004343,
+            4.74339906642304e-05,
+            -8.603968928473071e-09,
+        ),
+        (
+            iau_transform.InterpolationMode.SPLINE,
+            0.00041412564757004343,
+            4.74339906642304e-05,
+            -8.603907496739735e-09,
+        ),
+    ],
+)
+def test_findxysparam(iau06xysarr, interp, x_exp, y_exp, s_exp):
+    # Input definitions
+    jdtt, jdttf = 2453101.5, 0.328154745474537
+
+    # Call function
+    x, y, s = iau_transform.findxysparam(jdtt, jdttf, iau06xysarr, interp=interp)
+
+    # Check against expected values
+    assert custom_isclose(x, x_exp)
+    assert custom_isclose(y, y_exp)
+    assert custom_isclose(s, s_exp)
+
+
 def test_iau06xys_series(ttt, fundargs, iau06arr):
     # Call function
     x, y, s = iau_transform.iau06xys_series(ttt, fundargs, iau06arr)

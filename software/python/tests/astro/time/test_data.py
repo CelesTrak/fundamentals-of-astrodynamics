@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 import scipy
 
-from src.valladopy.astro.time.data import iau80in, readxys
+from src.valladopy.astro.time.data import iau80in
 from ...conftest import custom_allclose
 
 
@@ -109,10 +109,7 @@ def test_iau06in(iau06arr, iau06_mat_data):
     assert np.array_equal(iau06arr.aapn0i, iau06_mat_data.aapn0i)
 
 
-def test_readxys(xys_data):
-    # Load data using readxys
-    iau06xysarr = readxys()
-
+def test_readxys(iau06xysarr, xys_data):
     # Check that the data is the same
     assert custom_allclose(iau06xysarr.jd, xys_data.jd)
     assert custom_allclose(iau06xysarr.jdf, xys_data.jdf)

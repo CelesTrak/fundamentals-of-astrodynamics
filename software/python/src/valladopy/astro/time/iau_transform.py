@@ -6,13 +6,21 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
-import numpy as np
+from enum import Enum
 from typing import Tuple
 
-from .data import IAU06pnOldArray, IAU06Array
+import numpy as np
+from scipy.interpolate import CubicSpline
+
+from .data import IAU06pnOldArray, IAU06Array, IAU06xysArray
 from .utils import FundArgs, fundarg, precess
-from ...constants import ARCSEC2RAD, DEG2ARCSEC, J2000, TWOPI
+from ... import constants as const
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
+
+
+class InterpolationMode(Enum):
+    LINEAR = "linear"
+    SPLINE = "spline"
 
 
 def iau06era(jdut1: float) -> np.ndarray:
@@ -29,11 +37,11 @@ def iau06era(jdut1: float) -> np.ndarray:
         np.ndarray: 3x3 transformation matrix for PEF to IRE
     """
     # Julian centuries of UT1 (in days from J2000 epoch)
-    tut1d = jdut1 - J2000
+    tut1d = jdut1 - const.J2000
 
     # Earth rotation angle (ERA) in radians
-    era = TWOPI * (0.779057273264 + 1.00273781191135448 * tut1d)
-    era = np.mod(era, TWOPI)
+    era = const.TWOPI * (0.779057273264 + 1.00273781191135448 * tut1d)
+    era = np.mod(era, const.TWOPI)
 
     # Transformation matrix from PEF to IRE
     return np.array(
@@ -70,7 +78,7 @@ def iau06gst(
         - 0.000000576 * ttt**4
         - 0.0000000434 * ttt**5
     )  # arcseconds
-    epsa = np.mod(np.radians(epsa / DEG2ARCSEC), TWOPI)
+    epsa = np.mod(np.radians(epsa / const.DEG2ARCSEC), const.TWOPI)
 
     # Evaluate the EE complementary terms
     gstsum0, gstsum1 = 0, 0
@@ -96,7 +104,6 @@ def iau06gst(
             tempval
         )
 
-    # MATLAB's j = 1 translates to Python index 33 (last valid index)
     tempval = (
         iau06arr.agsti[n_elem, 0] * fundargs.l
         + iau06arr.agsti[n_elem, 1] * fundargs.l1
@@ -122,9 +129,9 @@ def iau06gst(
     ee2000 = deltapsi * np.cos(epsa) + eect2000
 
     # Earth rotation angle (ERA)
-    tut1d = jdut1 - J2000  # days from the Jan 1, 2000 12h epoch (ut1)
-    era = TWOPI * (0.779057273264 + 1.00273781191135448 * tut1d)
-    era = np.mod(era, TWOPI)
+    tut1d = jdut1 - const.J2000  # days from the Jan 1, 2000 12h epoch (UT1)
+    era = const.TWOPI * (0.779057273264 + 1.00273781191135448 * tut1d)
+    era = np.mod(era, const.TWOPI)
 
     # Greenwich Mean Sidereal Time (GMST), IAU 2000
     gmst2000 = era + (
@@ -136,7 +143,7 @@ def iau06gst(
             + 0.000029956 * ttt**4
             + 0.0000000368 * ttt**5
         )
-        * ARCSEC2RAD
+        * const.ARCSEC2RAD
     )
 
     # Greenwich Sidereal Time (GST)
@@ -176,7 +183,7 @@ def _build_transformation_matrices(
     _, psia, wa, ea, xa = precess(ttt, opt="06")
 
     # Obliquity of the ecliptic
-    oblo = 84381.406 * ARCSEC2RAD
+    oblo = 84381.406 * const.ARCSEC2RAD
 
     # Nutation matrix
     a1 = rot1mat(ea + deltaeps)
@@ -191,9 +198,9 @@ def _build_transformation_matrices(
     a7 = rot1mat(-oblo)
 
     # ICRS to J2000
-    a8 = rot1mat(-0.0068192 * ARCSEC2RAD)
-    a9 = rot2mat(0.041775 * np.sin(oblo) * ARCSEC2RAD)
-    a10 = rot3mat(0.0146 * ARCSEC2RAD)
+    a8 = rot1mat(-0.0068192 * const.ARCSEC2RAD)
+    a9 = rot2mat(0.041775 * np.sin(oblo) * const.ARCSEC2RAD)
+    a10 = rot3mat(0.0146 * const.ARCSEC2RAD)
 
     # Precession and combined matrices
     if use_extended_prec:
@@ -241,7 +248,7 @@ def iau06pna(
             + iau06arr.apni[i, 3] * fundargs.d
             + iau06arr.apni[i, 4] * fundargs.omega
         )
-        tempval = np.mod(tempval, TWOPI)
+        tempval = np.mod(tempval, const.TWOPI)
         pnsum += (iau06arr.apn[i, 0] + iau06arr.apn[i, 1] * ttt) * np.sin(
             tempval
         ) + iau06arr.apn[i, 4] * np.cos(tempval)
@@ -280,7 +287,7 @@ def iau06pna(
     deltaeps = ensum + eplnsum
 
     # Apply IAU 2006 corrections
-    j2d = -2.7774e-6 * ttt * ARCSEC2RAD
+    j2d = -2.7774e-6 * ttt * const.ARCSEC2RAD
     deltapsi += deltapsi * (0.4697e-6 + j2d)
     deltaeps += deltaeps * j2d
 
@@ -336,8 +343,8 @@ def iau06pnb(
         ) * np.sin(tempval)
 
     # Planetary nutation constants
-    pplnsum = -0.000135 * ARCSEC2RAD
-    eplnsum = 0.000388 * ARCSEC2RAD
+    pplnsum = -0.000135 * const.ARCSEC2RAD
+    eplnsum = 0.000388 * const.ARCSEC2RAD
 
     # Combine nutation components
     deltapsi = pnsum + pplnsum
@@ -352,6 +359,90 @@ def iau06pnb(
 ########################################################################################
 # IAU 2006 XYS Parameters
 ########################################################################################
+
+
+def findxysparam(
+    jdtt: float,
+    jdttf: float,
+    iau06xysarr: IAU06xysArray,
+    interp: InterpolationMode | None = None,
+) -> Tuple[float, float, float]:
+    """Finds the X, Y, S parameters for a given time with optional interpolation.
+
+    References:
+        Vallado, 2013
+
+    Args:
+        jdtt (float): Epoch Julian day (days from 4713 BC)
+        jdttf (float): Epoch Julian day fraction (day fraction from jdutc)
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        interp (InterpolationMode, optional): Interpolation mode (default: None)
+
+    Returns:
+        tuple: (x, y, s)
+            x (float): X component of CIO in radians
+            y (float): Y component of CIO in radians
+            s (float): S component in radians
+    """
+    # Calculate the Julian day at 0000 hr
+    jdb = np.floor(jdtt + jdttf) + 0.5
+    mfme = (jdtt + jdttf - jdb) * const.DAY2MIN
+    if mfme < 0:
+        mfme += const.DAY2MIN
+
+    # Find the record number corresponding to the desired day
+    jdxysstarto = np.floor(
+        jdtt + jdttf - iau06xysarr.mjd_tt[0] - const.JD_TO_MJD_OFFSET
+    )
+    recnum = int(np.floor(jdxysstarto))
+
+    # Check for out-of-bound values
+    if 0 <= recnum <= len(iau06xysarr.x) - 1:
+        if interp == InterpolationMode.LINEAR:
+            # Perform linear interpolation
+            target_time = iau06xysarr.mjd_tt[recnum] + mfme / const.DAY2MIN
+            x = np.interp(
+                target_time,
+                iau06xysarr.mjd_tt[recnum : recnum + 2],
+                iau06xysarr.x[recnum : recnum + 2],
+            )
+            y = np.interp(
+                target_time,
+                iau06xysarr.mjd_tt[recnum : recnum + 2],
+                iau06xysarr.y[recnum : recnum + 2],
+            )
+            s = np.interp(
+                target_time,
+                iau06xysarr.mjd_tt[recnum : recnum + 2],
+                iau06xysarr.s[recnum : recnum + 2],
+            )
+        elif interp == InterpolationMode.SPLINE:
+            # Perform cubic spline interpolation
+            start_idx = max(0, recnum - 1)
+            end_idx = min(len(iau06xysarr.x), recnum + 3)
+            cs_x = CubicSpline(
+                iau06xysarr.mjd_tt[start_idx:end_idx], iau06xysarr.x[start_idx:end_idx]
+            )
+            cs_y = CubicSpline(
+                iau06xysarr.mjd_tt[start_idx:end_idx], iau06xysarr.y[start_idx:end_idx]
+            )
+            cs_s = CubicSpline(
+                iau06xysarr.mjd_tt[start_idx:end_idx], iau06xysarr.s[start_idx:end_idx]
+            )
+            target_time = iau06xysarr.mjd_tt[recnum] + mfme / const.DAY2MIN
+            x = cs_x(target_time).item()
+            y = cs_y(target_time).item()
+            s = cs_s(target_time).item()
+        else:
+            # No interpolation
+            x = iau06xysarr.x[recnum]
+            y = iau06xysarr.y[recnum]
+            s = iau06xysarr.s[recnum]
+    else:
+        # Default values for out-of-bound requests
+        x, y, s = 0, 0, 0
+
+    return x, y, s
 
 
 def iau06xys_series(
@@ -425,7 +516,7 @@ def iau06xys_series(
         - 0.000007578 * ttt4
         + 0.0000059285 * ttt5
     )
-    x = x * ARCSEC2RAD + sum(x_sums * np.array([1, ttt, ttt2, ttt3, ttt4]))
+    x = x * const.ARCSEC2RAD + sum(x_sums * np.array([1, ttt, ttt2, ttt3, ttt4]))
 
     # Compute Y
     limits_y = [962, 277, 30, 5, 1]  # total sum = 1275 (ays0 and a0yi length)
@@ -465,7 +556,7 @@ def iau06xys_series(
         + 0.001112526 * ttt4
         + 0.0000001358 * ttt5
     )
-    y = y * ARCSEC2RAD + sum(y_sums * np.array([1, ttt, ttt2, ttt3, ttt4]))
+    y = y * const.ARCSEC2RAD + sum(y_sums * np.array([1, ttt, ttt2, ttt3, ttt4]))
 
     # Compute S
     limits_s = [33, 3, 25, 4, 1]  # total sum = 66 (ass0 and a0si length)
@@ -507,7 +598,7 @@ def iau06xys_series(
     )
     s = (
         -x * y * 0.5
-        + s * ARCSEC2RAD
+        + s * const.ARCSEC2RAD
         + sum(s_sums * np.array([1, ttt, ttt2, ttt3, ttt4]))
     )
 
