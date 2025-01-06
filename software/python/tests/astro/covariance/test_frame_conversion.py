@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import src.valladopy.astro.covariance.frame_conversions as fc
+from src.valladopy.astro.time.data import iau80in
 
 from ...conftest import custom_allclose
 
@@ -798,6 +799,12 @@ class TestFlightCartesian:
         xp, yp = 0.0987, 0.286
         ddpsi = ddeps = lod = 0.0
         return ttt, jdut1, lod, xp, yp, ddpsi, ddeps
+
+    @pytest.fixture()
+    def iau80arr(self):
+        """Load the IAU 1980 data"""
+        return iau80in()
+
     # fmt: on
 
     @pytest.mark.parametrize(
@@ -850,11 +857,11 @@ class TestFlightCartesian:
         # fmt: on
     )
     def test_covct2fl(
-        self, cartcov, cartstate, orbit_effects, use_latlon, tm_exp, flcov_exp
+        self, cartcov, cartstate, orbit_effects, iau80arr, use_latlon, tm_exp, flcov_exp
     ):
         # Test covariance conversion
         flcov, tm = fc.covct2fl(
-            cartcov, cartstate, *orbit_effects, use_latlon=use_latlon
+            cartcov, cartstate, *orbit_effects, iau80arr, use_latlon=use_latlon
         )
 
         # Expected values
@@ -925,11 +932,18 @@ class TestFlightCartesian:
         # fmt: on
     )
     def test_covfl2ct(
-        self, orbit_effects, use_latlon, flt_cov, flt_state, tm_exp, cartcov_exp
+        self,
+        orbit_effects,
+        iau80arr,
+        use_latlon,
+        flt_cov,
+        flt_state,
+        tm_exp,
+        cartcov_exp,
     ):
         # Test covariance conversion
         cartcov_out, tm = fc.covfl2ct(
-            flt_cov, flt_state, *orbit_effects, use_latlon=use_latlon
+            flt_cov, flt_state, *orbit_effects, iau80arr, use_latlon=use_latlon
         )
 
         # Compare results

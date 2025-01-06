@@ -2,12 +2,19 @@ import numpy as np
 import pytest
 
 import src.valladopy.astro.twobody.frame_conversions as fc
+from src.valladopy.astro.time.data import iau80in
 from src.valladopy.astro.twobody.utils import OrbitType
 from src.valladopy.constants import ARCSEC2RAD
 from ...conftest import custom_isclose, custom_allclose
 
 
 DEFAULT_TOL = 1e-12
+
+
+@pytest.fixture()
+def iau80arr():
+    """Load the IAU 1980 data"""
+    return iau80in()
 
 
 # ECI position/velocity vectors for a number of tests
@@ -28,8 +35,7 @@ def ecef_inputs():
     yp = 0.333309 * ARCSEC2RAD
     ddpsi = -0.052195 * ARCSEC2RAD
     ddeps = -0.003875 * ARCSEC2RAD
-    eqeterms = True
-    return ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms
+    return ttt, jdut1, lod, xp, yp, ddpsi, ddeps
 
 
 class TestSpherical:
@@ -241,24 +247,26 @@ class TestFlight:
         az = np.pi / 4  # 45 degrees
         return latgc, lon, fpa, az
 
-    def test_flt2rv(self, rv, rvmag, flight, ecef_inputs):
+    def test_flt2rv(self, iau80arr, rv, rvmag, flight, ecef_inputs):
         # Expected outputs
         reci_exp, veci_exp = rv
 
         # Call the function with test inputs
-        reci, veci = fc.flt2rv(*rvmag, *flight, *ecef_inputs)
+        reci, veci = fc.flt2rv(*rvmag, *flight, *ecef_inputs, iau80arr)
 
         # Check if the output is close to the expected values
         assert np.allclose(reci, reci_exp, rtol=DEFAULT_TOL)
         assert np.allclose(veci, veci_exp, rtol=DEFAULT_TOL)
 
-    def test_rv2flt(self, rv, rvmag, flight, ecef_inputs):
+    def test_rv2flt(self, iau80arr, rv, rvmag, flight, ecef_inputs):
         # Expected outputs
         rmag_exp, _ = rvmag  # vmag will not match original
         latgc_exp, lon_exp, _, _ = flight  # fpa and az will not match original
 
         # Call the function with test inputs
-        lon, latgc, rtasc, decl, fpa, az, rmag, vmag = fc.rv2flt(*rv, *ecef_inputs)
+        lon, latgc, rtasc, decl, fpa, az, rmag, vmag = fc.rv2flt(
+            *rv, *ecef_inputs, iau80arr
+        )
 
         # Check if the output is close to the expected values
         # Some values differ from the orignal ones inputted in the test above
@@ -399,23 +407,23 @@ class TestAzEl:
         assert custom_isclose(daz, daz_exp)
         assert custom_isclose(del_el, del_el_exp)
 
-    def test_razel2rv(self, rv, ecef_inputs, lla, azel):
+    def test_razel2rv(self, iau80arr, rv, ecef_inputs, lla, azel):
         # Expected outputs
         reci_exp, veci_exp = rv
 
         # Call function with test inputs
-        reci, veci = fc.razel2rv(*azel, *lla, *ecef_inputs)
+        reci, veci = fc.razel2rv(*azel, *lla, *ecef_inputs, iau80arr)
 
         # Check if output values are close
         assert np.allclose(reci, reci_exp, rtol=DEFAULT_TOL)
         assert np.allclose(veci, veci_exp, rtol=DEFAULT_TOL)
 
-    def test_rv2razel(self, rv, ecef_inputs, lla, azel):
+    def test_rv2razel(self, iau80arr, rv, ecef_inputs, lla, azel):
         # Expected outputs
         rho_exp, az_exp, el_exp, drho_exp, daz_exp, del_el_exp = azel
 
         # Call function with test inputs
-        rho, az, el, drho, daz, del_el = fc.rv2razel(*rv, *lla, *ecef_inputs)
+        rho, az, el, drho, daz, del_el = fc.rv2razel(*rv, *lla, *ecef_inputs, iau80arr)
 
         # Check if output values are close
         assert np.isclose(rho, rho_exp, rtol=DEFAULT_TOL)

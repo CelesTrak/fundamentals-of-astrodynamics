@@ -12,6 +12,7 @@ from typing import Tuple
 import numpy as np
 from numpy.typing import ArrayLike
 
+from ..time.data import IAU80Array
 from ..twobody import frame_conversions as fc
 from ..twobody.newton import newtonnu
 from ...constants import KM2M, MUM, SMALL, TWOPI
@@ -1027,6 +1028,7 @@ def covct2fl(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
     use_latlon: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -1046,6 +1048,7 @@ def covct2fl(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 nutation parameters
         eqeterms (bool, optional): Add terms for ast calculation (default True)
         use_latlon (bool, optional): Flag to use lat/lon instead of ra/dec
                                      (default True)
@@ -1074,6 +1077,7 @@ def covct2fl(
             yp,
             ddpsi,
             ddeps,
+            iau80arr,
             eqeterms,
         )
         r = recef * KM2M
@@ -1126,6 +1130,7 @@ def covfl2ct(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
     use_latlon: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -1145,6 +1150,7 @@ def covfl2ct(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 nutation parameters
         eqeterms (bool, optional): Add terms for ast calculation (default True)
         use_latlon (bool, optional): Flag to use lat/lon instead of ra/dec
                                      (default True)
@@ -1193,7 +1199,18 @@ def covfl2ct(
         # Convert to ECI
         aecef = np.zeros(3)
         reci, veci, _ = fc.ecef2eci(
-            recef, vecef, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms
+            recef,
+            vecef,
+            aecef,
+            ttt,
+            jdut1,
+            lod,
+            xp,
+            yp,
+            ddpsi,
+            ddeps,
+            iau80arr,
+            eqeterms,
         )
         reci *= KM2M  # now in meters
         veci *= KM2M

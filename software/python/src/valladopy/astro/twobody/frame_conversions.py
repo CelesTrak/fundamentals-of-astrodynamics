@@ -12,6 +12,7 @@ from typing import Tuple
 
 from ... import constants as const
 from ...mathtime.vector import rot1, rot2, rot3, angle, unit
+from ..time.data import IAU80Array
 from ..time.frame_conversions import ecef2eci, eci2ecef
 from .newton import newtonnu, newtonm
 from .utils import OrbitType, determine_orbit_type, is_equatorial, site
@@ -626,6 +627,7 @@ def flt2rv(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Converts flight elements into ECI position and velocity vectors.
@@ -649,6 +651,7 @@ def flt2rv(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -669,7 +672,7 @@ def flt2rv(
     vecef = np.zeros(3)  # this is a dummy for now
     aecef = np.zeros(3)
     reci, veci, _ = ecef2eci(
-        recef, vecef, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms
+        recef, vecef, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms
     )
 
     # Calculate right ascension and declination
@@ -721,6 +724,7 @@ def rv2flt(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[float, float, float, float, float, float, float, float]:
     """Transforms a position and velocity vector to flight elements.
@@ -738,6 +742,7 @@ def rv2flt(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -758,7 +763,7 @@ def rv2flt(
     # Convert r to ECEF for lat/lon calculations
     aecef = np.zeros(3)
     recef, vecef, aecef = eci2ecef(
-        reci, veci, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms
+        reci, veci, aecef, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms
     )
 
     # Calculate longitude
@@ -1119,6 +1124,7 @@ def razel2rv(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Transforms range, azimuth, elevation, and their rates to the geocentric
@@ -1144,6 +1150,7 @@ def razel2rv(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1166,7 +1173,7 @@ def razel2rv(
     # Convert ECEF to ECI
     a = np.array([0, 0, 0])
     reci, veci, aeci = ecef2eci(
-        recef, vecef, a, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms
+        recef, vecef, a, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms
     )
 
     return reci, veci
@@ -1185,6 +1192,7 @@ def rv2razel(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[float, float, float, float, float, float]:
     """Transforms ECI position and velocity vectors to range, azimuth, elevation, and
@@ -1210,6 +1218,7 @@ def rv2razel(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1227,7 +1236,7 @@ def rv2razel(
     # Convert ECI to ECEF
     a = np.array([0, 0, 0])
     recef, vecef, aecef = eci2ecef(
-        reci, veci, a, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms
+        reci, veci, a, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms
     )
 
     # Find ECEF range vector from site to satellite
