@@ -80,9 +80,9 @@ def test_iau06pna(ttt, iau06data_old):
     # Check against expected values
     pnb_exp = np.array(
         [
-            [0.9999968301767307, 0.0023093302141092642, 0.0010033097493433538],
-            [-0.0023093439022892153, 0.9999973333838805, 1.2484743714435523e-05],
-            [-0.0010032782425055283, -1.4801691391685055e-05, 0.9999994966067123],
+            [0.9999968301876362, 0.0023093262377770324, 0.0010033080322202625],
+            [-0.002309339928413813, 0.9999973333930268, 1.248721984662418e-05],
+            [-0.0010032765197276387, -1.4804159563682448e-05, 0.9999994966084041],
         ]
     )
     prec_exp = np.array(
@@ -94,29 +94,29 @@ def test_iau06pna(ttt, iau06data_old):
     )
     nut_exp = np.array(
         [
-            [0.9999999968199907, 7.31692338336742e-05, 3.172194366990678e-05],
-            [-7.316966806263472e-05, 0.9999999972294239, 1.368765438014563e-05],
-            [-3.172094206683474e-05, -1.3689975420727585e-05, 0.9999999994031832],
+            [0.9999999968203361, 7.316525989077928e-05, 3.1720221013211795e-05],
+            [-7.316569417457402e-05, 0.9999999972296809, 1.3690126666354718e-05],
+            [-3.171921928366118e-05, -1.3692447454805023e-05, 0.999999999403204],
         ]
     )
     assert custom_allclose(pnb, pnb_exp, rtol=ROTATION_MATRIX_TOL)
     assert custom_allclose(prec, prec_exp, rtol=ROTATION_MATRIX_TOL)
     assert custom_allclose(nut, nut_exp, rtol=ROTATION_MATRIX_TOL)
-    assert custom_isclose(deltapsi, 7.97497241593155e-05)
+    assert custom_isclose(deltapsi, 7.974539290449716e-05)
     assert custom_isclose(fundargs.l, 5.844239313494585)
     assert custom_isclose(fundargs.l1, 6.23840254543787)
     assert custom_isclose(fundargs.f, 3.0276889929096353)
     assert custom_isclose(fundargs.d, 3.2212027489393993)
     assert custom_isclose(fundargs.omega, 5.089920270731961)
-    assert custom_isclose(fundargs.lonmer, 0.02422268041366862)
-    assert custom_isclose(fundargs.lonven, 0.08339248169484563)
-    assert custom_isclose(fundargs.lonear, 0.030584726431970796)
-    assert custom_isclose(fundargs.lonmar, 0.03334439906671072)
-    assert custom_isclose(fundargs.lonjup, 0.1029125735528856)
-    assert custom_isclose(fundargs.lonsat, 0.05248218685834288)
-    assert custom_isclose(fundargs.lonurn, 0.10871847648477687)
-    assert custom_isclose(fundargs.lonnep, 0.09936537545632083)
-    assert custom_isclose(fundargs.precrate, 4.2555121682972836e-05)
+    assert custom_isclose(fundargs.lonmer, 1.387857356197415)
+    assert custom_isclose(fundargs.lonven, 4.778037244236629)
+    assert custom_isclose(fundargs.lonear, 1.7523757421141397)
+    assert custom_isclose(fundargs.lonmar, 1.9104933369224852)
+    assert custom_isclose(fundargs.lonjup, 5.896456123410001)
+    assert custom_isclose(fundargs.lonsat, 3.0070078066000003)
+    assert custom_isclose(fundargs.lonurn, 6.22910985767)
+    assert custom_isclose(fundargs.lonnep, 5.69321664338)
+    assert custom_isclose(fundargs.precrate, 0.0024382288691000005)
 
 
 def test_iau06pnb(ttt, iau06data_old):
@@ -186,12 +186,12 @@ def test_iau06xys(ttt, iau06arr):
     # Check against expected values
     nut_exp = np.array(
         [
-            [0.999999496685652, 1.502895872980454e-09, 0.0010033087473888622],
-            [-1.402829042902788e-08, 0.9999999999220739, 1.2484080825691922e-05],
-            [-0.001003308747291916, -1.248408861698142e-05, 0.9999994966077259],
+            [0.9999994966873754, 1.5029886625084027e-09, 0.0010033070296765758],
+            [-1.4030847987967036e-08, 0.9999999999220429, 1.2486558843022279e-05],
+            [-0.0010033070295795937, -1.2486566635627995e-05, 0.9999994966094183],
         ]
     )
-    assert custom_isclose(x, 0.0010033087473888622)
-    assert custom_isclose(y, 1.2484080825691922e-05)
-    assert custom_isclose(s, 7.765595105574456e-09)
+    assert custom_isclose(x, 0.0010033070296765758)
+    assert custom_isclose(y, 1.2486558843022279e-05)
+    assert custom_isclose(s, 7.766920280134978e-09)
     assert custom_allclose(nut, nut_exp, rtol=ROTATION_MATRIX_TOL)
