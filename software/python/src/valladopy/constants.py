@@ -49,14 +49,14 @@ HR2RAD = DEG2HR * np.radians(1)
 ###############################################################################
 
 # Time
-J2000 = 2451545.0  # Julian date of the epoch J2000.0 (noon)
+J2000 = 2451545  # Julian date of the epoch J2000.0 (noon)
 J2000_UTC = 2451544.5  # Julian date of the epoch J2000.0 in UTC (midnight)
 JD_TO_MJD_OFFSET = 2400000.5  # offset between Julian and Modified Julian dates
 
 # EGM-08 (Earth) constants used here
 # fmt: off
 RE = 6378.1363                      # km
-FLAT = 1.0 / 298.257223563
+FLAT = 1 / 298.257223563
 EARTHROT = 7.292115e-5              # rad/s
 MU = 398600.4415                    # km^3/s^2
 MUM = 3.986004415e14                # m^3/s^2
@@ -69,7 +69,7 @@ J2 = 1.826267e-3
 EARTHROT_APPROX = TWOPI / DAY2SEC  # rad/s
 
 # Earth eccentricity
-ECCEARTH = np.sqrt(2.0 * FLAT - FLAT**2)
+ECCEARTH = np.sqrt(2 * FLAT - FLAT**2)
 ECCEARTHSQRD = ECCEARTH**2
 
 # Earth radius
@@ -90,16 +90,16 @@ OMEGAARTHPMIN = EARTHROT * MIN2SEC
 VELKPS = np.sqrt(MU / RE)
 VELFPS = VELKPS * 1e3 / FT2M
 VELPDMIN = VELKPS * MIN2SEC / RE
-DEGSEC = (180.0 / np.pi) / TUSEC
-RADPDAY = 2.0 * np.pi * 1.002737909350795
+DEGSEC = (180 / np.pi) / TUSEC
+RADPDAY = TWOPI * 1.002737909350795
 
 # Astronomical distances & measurements
 # fmt: off
 SPEEDOFLIGHT = 299792.458           # km/s
 AU2KM = 149597870.7                 # km
-EARTH2MOON = 384400.0               # km
-MOONRADIUS = 1738.0                 # km
-SUNRADIUS = 696000.0                # km
+EARTH2MOON = 384400                 # km
+MOONRADIUS = 1738                   # km
+SUNRADIUS = 696000                  # km
 # fmt: on
 
 # Masses in kg

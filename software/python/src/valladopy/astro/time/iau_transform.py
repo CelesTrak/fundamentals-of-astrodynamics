@@ -606,7 +606,12 @@ def iau06xys_series(
 
 
 def iau06xys(
-    ttt: float, iau06arr: IAU06Array, ddx: float = 0.0, ddy: float = 0.0
+    ttt: float,
+    iau06arr: IAU06Array,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    iau06xysarr: IAU06xysArray | None = None,
+    use_full_series: bool = True,
 ) -> Tuple[float, float, float, np.ndarray]:
     """Calculates the transformation matrix that accounts for the effects of
     precession-nutation using the IAU2006 theory.
@@ -619,19 +624,33 @@ def iau06xys(
         iau06arr (IAU06Array): IAU 2006 data
         ddx (float, optional): EOP correction for x in radians (default is 0)
         ddy (float, optional): EOP correction for y in radians (default is 0)
+        iau06xysarr (IAU06xysArray, optional): IAU 2006 XYS data (default is None)
+        use_full_series (bool, optional): Whether to use the full series implementation
+                                          for XYS parameters (default is True)
 
     Returns:
-        tuple: (x, y, s, nut)
+        tuple: (x, y, s, pn)
             x (float): Coordinate of CIP in radians
             y (float): Coordinate of CIP in radians
             s (float): Coordinate in radians
-            nut (np.ndarray): Transformation matrix for TIRS-GCRF
+            pn (np.ndarray): Transformation matrix for TIRS-GCRF
     """
-    # Obtain data for calculations from the IAU 2006 nutation theory
+    # Fundamental arguments from the IAU 2006 nutation theory
     fundargs = fundarg(ttt, opt="06")
 
-    # Calculate X, Y, and S series parameters
-    x, y, s = iau06xys_series(ttt, fundargs, iau06arr)
+    # Calculate X, Y, and S components
+    if use_full_series:
+        # Use the full series implementation
+        x, y, s = iau06xys_series(ttt, fundargs, iau06arr)
+    else:
+        # Check that the XYS array is provided
+        if not iau06xysarr:
+            raise ValueError("IAU 2006 XYS array must be provided for interpolation!")
+
+        # Find the X, Y, and S components using spline interpolation
+        # TODO: allow for user to specify interpolation method?
+        jdtt = ttt * const.CENT2DAY + const.J2000
+        x, y, s = findxysparam(jdtt, 0, iau06xysarr, InterpolationMode.SPLINE)
 
     # Apply any corrections for x and y
     x += ddx
@@ -650,7 +669,7 @@ def iau06xys(
     )
     nut2 = np.array([[np.cos(s), np.sin(s), 0], [-np.sin(s), np.cos(s), 0], [0, 0, 1]])
 
-    # Combine to form the final nutation matrix
-    nut = np.dot(nut1, nut2)
+    # Combine to form the final transformation matrix
+    pn = np.dot(nut1, nut2)
 
-    return x, y, s, nut
+    return x, y, s, pn

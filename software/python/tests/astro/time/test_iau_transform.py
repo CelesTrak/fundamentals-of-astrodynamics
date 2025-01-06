@@ -206,23 +206,51 @@ def test_iau06xys_series(ttt, fundargs, iau06arr):
     assert custom_isclose(s, 7.766920280134978e-09)
 
 
-def test_iau06xys(ttt, iau06arr):
+@pytest.mark.parametrize(
+    "use_full_series, x_exp, y_exp, s_exp, pn_exp",
+    [
+        (
+            True,
+            0.0010033070296765758,
+            1.2486558843022279e-05,
+            7.766920280134978e-09,
+            [
+                [0.9999994966873754, 1.5029886625084027e-09, 0.0010033070296765758],
+                [-1.4030847987967036e-08, 0.9999999999220429, 1.2486558843022279e-05],
+                [-0.0010033070295795937, -1.2486566635627995e-05, 0.9999994966094183],
+            ],
+        ),
+        (
+            False,
+            0.0009716708951319538,
+            4.653719865339369e-05,
+            -2.0661e-08,
+            [
+                [0.9999995279277234, -4.327041633163345e-08, 0.0009716708951319538],
+                [-1.948426107491633e-09, 0.9999999989171445, 4.653719865339369e-05],
+                [-0.0009716708960934587, -4.653717857770131e-05, 0.9999995268448684],
+            ],
+        ),
+    ],
+)
+def test_iau06xys(
+    ttt, iau06arr, iau06xysarr, use_full_series, x_exp, y_exp, s_exp, pn_exp
+):
     # Define EOP corrections
-    ddx = -0.000205 * ARCSEC2RAD
-    ddy = -0.000136 * ARCSEC2RAD
+    ddx, ddy = -0.000205 * ARCSEC2RAD, -0.000136 * ARCSEC2RAD
 
     # Call function
-    x, y, s, nut = iau_transform.iau06xys(ttt, iau06arr, ddx, ddy)
-
-    # Check against expected values
-    nut_exp = np.array(
-        [
-            [0.9999994966873754, 1.5029886625084027e-09, 0.0010033070296765758],
-            [-1.4030847987967036e-08, 0.9999999999220429, 1.2486558843022279e-05],
-            [-0.0010033070295795937, -1.2486566635627995e-05, 0.9999994966094183],
-        ]
+    x, y, s, pn = iau_transform.iau06xys(
+        ttt, iau06arr, ddx, ddy, iau06xysarr, use_full_series
     )
-    assert custom_isclose(x, 0.0010033070296765758)
-    assert custom_isclose(y, 1.2486558843022279e-05)
-    assert custom_isclose(s, 7.766920280134978e-09)
-    assert custom_allclose(nut, nut_exp, rtol=ROTATION_MATRIX_TOL)
+
+    assert custom_isclose(x, x_exp)
+    assert custom_isclose(y, y_exp)
+    assert custom_isclose(s, s_exp)
+    assert custom_allclose(pn, np.array(pn_exp), rtol=ROTATION_MATRIX_TOL)
+
+
+def test_iau06xys_bad(ttt, iau06arr):
+    """Check for raised error when full series is not used without the XYS data."""
+    with pytest.raises(ValueError):
+        iau_transform.iau06xys(ttt, iau06arr, use_full_series=False)
