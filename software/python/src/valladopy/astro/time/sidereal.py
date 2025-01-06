@@ -91,6 +91,7 @@ def sidereal(
     meaneps: float,
     omega: float,
     lod: float,
+    use_iau80: bool = True,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Calculates the transformation matrix that accounts for the effects of
@@ -105,6 +106,7 @@ def sidereal(
         meaneps (float): Mean obliquity of the ecliptic in radians
         omega (float): Longitude of ascending node of the moon in radians
         lod (float): Length of day in seconds
+        use_iau80 (bool, optional): Use IAU-80 theory (default True)
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -112,22 +114,27 @@ def sidereal(
             st (np.ndarray): Transformation matrix for PEF to TOD
             stdot (np.ndarray): Transformation rate matrix
     """
-    # Find GMST
-    gmst = gstime(jdut1)
+    # Calculate apparent GMST
+    if use_iau80:
+        # Find GMST
+        gmst = gstime(jdut1)
 
-    # Find mean apparent sidereal time
-    if jdut1 > 2450449.5 and eqeterms:
-        ast = (
-            gmst
-            + deltapsi * np.cos(meaneps)
-            + 0.00264 * const.ARCSEC2RAD * np.sin(omega)
-            + 0.000063 * const.ARCSEC2RAD * np.sin(2 * omega)
-        )
+        # Find mean apparent sidereal time
+        if jdut1 > 2450449.5 and eqeterms:
+            ast = (
+                gmst
+                + deltapsi * np.cos(meaneps)
+                + 0.00264 * const.ARCSEC2RAD * np.sin(omega)
+                + 0.000063 * const.ARCSEC2RAD * np.sin(2 * omega)
+            )
+        else:
+            ast = gmst + deltapsi * np.cos(meaneps)
+
+        ast = np.remainder(ast, const.TWOPI)
     else:
-        ast = gmst + deltapsi * np.cos(meaneps)
-
-    ast = np.remainder(ast, const.TWOPI)
-    omegaearth = const.EARTHROT * (1 - lod / const.DAY2SEC)
+        tut1d = jdut1 - const.J2000
+        era = const.TWOPI * (0.7790572732640 + 1.00273781191135448 * tut1d)
+        ast = np.remainder(era, const.TWOPI)
 
     # Transformation matrix for PEF to TOD
     st = np.array(
@@ -135,6 +142,7 @@ def sidereal(
     )
 
     # Sidereal time rate matrix
+    omegaearth = const.EARTHROT * (1 - lod / const.DAY2SEC)
     stdot = np.array(
         [
             [-omegaearth * np.sin(ast), -omegaearth * np.cos(ast), 0],
