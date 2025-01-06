@@ -1,52 +1,51 @@
-    %
-    % ----------------------------------------------------------------------------
-    %
-    %                           function iau06in
-    %
-    %  this function initializes the matricies needed for iau 2006 reduction
-    %    calculations. the routine uses the files listed as inputs, but they are
-    %    are not input to the routine as they are static files.
-    %
-    %  author        : david vallado                  719-573-2600   16 jul 2004
-    %
-    %  revisions
-    %    dav 14 apr 11  update for iau2006 conventions
-    %
-    %  inputs          description                    range / units
-    %    none
-    %    iau00x.dat  - file for x coefficient
-    %    iau00y.dat  - file for y coefficient
-    %    iau00s.dat  - file for s coefficient
-    %    iau00n.dat  - file for nutation coefficients
-    %    iau00pl.dat notused - file for planetary nutation coefficients
-    %    iau00gs.dat - file for gmst coefficients
-    %
-    %  outputs       :
-    %    ax0        - real coefficients for x        rad
-    %    a0xi        - integer coefficients for x
-    %    ay0        - real coefficients for y        rad
-    %    a0yi        - integer coefficients for y
-    %    as0        - real coefficients for s        rad
-    %    a0si        - integer coefficients for s
-    %    apn         - real coefficients for nutation rad
-    %    apni        - integer coefficients for nutation
-    %    ape         - real coefficients for obliquity rad
-    %    apei        - integer coefficients for obliquity
-    %    agst        - real coefficients for gst      rad
-    %    agsti       - integer coefficients for gst
-    %
-    %  locals        :
-    %    convrt      - conversion factor to radians
-    %    i           - index
-    %
-    %  coupling      :
-    %    none        -
-    %
-    %  references    :
-    %    vallado     2004, pg 205-219, 910-912
-    %
-    % [iau06arr] = iau06in(infilename)
-    % ----------------------------------------------------------------------------- }
+% ----------------------------------------------------------------------------
+%
+%                           function iau06in
+%
+%  this function initializes the matricies needed for iau 2006 reduction
+%    calculations. the routine uses the files listed as inputs, but they are
+%    are not input to the routine as they are static files.
+%
+%  author        : david vallado                  719-573-2600   16 jul 2004
+%
+%  revisions
+%    dav 14 apr 11  update for iau2006 conventions
+%
+%  inputs          description                    range / units
+%    none
+%    iau00x.dat  - file for x coefficient
+%    iau00y.dat  - file for y coefficient
+%    iau00s.dat  - file for s coefficient
+%    iau00n.dat  - file for nutation coefficients
+%    iau00pl.dat notused - file for planetary nutation coefficients
+%    iau00gs.dat - file for gmst coefficients
+%
+%  outputs       :
+%    ax0        - real coefficients for x        rad
+%    a0xi        - integer coefficients for x
+%    ay0        - real coefficients for y        rad
+%    a0yi        - integer coefficients for y
+%    as0        - real coefficients for s        rad
+%    a0si        - integer coefficients for s
+%    apn         - real coefficients for nutation rad
+%    apni        - integer coefficients for nutation
+%    ape         - real coefficients for obliquity rad
+%    apei        - integer coefficients for obliquity
+%    agst        - real coefficients for gst      rad
+%    agsti       - integer coefficients for gst
+%
+%  locals        :
+%    convrt      - conversion factor to radians
+%    i           - index
+%
+%  coupling      :
+%    none        -
+%
+%  references    :
+%    vallado     2004, pg 205-219, 910-912
+%
+% [iau06arr] = iau06in(infilename)
+% ----------------------------------------------------------------------------- }
 
 function [iau06arr] = iau06in(infilename)
 
@@ -78,7 +77,7 @@ function [iau06arr] = iau06in(infilename)
     fclose(fid);
     iau06arr.ax0(:,1)   = cell2mat(Dataarr(:,2));
     iau06arr.ax0(:,2)   = cell2mat(Dataarr(:,3));
-    iau06arr.a0xi(:,1:14)   = cell2mat(Dataarr(:,4:17)); 
+    iau06arr.ax0i(:,1:14)   = cell2mat(Dataarr(:,4:17));
     for i=1:size(iau06arr.ax0)
         iau06arr.ax0(i,1)= iau06arr.ax0(i,1) * convrtu;  % rad
         iau06arr.ax0(i,2)= iau06arr.ax0(i,2) * convrtu;  % rad
@@ -91,7 +90,7 @@ function [iau06arr] = iau06in(infilename)
     fclose(fid);
     iau06arr.ay0(:,1)   = cell2mat(Dataarr(:,2));
     iau06arr.ay0(:,2)   = cell2mat(Dataarr(:,3));
-    iau06arr.a0yi(:,1:14)   = cell2mat(Dataarr(:,4:17)); 
+    iau06arr.ay0i(:,1:14)   = cell2mat(Dataarr(:,4:17));
     for i=1:size(iau06arr.ay0)
         iau06arr.ay0(i,1)= iau06arr.ay0(i,1) * convrtu;
         iau06arr.ay0(i,2)= iau06arr.ay0(i,2) * convrtu;
@@ -104,7 +103,7 @@ function [iau06arr] = iau06in(infilename)
     fclose(fid);
     iau06arr.as0(:,1)   = cell2mat(Dataarr(:,2));
     iau06arr.as0(:,2)   = cell2mat(Dataarr(:,3));
-    iau06arr.a0si(:,1:14)   = cell2mat(Dataarr(:,4:17)); 
+    iau06arr.as0i(:,1:14)   = cell2mat(Dataarr(:,4:17));
     for i=1:size(iau06arr.as0)
         iau06arr.as0(i,1)= iau06arr.as0(i,1) * convrtu;
         iau06arr.as0(i,2)= iau06arr.as0(i,2) * convrtu;
@@ -130,7 +129,7 @@ function [iau06arr] = iau06in(infilename)
     %filein = load('iau03n.dat');
     % 2000a planetary nutation values
     fid = fopen(append(infilename,'iau06anplsofa.dat'));  % 687
-    %       0   0   0   0   0   0   0   8 -16   4   5   0   0   0                   1440           0           0           0  
+    %       0   0   0   0   0   0   0   8 -16   4   5   0   0   0                   1440           0           0           0
     Dataarr = textscan( fid, '%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d ', 'Headerlines', 2, 'MultipleDelimsAsOne', true );
     fclose(fid);
     iau06arr.apl0(:,1:4)   = cell2mat(Dataarr(:,15:18));

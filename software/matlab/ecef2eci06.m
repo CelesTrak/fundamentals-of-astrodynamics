@@ -56,25 +56,7 @@ function [reci, veci, aeci] = ecef2eci06( recef, vecef, aecef, iau06arr, xys06ta
     % ---- ceo based, iau2006
     if ~contains(opt1, 'a') || ~contains(opt1, 'b')
         [x, y, s, pnb] = iau06xys (iau06arr, fArgs06, xys06table, ttt, ddx, ddy, opt1);
-        [st, stdot] = sidereal(jdut1, 0.0, 0.0, 0.0, 0.0, 2, '06' );
-    end
-
-    % ---- class equinox based, 2000a
-    if (strcmp(opt1, 'a'))
-        [ deltapsi, pnb, prec, nut, l, l1, f, d, omega, ...
-            lonmer, lonven, lonear, lonmar, lonjup, lonsat, lonurn, lonnep, precrate ...
-            ] = iau06pna (ttt);
-        [gst,st] = iau06gst(jdut1, ttt, deltapsi, l, l1, f, d, omega, ...
-            lonmer, lonven, lonear, lonmar, lonjup, lonsat, lonurn, lonnep, precrate);
-    end
-
-    % ---- class equinox based, 2000b
-    if strcmp(opt1, 'b')
-        [ deltapsi, pnb, prec, nut, l, l1, f, d, omega, ...
-            lonmer, lonven, lonear, lonmar, lonjup, lonsat, lonurn, lonnep, precrate ...
-            ] = iau06pnb (ttt);
-        [gst,st] = iau06gst(jdut1, ttt, deltapsi, l, l1, f, d, omega, ...
-            lonmer, lonven, lonear, lonmar, lonjup, lonsat, lonurn, lonnep, precrate);
+        [st, stdot] = sidereal(jdut1, 0.0, 0.0, 0.0, lod, 2, '06' );
     end
 
     [pm] = polarm(xp, yp, ttt, '06');

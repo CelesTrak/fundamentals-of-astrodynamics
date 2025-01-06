@@ -12,11 +12,11 @@
 %  author        : david vallado           davallado@gmail.com   22 jan 2018
 %
 %  inputs          description                           range / units
-%    infilename      - location for xys data file
+%    infilename      - location for xys data file       
 %
 %  outputs       :
-%    xys06table  - array of xys data records
-%
+%    xys06table  - array of xys data records             rad
+% 
 %  locals        :
 %
 %  references    :

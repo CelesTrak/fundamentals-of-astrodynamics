@@ -36,7 +36,7 @@
 %  references    :
 %    vallado       2013, 231-233
 %
-% [rteme, vteme, ateme] = eci2teme  ( reci, veci, aeci, iau80arr, ttt, ddpsi, ddeps)
+% [rteme, vteme, ateme] = eci2teme  ( reci, veci, aeci, iau80arr, ttt, ddpsi, ddeps);
 % ----------------------------------------------------------------------------
 
 function [rteme, vteme, ateme] = eci2teme  ( reci, veci, aeci, iau80arr, ttt, ddpsi, ddeps)

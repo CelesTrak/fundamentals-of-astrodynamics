@@ -600,7 +600,7 @@ namespace EOPSPWMethods
                 mfme = 1440.0 + mfme;
 
             // ---- read data for day of interest
-            jdeopstarto = Math.Floor(jd + jdFrac - eopdata[0].mjd - 2400000.5) + 1; // needed to get correct start day
+            jdeopstarto = Math.Floor(jd + jdFrac - eopdata[0].mjd - 2400000.5); // needed to get correct start day
             recnum = Convert.ToInt32(jdeopstarto);
 
             // check for out of bound values
@@ -940,7 +940,6 @@ namespace EOPSPWMethods
         //    f81type     - flux 81-day avg type                          l-last, c-centered
         //    inputtype   - input type                                    a-actual, c - constant
         //    spwarr      - array of space weather data
-        //    jdspwstart  - julian date of the start of the spwarr data (set in initspw)
         //
         //  outputs       :
         //    f107        - f10.7 value (current day)
@@ -960,7 +959,8 @@ namespace EOPSPWMethods
         // ---------------------------------------------------------------------------
 
         public void findspwparam(double jd, double jdFrac, char interp, char fluxtype, char f81type, char inputtype,
-                                  SPWdataClass[] spwdata, out double f107, out double f107bar,
+                                  SPWdataClass[] spwdata,
+                                  out double f107, out double f107bar,
                                   out double ap, out double avgap, double[] aparr, out double kp, out double sumkp,
                                   double[] kparr)
         {
@@ -995,8 +995,6 @@ namespace EOPSPWMethods
             // check for out of bound values
             if ((recnum >= 1) && (recnum < numbspw - 1))
             {
-                //eopdata   = eopdata[recnum];
-
                 // ---- set non-interpolated values
                 if (fluxtype == 'a')  // adjusted
                 {

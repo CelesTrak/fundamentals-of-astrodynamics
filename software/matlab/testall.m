@@ -16,9 +16,11 @@ function fid = testall
 
     testnum = -10;
 
+    testnum = input('please enter -10 for all, or test number \n');
+
     if (testnum == -10)
-        optstart = 90;  % 1
-        optstop = 99; % 102
+        optstart = 1;  % 1
+        optstop = 80; % 102
     else
         optstart = testnum;
         optstop = testnum;
@@ -1262,7 +1264,7 @@ function testeci_ecef(fid)
     [iau06arr] = iau06in(fileLoc);
 
     % test creating xys file
-    fileLoc = 'D:\Codes\LIBRARY\DataLib\';
+    %fileLoc = 'D:\Codes\LIBRARY\DataLib\';
     % done, works in c#. :-)
     %createXYS(fileLoc, iau06arr, fArgs);
 
@@ -1275,11 +1277,11 @@ function testeci_ecef(fid)
     [fArgs06] = fundarg(ttt, '06');
     [x ,y, s] = iau06xysS (iau06arr, fArgs06, ttt );
     fprintf(fid,'iau06xysS wo   x   %11.9f  y  %11.9g  s %11.9g\n',x, y, s);
-    fprintf(fid,'iau06xysS wo   x   %11.9f  y  %11.9g  s %11.9g\n',x/conv, y/conv, s/conv);
+    fprintf(fid,'iau06xysS wo   x   %11.9f  y  %11.9g  s %11.9g arsec\n',x/conv, y/conv, s/conv);
     x = x + ddx;
     y = y + ddy;
     fprintf(fid,'iau06xysS      x   %11.9f  y  %11.9g  s %11.9g\n',x, y, s);
-    fprintf(fid,'iau06xysS      x   %11.9f  y  %11.9g  s %11.9g\n',x/conv, y/conv, s/conv);
+    fprintf(fid,'iau06xysS      x   %11.9f  y  %11.9g  s %11.9g arcsec\n',x/conv, y/conv, s/conv);
     [x, y, s] = findxysparam(jdtt + jdftt, 0.0, 'n', xys06table);
     fprintf(fid,'findxysparam n x   %11.9f  y  %11.9g  s  %11.9g\n', x, y, s);
     [x, y, s] = findxysparam(jdtt + jdftt, 0.0, 'l', xys06table);
@@ -1288,28 +1290,19 @@ function testeci_ecef(fid)
     fprintf(fid,'findxysparam s x   %11.9f  y  %11.9g  s  %11.9g\n', x, y, s);
     [x ,y, s] = iau06xysS (iau06arr, fArgs06, ttt );
 
-    [reci, veci, aeci] = ecef2eci(recef, vecef, aecef, iau80arr, ttt, jdut1, lod, xp, yp, eqeterms, ddpsi, ddeps );
-    fprintf(fid,'GCRF          IAU-76/FK5  %15.11f  %15.11f  %15.11f  %15.11f  %15.11f  %15.11f\n', reci(1), reci(2), reci(3), veci(1), veci(2), veci(3));
+    [recii, vecii, aecii] = ecef2eci(recef, vecef, aecef, iau80arr, ttt, jdut1, lod, xp, yp, eqeterms, ddpsi, ddeps );
+    fprintf(fid,'GCRF          IAU-76/FK5  %15.11f  %15.11f  %15.11f  %15.11f  %15.11f  %15.11f\n', recii(1), recii(2), recii(3), vecii(1), vecii(2), vecii(3));
 
     [reci veci, aeci] = ecef2eci06(recef, vecef, aecef,   iau06arr, xys06table, ttt, jdut1, lod, xp, yp, ddx, ddy, '06x');
     fprintf(fid,'GCRF          IAU-2006 CIO  %15.11f  %15.11f  %15.11f  %15.11f  %15.11f  %15.11f\n', reci(1), reci(2), reci(3), veci(1), veci(2), veci(3));
 
-
     % try backwards
-    [recef,vecef,aecef] = eci2ecef  ( reci,veci,aeci,iau80arr, ttt, jdut1, lod, xp, yp, eqeterms, ddpsi, ddeps );
+    [recef,vecef,aecef] = eci2ecef  ( recii,vecii,aecii,iau80arr, ttt, jdut1, lod, xp, yp, eqeterms, ddpsi, ddeps );
     fprintf(fid,'ITRF rev       IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recef(1), recef(2), recef(3), vecef(1), vecef(2), vecef(3));
-    recef = [ -1033.4793830; 7901.2952754; 6380.3565958 ];
-    vecef = [ -3.225636520; -2.872451450; 5.531924446 ];
-
 
     % these are not correct
-    [reci,veci,aeci] = ecef2eci06 ( recef,vecef,aecef,iau06arr, xys06table, ttt,jdut1,lod,xp,yp, ddx, ddy,'06c' );
-    % ----------------------------------------------------------------------------    fprintf(fid,'GCRF          IAU-2006 06  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', reci(1), reci(2), reci(3), veci(1), veci(2), veci(3));
-
-    [reci,veci,aeci] = ecef2eci06 ( recef,vecef,aecef,iau06arr, xys06table, ttt,jdut1,lod,xp,yp, ddx, ddy,'06a' );
-    fprintf(fid,'GCRF          IAU-2006 06a  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', reci(1), reci(2), reci(3), veci(1), veci(2), veci(3));
-    fprintf(fid,'00a case is wrong\n');
-
+    [recef, vecef, aecef] = eci2ecef06(reci, veci, aeci, iau06arr, xys06table, ttt,jdut1,lod,xp,yp, ddx, ddy,'06x' );
+    fprintf(fid,'ITRF rev       IAU-2006 CIO  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recef(1), recef(2), recef(3), vecef(1), vecef(2), vecef(3));
 
 
     % writeout data for table interpolation
@@ -1337,8 +1330,8 @@ function testeci_ecef(fid)
 
     % rad to '
      convrt = (180.0 * 3600.0) / pi;
-    fprintf(fid,'CIO tests      x                   y                     s          ddpsi            ddeps      mjd\n');
-    for i = 1:14 % 14500
+    fprintf(fid,'CIO tests      x          y          s          ddpsi        ddeps     ddx       ddy      mjd\n');
+    for i = 0:13 % 14500
 
         [jd, jdFrac] = jday(year, mon, day + i, hr, minute, second);
         [dut1, dat, lod, xp, yp, ddpsi, ddeps, ddx, ddy] = findeopparam(jd, jdFrac, 's', eoparr);
@@ -1348,9 +1341,9 @@ function testeci_ecef(fid)
 
         [fArgs] = fundarg(ttt, '80');
 
-        ddpsi = 0.0;
-        ddeps = 0.0;
-         deltapsi= 0.0;
+        % ddpsi = 0.0;
+        % ddeps = 0.0;
+        deltapsi= 0.0;
         deltaeps= 0.0;
          for ii= 106:-1: 1
             tempval = iau80arr.iar80(ii, 1) * fArgs(1) + iau80arr.iar80(ii, 2) * fArgs(2) + iau80arr.iar80(ii, 3) * fArgs(3) + ...
@@ -1362,19 +1355,19 @@ function testeci_ecef(fid)
         % --------------- find nutation parameters --------------------
         deltapsi = (deltapsi + ddpsi); % (2.0 * pi);
         deltaeps = (deltaeps + ddeps); % (2.0 * pi);
-
-        % CIO parameters
-        [fArgs06] = fundarg(ttt, '06');
-        ddx = 0.0;
-        ddy = 0.0;
-        [x, y, s, pn] = iau06xys (iau06arr, fArgs06, xys06table, ttt, ddx, ddy, '06x')
-        x = x * convrt;
-        y = y * convrt;
-        s = s * convrt;
         deltapsi = deltapsi * convrt;
         deltaeps = deltaeps * convrt;
 
-        fprintf(fid,'%11.7f %11.7f %11.7f %11.7f %11.7f %11.7f\n', x, y, s, deltapsi, deltaeps, (jd + jdFrac - 2400000.5));
+        % CIO parameters
+        [fArgs06] = fundarg(ttt, '06');
+        % ddx = 0.0;
+        % ddy = 0.0;
+        [x, y, s, pn] = iau06xys (iau06arr, fArgs06, xys06table, ttt, ddx, ddy, '06x');
+        x = x * convrt;
+        y = y * convrt;
+        s = s * convrt;
+
+        fprintf(fid,'%15.11f %15.11f %15.11f %15.11f %15.11f %15.11f %15.11f %11.0f\n', x, y, s, deltapsi, deltaeps, ddx, ddy, (jd + jdFrac - 2400000.5));
     end
 end
 
@@ -1486,7 +1479,7 @@ function testtod2ecef(fid)
     [recii, vecii, aecii] = pef2eci(rpef, vpef, apef, iau80arr, ttt, jdut1, lod, eqeterms, ddpsi, ddeps);
     fprintf(fid,'ECI rev       IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recii(1), recii(2), recii(3), vecii(1), vecii(2), vecii(3));
 
-    [rtirs, vtirs, atirs] = eci2tirs(reci, veci, aeci, iau06arr, xys06table, ttt, jdut1, lod, ddx, ddy, '06x' );
+    [rtirs, vtirs, atirs] = eci2tirs(recii, vecii, aecii, iau06arr, xys06table, ttt, jdut1, lod, ddx, ddy, '06x' );
     fprintf(fid,'TIRS          IAU-2006 CIO  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', rtirs(1), rtirs(2), rtirs(3), vtirs(1), vtirs(2), vtirs(3));
     [recii, vecii, aecii] = tirs2eci(rtirs, vtirs, atirs, iau06arr, xys06table, ttt, jdut1, lod, ddx, ddy, '06x' );
     fprintf(fid,'ECI rev       IAU-2006 CIO  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recii(1), recii(2), recii(3), vecii(1), vecii(2), vecii(3));
@@ -1497,9 +1490,9 @@ function testtod2ecef(fid)
     [recii, vecii, aecii] = tod2eci(rtod, vtod, atod, iau80arr, ttt, ddpsi, ddeps);
     fprintf(fid,'ECI rev       IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recii(1), recii(2), recii(3), vecii(1), vecii(2), vecii(3));
 
-    [rcirs, vcirs, acirs] = eci2cirs( reci, veci, aeci, iau06arr, xys06table, ttt, ddx, ddy, '06x' );
+    [rcirs, vcirs, acirs] = eci2cirs( recii, vecii, aecii, iau06arr, xys06table, ttt, ddx, ddy, '06x' );
     fprintf(fid,'CIRS          IAU-2006 CIO  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', rcirs(1), rcirs(2), rcirs(3), vcirs(1), vcirs(2), vcirs(3));
-    [recii, vecii, aecii] = cirs2eci(rtod, vtod, atod, iau06arr,  xys06table, ttt, ddx, ddy, '06x');
+    [recii, vecii, aecii] = cirs2eci(rcirs, vcirs, acirs, iau06arr,  xys06table, ttt, ddx, ddy, '06x');
     fprintf(fid,'ECI rev       IAU-2006 CIO  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recii(1), recii(2), recii(3), vecii(1), vecii(2), vecii(3));
 
     % MOD
@@ -1511,7 +1504,6 @@ end
 
 
 function testteme_ecef(fid)
-    eqeterms = 2;
     conv = pi / (180.0 * 3600.0);
 
     recef = [ -1033.4793830; 7901.2952754; 6380.3565958 ];
@@ -1533,9 +1525,8 @@ function testteme_ecef(fid)
     ddeps = -0.003875 * conv;
     ddx = -0.000205 * conv;    % ' to rad
     ddy = -0.000136 * conv;
-
-    fileLoc = 'D:\Codes\LIBRARY\DataLib\';
-    [iau80arr] = iau80in(fileLoc);
+    eqeterms = 2;
+    aecef = [ 0.0; 0.0; 0.0 ];
 
     % note you have to use tdb for time of ineterst AND j2000 (when dat = 32)
     ttt = (jd + jdFrac + (dat + 32.184) / 86400.0 - 2451545.0 - (32 + 32.184) / 86400.0) / 36525.0;
@@ -1543,12 +1534,11 @@ function testteme_ecef(fid)
 
     fprintf(fid,'ITRF          IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recef(1), recef(2), recef(3), vecef(1), vecef(2), vecef(3));
 
-    [rteme, vteme] = ecef2teme(recef, vecef, ttt, jdut1, lod, xp, yp,    eqeterms, '80');
+    [rteme, vteme, ateme] = ecef2teme(recef, vecef, aecef, ttt, jdut1, lod, xp, yp,    eqeterms);
     fprintf(fid,'TEME          IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', rteme(1), rteme(2), rteme(3), vteme(1), vteme(2), vteme(3));
 
-    recef = [ 0.0, 0.0, 0.0 ];
-    vecef = [ 0.0, 0.0, 0.0 ];
-    [recef, vecef] = teme2ecef(rteme, vteme, ttt, jdut1, lod, xp, yp,    eqeterms, '80');
+    vecef = [ 0.0; 0.0; 0.0 ];
+    [recef, vecef, aecef] = teme2ecef(rteme, vteme, ateme, ttt, jdut1, lod, xp, yp,    eqeterms);
     fprintf(fid,'ITRF          IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recef(1), recef(2), recef(3), vecef(1), vecef(2), vecef(3));
 
 end
@@ -2992,10 +2982,17 @@ function testangles(fid)
         fprintf(1,'caseopt %d\n', caseopt);
         fprintf(fida,'caseopt %d\n', caseopt);
 
+        % get first heard line
+        longstr = fgets(infile);
+
         while (~feof(infile))
 
             longstr = fgets(infile);
             ansrlongstr = longstr;
+
+            fprintf(fida,'\n\n ================================ case number %d ================================\n', caseopt);
+            fprintf(fid,'\n\n ================================ case number %d ================================\n', caseopt);
+            fprintf(fid,'%s \n', longstr);
 
             % # 0 ansr a 12246.023  e 0.2000  i 40.00  W 330.000  w 0.0  nu 0.0
             % 20,  8,  2012,  11,  40,  28.00,    40.000,    -110.000,     2.0000,     0.939913  ,    18.667717, x
@@ -3027,8 +3024,6 @@ function testangles(fid)
                     obsktr = obsktr + 1;
                 end
 
-                fprintf(fida,'\n\n ================================ case number %d ================================\n', caseopt);
-                fprintf(fid,'\n\n ================================ case number %d ================================\n', caseopt);
                 % write summary results to fid
                 doangles(jd, jdf, latgd, lon, alt, trtasc, tdecl, initguess, ansrlongstr, fida, fid);
 
@@ -7949,11 +7944,6 @@ function testcovct2fl(anomflt, fid)
 
     fileLoc = 'D:\Codes\LIBRARY\DataLib\';
     [iau80arr] = iau80in(fileLoc);
-    fileLoc = 'D:\Codes\LIBRARY\DataLib\';
-    [iau06arr] = iau06in(fileLoc);
-    % now read it in
-    fileLoc = 'D:\Codes\LIBRARY\DataLib\';
-    [xys06table] = readxys(fileLoc);
 
     year = 2000;
     mon = 12;

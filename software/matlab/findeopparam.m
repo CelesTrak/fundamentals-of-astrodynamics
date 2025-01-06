@@ -38,10 +38,10 @@
 %
 %  references    :
 %    vallado       2013,
-%  [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, jdtdbF, interp, eoparr)
+%  [dut1, dat, lod, xp, yp, ddpsi, ddeps, ddx, ddy] = findeopparam( jdtdb, jdtdbF, interp, eoparr)
 % --------------------------------------------------------------------------- 
 
-function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, jdtdbF, interp, eoparr)
+function [dut1, dat, lod, xp, yp, ddpsi, ddeps, ddx, ddy] = findeopparam( jdtdb, jdtdbF, interp, eoparr)
 
     convrt = pi / (3600.0 * 180.0);  % " to rad
    
@@ -67,8 +67,8 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
         yp = eoparr(recnum).yp;
         ddpsi = eoparr(recnum).ddpsi;
         ddeps = eoparr(recnum).ddeps;
-        dx = eoparr(recnum).dx;
-        dy = eoparr(recnum).dy;
+        ddx = eoparr(recnum).dx;
+        ddy = eoparr(recnum).dy;
 
         % ---- find nutation parameters for use in optimizing speed
 
@@ -83,8 +83,8 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
             yp = eoparr(recnum).yp + (eoparr(recnum + 1).yp - eoparr(recnum).yp) * fixf;
             ddpsi = eoparr(recnum).ddpsi + (eoparr(recnum + 1).ddpsi - eoparr(recnum).ddpsi) * fixf;
             ddeps = eoparr(recnum).ddeps + (eoparr(recnum + 1).ddeps - eoparr(recnum).ddeps) * fixf;
-            dx = eoparr(recnum).dx + (eoparr(recnum + 1).dx - eoparr(recnum).dx) * fixf;
-            dy = eoparr(recnum).dy + (eoparr(recnum + 1).dy - eoparr(recnum).dy) * fixf;
+            ddx = eoparr(recnum).dx + (eoparr(recnum + 1).dx - eoparr(recnum).dx) * fixf;
+            ddy = eoparr(recnum).dy + (eoparr(recnum + 1).dy - eoparr(recnum).dy) * fixf;
             %printf("sunm %i xp %lf fixf %lf n %lf nxt %lf \n", recnum, xp, fixf, eoparr(recnum).dut1, eoparr(recnum).dut1);
             %printf("recnum l %i fixf %lf %lf rsun %lf %lf %lf \n", recnum, fixf, eoparr(recnum).dut1, dut1, rsuny, rsunz);
         end
@@ -124,11 +124,11 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
                 eoparr(recnum + off2).ddeps,...
                 eoparr(recnum - off1).mjd, eoparr(recnum).mjd, eoparr(recnum + off1).mjd, eoparr(recnum + off2).mjd,...
                 eoparr(recnum).mjd + fixf);
-            dx = cubicinterp(eoparr(recnum- off1).dx, eoparr(recnum).dx, eoparr(recnum + off1).dx,...
+            ddx = cubicinterp(eoparr(recnum- off1).dx, eoparr(recnum).dx, eoparr(recnum + off1).dx,...
                 eoparr(recnum + off2).dx,...
                 eoparr(recnum - off1).mjd, eoparr(recnum).mjd, eoparr(recnum + off1).mjd, eoparr(recnum + off2).mjd,...
                 eoparr(recnum).mjd + fixf);
-            dy = cubicinterp(eoparr(recnum- off1).dy, eoparr(recnum).dy, eoparr(recnum + off1).dy,...
+            ddy = cubicinterp(eoparr(recnum- off1).dy, eoparr(recnum).dy, eoparr(recnum + off1).dy,...
                 eoparr(recnum + off2).dy,...
                 eoparr(recnum - off1).mjd, eoparr(recnum).mjd, eoparr(recnum + off1).mjd, eoparr(recnum + off2).mjd,...
                 eoparr(recnum).mjd + fixf);
@@ -145,8 +145,8 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
         yp = 0.0;
         ddpsi = 0.0;
         ddeps = 0.0;
-        dx = 0.0;
-        dy = 0.0;
+        ddx = 0.0;
+        ddy = 0.0;
     end
 
     % now convert units for use in operations
@@ -154,7 +154,7 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
     yp = yp * convrt;
     ddpsi = ddpsi * convrt;  % " to rad
     ddeps = ddeps * convrt;
-    dx = dx * convrt;  % " to rad
-    dy = dy * convrt;
+    ddx = ddx * convrt;  % " to rad
+    ddy = ddy * convrt;
 
 end    %  findeopparam

@@ -8,12 +8,11 @@
 %
 %  author        : david vallado                      719-573-2600   12 dec 2005
 %
-%  inputs          description                                 range / units
-% are these tdb, or is that just for jplde interpolation!
-%    jdtdb         - epoch julian day                        days from 4713 BC
-%    jdtdbF        - epoch julian day fraction               day fraction from jdutc
-%    interp        - interpolation                           n-none, l-linear, s-spline
-%    xys06table    - array of xys06 records
+%  inputs         description                                 range / units
+%    jdtt        - epoch julian day                        days from 4713 BC
+%    jdttF       - epoch julian day fraction               day fraction from jdutc
+%    interp      - interpolation                           n-none, l-linear, s-spline
+%    xys06table  - array of xys06 records
 %
 %  outputs       :
 %    x           - x component of cio                         rad
@@ -26,21 +25,20 @@
 %
 %  references    :
 %    vallado       2013,
-% [x, y, s] = findxysparam( jdtdb, jdtdbF, interp, xys06table)
+% [x, y, s] = findxysparam( jdtt, jdttF, interp, xys06table)
 % --------------------------------------------------------------------------- */
 
-function [x, y, s] = findxysparam( jdtdb, jdtdbF, interp, xys06table)
+function [x, y, s] = findxysparam( jdtt, jdttF, interp, xys06table)
 
-    % the ephemerides are centered on jdtdb, but it turns out to be 0.5, or 0000 hrs.
     % check if any whole days in jdF
-    jdb = floor(jdtdb + jdtdbF) + 0.5;  % want jd at 0000 hr
-    mfme = (jdtdb + jdtdbF - jdb) * 1440.0;
+    jdb = floor(jdtt + jdttF) + 0.5;  % want jd at 0000 hr
+    mfme = (jdtt + jdttF - jdb) * 1440.0;
     if (mfme < 0.0)
         mfme = 1440.0 + mfme;
     end
 
     % ---- read recnum for day of interest
-    jdxysstarto = floor(jdtdb + jdtdbF - xys06table.jd(1) - xys06table.jdf(1));
+    jdxysstarto = floor(jdtt + jdttF - xys06table.mjd_tt(1) - 2400000.5);
     recnum = floor(jdxysstarto) + 1;
 
     % check for out of bound values

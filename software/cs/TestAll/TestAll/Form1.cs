@@ -10,8 +10,9 @@ using System.Collections.Generic;
 using MathTimeMethods;     // Edirection, globals
 using EOPSPWMethods;       // EOPDataClass, SPWDataClass, iau80Class, iau06Class
 using AstroLibMethods;     // EOpt, gravityConst, astroConst, xysdataClass, jpldedataClass
+using SGP4Methods;
+
 using AstroLambertkMethods;
-using SGP4Methods; 
 using System.Data;
 using System.Diagnostics.Eventing.Reader;
 using static AstroLibMethods.AstroLib;
@@ -1221,8 +1222,8 @@ namespace TestAllTool
             EOPSPWLibr.iau06in(fileLoc, out EOPSPWLibr.iau06arr);
 
             // test creating xys file
-            fileLoc = @"D:\Codes\LIBRARY\DataLib\";
             // done, works. :-)
+            //fileLoc = @"D:\Codes\LIBRARY\DataLib\";
             //AstroLibr.createXYS(fileLoc, iau06arr, fArgs);
 
             // now read it in
@@ -1235,11 +1236,11 @@ namespace TestAllTool
             AstroLibr.fundarg(ttt, AstroLib.EOpt.e06cio, out fArgs06);
             AstroLibr.iau06xysS(ttt, EOPSPWLibr.iau06arr, fArgs06, out x, out y, out s);
             strbuild.AppendLine("iau06xysS wo   x   " + x.ToString() + " y " + y.ToString() + " s " + s.ToString());
-            strbuild.AppendLine("iau06xysS wo   x   " + (x / conv).ToString() + " y " + (y / conv).ToString() + " s " + (s / conv).ToString());
+            strbuild.AppendLine("iau06xysS wo   x   " + (x / conv).ToString() + " y " + (y / conv).ToString() + " s " + (s / conv).ToString() + " arcsec");
             x = x + ddx;
             y = y + ddy;
             strbuild.AppendLine("iau06xysS      x   " + x.ToString() + " y " + y.ToString() + " s " + s.ToString());
-            strbuild.AppendLine("iau06xysS      x   " + (x / conv).ToString() + " y " + (y / conv).ToString() + " s " + (s / conv).ToString());
+            strbuild.AppendLine("iau06xysS      x   " + (x / conv).ToString() + " y " + (y / conv).ToString() + " s " + (s / conv).ToString() + " arcsec");
             AstroLibr.findxysparam(jdtt + jdftt, 0.0, 'n', AstroLibr.xysarr, out x, out y, out s);
             strbuild.AppendLine("findxysparam n x " + x.ToString() + "   y " + y.ToString() + "   s " + s.ToString());
             AstroLibr.findxysparam(jdtt + jdftt, 0.0, 'l', AstroLibr.xysarr, out x, out y, out s);
@@ -1266,21 +1267,12 @@ namespace TestAllTool
                 EOPSPWLibr.iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
             strbuild.AppendLine("ITRF rev       IAU-76/FK5   " + recef[0].ToString(fmt).PadLeft(4) + " " + recef[1].ToString(fmt).PadLeft(4) + " " + recef[2].ToString(fmt).PadLeft(4) + " "
                 + vecef[0].ToString(fmt).PadLeft(4) + " " + vecef[1].ToString(fmt).PadLeft(4) + " " + vecef[2].ToString(fmt).PadLeft(4));
-            recef = new double[] { -1033.4793830, 7901.2952754, 6380.3565958 };
-            vecef = new double[] { -3.225636520, -2.872451450, 5.531924446 };
 
+            AstroLibr.eci_ecef06(ref reci, ref veci, MathTimeLib.Edirection.eto, ref recef, ref vecef,
+                 AstroLib.EOpt.e06cio, EOPSPWLibr.iau06arr, AstroLibr.xysarr, jdtt, jdftt, jdut1, lod, xp, yp, ddx, ddy);
+            strbuild.AppendLine("ITRF rev       IAU-2006 CIO " + recef[0].ToString(fmt).PadLeft(4) + " " + recef[1].ToString(fmt).PadLeft(4) + " " + recef[2].ToString(fmt).PadLeft(4) + " "
+               + vecef[0].ToString(fmt).PadLeft(4) + " " + vecef[1].ToString(fmt).PadLeft(4) + " " + vecef[2].ToString(fmt).PadLeft(4));
 
-            // these are not correct
-            AstroLibr.eci_ecef06(ref reci, ref veci, MathTimeLib.Edirection.efrom, ref recef, ref vecef,
-                 AstroLib.EOpt.e06eq, EOPSPWLibr.iau06arr, AstroLibr.xysarr, jdtt, jdftt, jdut1, lod, xp, yp, ddx, ddy);
-            strbuild.AppendLine("GCRF          IAU-2006 06  " + reci[0].ToString(fmt).PadLeft(4) + " " + reci[1].ToString(fmt).PadLeft(4) + " " + reci[2].ToString(fmt).PadLeft(4) + " "
-                + veci[0].ToString(fmt).PadLeft(4) + " " + veci[1].ToString(fmt).PadLeft(4) + " " + veci[2].ToString(fmt).PadLeft(4));
-
-            AstroLibr.eci_ecef06(ref reci, ref veci, MathTimeLib.Edirection.efrom, ref recef, ref vecef,
-                 AstroLib.EOpt.e00a, EOPSPWLibr.iau06arr, AstroLibr.xysarr, jdtt, jdftt, jdut1, lod, xp, yp, ddx, ddy);
-            strbuild.AppendLine("GCRF          IAU-2006 00a  " + reci[0].ToString(fmt).PadLeft(4) + " " + reci[1].ToString(fmt).PadLeft(4) + " " + reci[2].ToString(fmt).PadLeft(4) + " "
-                + veci[0].ToString(fmt).PadLeft(4) + " " + veci[1].ToString(fmt).PadLeft(4) + " " + veci[2].ToString(fmt).PadLeft(4));
-            strbuild.AppendLine("00a case is wrong");
 
             // writeout data for table interpolation
             Int32 i;
@@ -1311,20 +1303,20 @@ namespace TestAllTool
 
             // rad to "
             double convrt = (180.0 * 3600.0) / Math.PI;
-            strbuild.AppendLine("CIO tests      x                   y                     s          ddpsi            ddeps      mjd ");
+            strbuild.AppendLine("CIO tests      x           y           s          ddpsi           ddeps      ddx       ddy   mjd ");
             for (i = 0; i < 14; i++)   // 14500
             {
                 MathTimeLibr.jday(year, mon, day + i, hr, minute, second, out jd, out jdFrac);
-                //EOPSPWLibr.findeopparam(jd, jdFrac, 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5, out dut1, out dat,
-                //   out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
+                EOPSPWLibr.findeopparam(jd, jdFrac, 's', EOPSPWLibr.eopdata, out dut1, out dat,
+                   out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
                 jdtt = jd;
                 jdftt = jdFrac + (dat + 32.184) / 86400.0;
                 ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
 
                 AstroLibr.fundarg(ttt, AstroLib.EOpt.e80, out fArgs);
 
-                ddpsi = 0.0;
-                ddeps = 0.0;
+                //ddpsi = 0.0;
+                //ddeps = 0.0;
                 deltapsi = 0.0;
                 deltaeps = 0.0;
                 int ii;
@@ -1339,23 +1331,25 @@ namespace TestAllTool
                 // --------------- find nutation parameters --------------------
                 deltapsi = (deltapsi + ddpsi) % (2.0 * Math.PI);
                 deltaeps = (deltaeps + ddeps) % (2.0 * Math.PI);
+                deltapsi = deltapsi * convrt;
+                deltaeps = deltaeps * convrt;
 
                 // CIO parameters
                 AstroLibr.fundarg(ttt, AstroLib.EOpt.e06cio, out fArgs06);
-                ddx = 0.0;
-                ddy = 0.0;
+                //ddx = 0.0;
+                //ddy = 0.0;
                 AstroLibr.iau06xys(jdtt, jdftt, ddx, ddy, interp, EOPSPWLibr.iau06arr, fArgs06, AstroLibr.xysarr, out x, out y, out s);
                 x = x * convrt;
                 y = y * convrt;
                 s = s * convrt;
-                deltapsi = deltapsi * convrt;
-                deltaeps = deltaeps * convrt;
-
-                strbuild.AppendLine(" " + x.ToString(fmt).PadLeft(4) + " " + y.ToString(fmt).PadLeft(4) + " " + s.ToString(fmt).PadLeft(4) + " " +
-                    deltapsi.ToString(fmt).PadLeft(4) + " " + deltaeps.ToString(fmt).PadLeft(4) + " " + (jd + jdFrac - 2400000.5).ToString(fmt).PadLeft(4));
+        
+                strbuild.AppendLine(" " + x.ToString(fmt).PadLeft(4) + " " + y.ToString(fmt).PadLeft(4) + " " + s.ToString(fmt).PadLeft(4) + " " 
+                    + deltapsi.ToString(fmt).PadLeft(4) + " " + deltaeps.ToString(fmt).PadLeft(4) + " " 
+                    + ddx.ToString(fmt).PadLeft(4) + " " + ddy.ToString(fmt).PadLeft(4) + " "
+                    + (jd + jdFrac - 2400000.5).ToString().PadLeft(4));
             }  // for loop
-
         }
+
         public void testtod2ecef()
         {
             double[] fArgs = new double[14];
@@ -1553,11 +1547,11 @@ namespace TestAllTool
                 + veci[0].ToString(fmt).PadLeft(4) + " " + veci[1].ToString(fmt).PadLeft(4) + " " + veci[2].ToString(fmt).PadLeft(4));
 
             AstroLibr.eci_cirs(ref recii, ref vecii, MathTimeLib.Edirection.eto, ref rcirs, ref vcirs,
-                 EOpt.e06cio, iau06arr, jdtt, jdftt, jdut1, lod, ddx, ddy);
-            strbuild.AppendLine("CIRS          IAU-2006 CIO " + rtod[0].ToString(fmt).PadLeft(4) + " " + rtod[1].ToString(fmt).PadLeft(4) + " " + rtod[2].ToString(fmt).PadLeft(4) + " "
-                + vtod[0].ToString(fmt).PadLeft(4) + " " + vtod[1].ToString(fmt).PadLeft(4) + " " + vtod[2].ToString(fmt).PadLeft(4));
+                 EOpt.e06cio, iau06arr, jdtt, jdftt, ddx, ddy);
+            strbuild.AppendLine("CIRS          IAU-2006 CIO " + rcirs[0].ToString(fmt).PadLeft(4) + " " + rcirs[1].ToString(fmt).PadLeft(4) + " " + rcirs[2].ToString(fmt).PadLeft(4) + " "
+                + vcirs[0].ToString(fmt).PadLeft(4) + " " + vcirs[1].ToString(fmt).PadLeft(4) + " " + vcirs[2].ToString(fmt).PadLeft(4));
             AstroLibr.eci_cirs(ref recii, ref vecii, MathTimeLib.Edirection.efrom, ref rcirs, ref vcirs,
-                EOpt.e06cio, iau06arr, jdtt, jdftt, jdut1, lod, ddx, ddy);
+                EOpt.e06cio, iau06arr, jdtt, jdftt, ddx, ddy);
             strbuild.AppendLine("ECI rev       IAU-2006 CIO " + recii[0].ToString(fmt).PadLeft(4) + " " + recii[1].ToString(fmt).PadLeft(4) + " " + recii[2].ToString(fmt).PadLeft(4) + " "
                 + vecii[0].ToString(fmt).PadLeft(4) + " " + vecii[1].ToString(fmt).PadLeft(4) + " " + vecii[2].ToString(fmt).PadLeft(4));
 
@@ -1581,7 +1575,6 @@ namespace TestAllTool
             double conv;
             Int32 year, mon, day, hr, minute, dat;
             double jd, jdFrac, jdut1, second, dut1, ttt, lod, xp, yp, ddx, ddy, ddpsi, ddeps;
-            EOPSPWLib.iau80Class iau80arr;
 
             conv = Math.PI / (180.0 * 3600.0);
 
@@ -1604,9 +1597,7 @@ namespace TestAllTool
             ddeps = -0.003875 * conv;
             ddx = -0.000205 * conv;    // " to rad
             ddy = -0.000136 * conv;
-
-            string fileLoc = @"D:\Codes\LIBRARY\DataLib\nut80.dat";
-            EOPSPWLibr.iau80in(fileLoc, out iau80arr);
+            eqeterms = 2;
 
             // note you have to use tdb for time of ineterst AND j2000 (when dat = 32)
             ttt = (jd + jdFrac + (dat + 32.184) / 86400.0 - 2451545.0 - (32 + 32.184) / 86400.0) / 36525.0;
@@ -1616,14 +1607,12 @@ namespace TestAllTool
                 + vecef[0].ToString(fmt).PadLeft(4) + " " + vecef[1].ToString(fmt).PadLeft(4) + " " + vecef[2].ToString(fmt).PadLeft(4));
 
             AstroLibr.teme_ecef(ref rteme, ref vteme, MathTimeLib.Edirection.efrom, ttt, jdut1, lod, xp, yp,
-                eqeterms, AstroLib.EOpt.e80, ref recef, ref vecef);
+                eqeterms, ref recef, ref vecef);
             strbuild.AppendLine("TEME          IAU-76/FK5   " + rteme[0].ToString(fmt).PadLeft(4) + " " + rteme[1].ToString(fmt).PadLeft(4) + " " + rteme[2].ToString(fmt).PadLeft(4) + " "
                 + vteme[0].ToString(fmt).PadLeft(4) + " " + vteme[1].ToString(fmt).PadLeft(4) + " " + vteme[2].ToString(fmt).PadLeft(4));
 
-            recef = new double[] { 0.0, 0.0, 0.0 };
-            vecef = new double[] { 0.0, 0.0, 0.0 };
             AstroLibr.teme_ecef(ref rteme, ref vteme, MathTimeLib.Edirection.eto, ttt, jdut1, lod, xp, yp,
-                eqeterms, AstroLib.EOpt.e80, ref recef, ref vecef);
+                eqeterms, ref recef, ref vecef);
             strbuild.AppendLine("ITRF          IAU-76/FK5   " + recef[0].ToString(fmt).PadLeft(4) + " " + recef[1].ToString(fmt).PadLeft(4) + " " + recef[2].ToString(fmt).PadLeft(4) + " "
                 + vecef[0].ToString(fmt).PadLeft(4) + " " + vecef[1].ToString(fmt).PadLeft(4) + " " + vecef[2].ToString(fmt).PadLeft(4));
 
@@ -2748,6 +2737,7 @@ namespace TestAllTool
                 idx3 = 2;
                 strbuild.AppendLine("/n/n ================================ case number " + caseopt.ToString() + " ================================");
                 strbuildall.AppendLine("/n/n ================================ case number " + caseopt.ToString() + " ================================");
+                strbuild.AppendLine(ans);
                 switch (caseopt)
                 {
                     case 0:
@@ -3074,11 +3064,9 @@ namespace TestAllTool
                 strbuildall.AppendLine("\nlaplace coes a= " + a.ToString("0.0000") + " e= " + ecc.ToString("0.000000000") + " i= " + (incl * rad).ToString("0.0000") + " " +
                     (raan * rad).ToString("0.0000") + " " + (argp * rad).ToString("0.0000") + " " + (nu * rad).ToString("0.0000") + " " + (m * rad).ToString("0.0000") + " " +
                     (arglat * rad).ToString("0.0000")); // + " " + (truelon * rad).ToString("0.0000") + " " + (lonper * rad).ToString("0.0000"));
-                strbuildall.AppendLine(ans);
                 strbuild.AppendLine("laplace coes a= " + a.ToString("0.0000") + " e= " + ecc.ToString("0.000000000") + " i= " + (incl * rad).ToString("0.0000") + " " +
                     (raan * rad).ToString("0.0000") + " " + (argp * rad).ToString("0.0000") + " " + (nu * rad).ToString("0.0000") + " " + (m * rad).ToString("0.0000") + " " +
                     (arglat * rad).ToString("0.0000")); // + " " + (truelon * rad).ToString("0.0000") + " " + (lonper * rad).ToString("0.0000"));
-                strbuild.AppendLine(ans);
 
                 strbuild.AppendLine("Gauss  -----------------------------------");
                 strbuildall.AppendLine("Gauss  -----------------------------------");
@@ -3100,11 +3088,9 @@ namespace TestAllTool
                 strbuildall.AppendLine("gauss coes a= " + a.ToString("0.0000") + " e= " + ecc.ToString("0.000000000") + " i= " + (incl * rad).ToString("0.0000") + " " +
                      (raan * rad).ToString("0.0000") + " " + (argp * rad).ToString("0.0000") + " " + (nu * rad).ToString("0.0000") + " " + (m * rad).ToString("0.0000") + " " +
                      (arglat * rad).ToString("0.0000")); // + " " + (truelon * rad).ToString("0.0000") + " " + (lonper * rad).ToString("0.0000"));
-                strbuildall.AppendLine(ans);
                 strbuild.AppendLine("gauss coes a= " + a.ToString("0.0000") + " e= " + ecc.ToString("0.000000000") + " i= " + (incl * rad).ToString("0.0000") + " " +
                      (raan * rad).ToString("0.0000") + " " + (argp * rad).ToString("0.0000") + " " + (nu * rad).ToString("0.0000") + " " + (m * rad).ToString("0.0000") + " " +
                      (arglat * rad).ToString("0.0000")); // + " " + (truelon * rad).ToString("0.0000") + " " + (lonper * rad).ToString("0.0000"));
-                strbuild.AppendLine(ans);
 
                 double pctchg = 0.05;
                 strbuild.AppendLine("Double-r -----------------------------------");
@@ -3132,11 +3118,9 @@ namespace TestAllTool
                 strbuildall.AppendLine("doubler coes a= " + a.ToString("0.0000") + " e= " + ecc.ToString("0.000000000") + " i= " + (incl * rad).ToString("0.0000") + " " +
                     (raan * rad).ToString("0.0000") + " " + (argp * rad).ToString("0.0000") + " " + (nu * rad).ToString("0.0000") + " " + (m * rad).ToString("0.0000") + " " +
                     (arglat * rad).ToString("0.0000")); // + " " + (truelon * rad).ToString("0.0000") + " " + (lonper * rad).ToString("0.0000"));
-                strbuildall.AppendLine(ans);
                 strbuild.AppendLine("doubler coes a= " + a.ToString("0.0000") + " e= " + ecc.ToString("0.000000000") + " i= " + (incl * rad).ToString("0.0000") + " " +
                     (raan * rad).ToString("0.0000") + " " + (argp * rad).ToString("0.0000") + " " + (nu * rad).ToString("0.0000") + " " + (m * rad).ToString("0.0000") + " " +
                     (arglat * rad).ToString("0.0000")); // + " " + (truelon * rad).ToString("0.0000") + " " + (lonper * rad).ToString("0.0000"));
-                strbuild.AppendLine(ans);
 
 
                 strbuild.AppendLine("Gooding -----------------------------------");
@@ -3164,11 +3148,9 @@ namespace TestAllTool
                 strbuildall.AppendLine("gooding coes  a= " + a.ToString("0.0000") + " e= " + ecc.ToString("0.000000000") + " i= " + (incl * rad).ToString("0.0000") + " " +
                     (raan * rad).ToString("0.0000") + " " + (argp * rad).ToString("0.0000") + " " + (nu * rad).ToString("0.0000") + " " + (m * rad).ToString("0.0000") + " " +
                     (arglat * rad).ToString("0.0000")); // + " " + (truelon * rad).ToString("0.0000") + " " + (lonper * rad).ToString("0.0000"));
-                strbuildall.AppendLine(ans);
                 strbuild.AppendLine("gooding coes  a= " + a.ToString("0.0000") + " e= " + ecc.ToString("0.000000000") + " i= " + (incl * rad).ToString("0.0000") + " " +
                     (raan * rad).ToString("0.0000") + " " + (argp * rad).ToString("0.0000") + " " + (nu * rad).ToString("0.0000") + " " + (m * rad).ToString("0.0000") + " " +
                     (arglat * rad).ToString("0.0000")); // + " " + (truelon * rad).ToString("0.0000") + " " + (lonper * rad).ToString("0.0000"));
-                strbuild.AppendLine(ans);
 
                 //                }  // loop through cases of caseopt = 0
 

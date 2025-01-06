@@ -10,7 +10,7 @@
 %
 %  inputs          description                    range / units
 %    ttt         - julian centuries of tt
-%    opt         - method option                  '06', '02', '96', '80'
+%    opt         - method option                  '06', '96', '80'
 %
 %  outputs       :
 %    l           - delaunay element               rad
@@ -31,7 +31,8 @@
 %
 % [ l, l1, f, d, omega, ...
 %   lonmer, lonven, lonear, lonmar, lonjup, lonsat, lonurn, lonnep, precrate 
-% [fArgs] = fundarg( ttt, opt );
+%
+%   [fArgs] = fundarg( ttt, opt );
 % ----------------------------------------------------------------------------
 
 function [fArgs] = fundarg( ttt, opt )
@@ -81,26 +82,6 @@ function [fArgs] = fundarg( ttt, opt )
                 precrate = ((0.024381750 + 0.00000538691 * ttt) * ttt);
         end
 
-        % ---- iau 2000b theory
-        if opt == '02'
-            % ------ form the delaunay fundamental arguments in deg
-            l    =  134.96340251  + ( 1717915923.2178 *ttt ) / 3600.0;
-            l1   =  357.52910918  + (  129596581.0481 *ttt ) / 3600.0;
-            f    =   93.27209062  + ( 1739527262.8478 *ttt ) / 3600.0;
-            d    =  297.85019547  + ( 1602961601.2090 *ttt ) / 3600.0;
-            omega=  125.04455501  + (   -6962890.5431 *ttt ) / 3600.0;
-
-            % ------ form the planetary arguments in deg
-            lonmer  = 0.0;
-            lonven  = 0.0;
-            lonear  = 0.0;
-            lonmar  = 0.0;
-            lonjup  = 0.0;
-            lonsat  = 0.0;
-            lonurn  = 0.0;
-            lonnep  = 0.0;
-            precrate= 0.0;
-        end 
 
         % ---- iau 1996 theory
         if opt == '96'
