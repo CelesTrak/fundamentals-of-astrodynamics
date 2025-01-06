@@ -169,7 +169,7 @@ def test_precess_bad():
         _ = utils.precess(0.5, "25")
 
 
-def test_nutation():
+def test_nutation(iau80arr):
     # Inputs
     ttt = 0.042623631888994
     ddpsi = -0.052195 * ARCSEC2RAD
@@ -185,7 +185,7 @@ def test_nutation():
     )
 
     # Call the function with test inputs
-    deltapsi, trueeps, meaneps, omega, nut = utils.nutation(ttt, ddpsi, ddeps)
+    deltapsi, trueeps, meaneps, omega, nut = utils.nutation(ttt, ddpsi, ddeps, iau80arr)
 
     # Check if the outputs are close to the expected values
     assert custom_isclose(deltapsi, -5.978331920752922e-05)

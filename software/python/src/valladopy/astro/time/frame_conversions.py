@@ -12,7 +12,7 @@ from numpy.typing import ArrayLike
 from typing import Literal, Tuple
 
 from . import iau_transform as iau
-from .data import IAU06pnOldArray, IAU06Array
+from .data import IAU80Array, IAU06pnOldArray, IAU06Array
 from .sidereal import gstime, sidereal
 from .utils import precess, nutation, polarm
 from ... import constants as const
@@ -26,6 +26,7 @@ def calc_orbit_effects(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     opt: Literal["50", "80", "06"] = "80",
     eqeterms: bool = True,
     use_iau80: bool = True,
@@ -41,6 +42,7 @@ def calc_orbit_effects(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         opt (Literal["50", "80", "06"], optional): Option for precession/nutation model
                                                    (default "80")
         eqeterms (bool, optional): Add terms for ast calculation (default True)
@@ -57,7 +59,7 @@ def calc_orbit_effects(
     """
     # Find matrices that account for various orbit effects
     prec, *_ = precess(ttt, opt=opt)
-    deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps)
+    deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
     st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms)
     pm = polarm(xp, yp, ttt, use_iau80=use_iau80)
 
@@ -80,6 +82,7 @@ def compute_iau06_matrices(
     xp: float,
     yp: float,
     option: Literal["06a", "06b", "06c"],
+    iau80arr: IAU80Array,
     iau06arr: IAU06Array,
     iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
@@ -95,6 +98,7 @@ def compute_iau06_matrices(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         iau06arr (IAU06Array): IAU 2006 data
         iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
@@ -128,7 +132,7 @@ def compute_iau06_matrices(
 
     # Polar motion matrix and Earth rotation vector
     *_, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, 0, 0, use_iau80=False
+        ttt, jdut1, lod, xp, yp, 0, 0, iau80arr, use_iau80=False
     )
 
     return pnb, st, pm, omegaearth
@@ -145,6 +149,7 @@ def eci2ecef(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the ECI mean equator, mean equinox frame
@@ -164,6 +169,7 @@ def eci2ecef(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -176,7 +182,7 @@ def eci2ecef(
     """
     # Find matrices that account for various orbit effects
     prec, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Position transformation
@@ -207,6 +213,7 @@ def eci2ecef06(
     xp: float,
     yp: float,
     option: Literal["06a", "06b", "06c"],
+    iau80arr: IAU80Array,
     iau06arr: IAU06Array,
     iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
@@ -228,6 +235,7 @@ def eci2ecef06(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         iau06arr (IAU06Array): IAU 2006 data
         iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
@@ -241,7 +249,7 @@ def eci2ecef06(
     """
     # Compute the IAU 2006 matrices
     pnb, st, pm, omegaearth = compute_iau06_matrices(
-        ttt, jdut1, lod, xp, yp, option, iau06arr, iau06_pnold_arr, ddx, ddy
+        ttt, jdut1, lod, xp, yp, option, iau80arr, iau06arr, iau06_pnold_arr, ddx, ddy
     )
 
     # Transform position
@@ -273,6 +281,7 @@ def ecef2eci(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the Earth-fixed (ITRF) frame (ECEF) to the ECI
@@ -292,6 +301,7 @@ def ecef2eci(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -302,7 +312,7 @@ def ecef2eci(
     """
     # Find matrices that account for various orbit effects
     prec, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Position transformation
@@ -333,6 +343,7 @@ def ecef2eci06(
     xp: float,
     yp: float,
     option: Literal["06a", "06b", "06c"],
+    iau80arr: IAU80Array,
     iau06arr: IAU06Array,
     iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
@@ -353,10 +364,11 @@ def ecef2eci06(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         iau06arr (IAU06Array): IAU 2006 data
         iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
 
     Returns:
         tuple: (reci, veci, aeci)
@@ -366,7 +378,7 @@ def ecef2eci06(
     """
     # Compute the IAU 2006 matrices
     pnb, st, pm, omegaearth = compute_iau06_matrices(
-        ttt, jdut1, lod, xp, yp, option, iau06arr, iau06_pnold_arr, ddx, ddy
+        ttt, jdut1, lod, xp, yp, option, iau80arr, iau06arr, iau06_pnold_arr, ddx, ddy
     )
 
     # Transform position
@@ -382,7 +394,7 @@ def ecef2eci06(
     aeci = (
         pnb
         @ st
-        @ (pm @ aecef + np.cross(omegaearth, temp) + 2.0 * np.cross(omegaearth, vpef))
+        @ (pm @ aecef + np.cross(omegaearth, temp) + 2 * np.cross(omegaearth, vpef))
     )
 
     return reci, veci, aeci
@@ -400,6 +412,7 @@ def compute_iau_matrices(
     ddpsi: float,
     ddeps: float,
     option: Literal["80", "06a", "06b", "06c"],
+    iau80arr: IAU80Array,
     iau06arr: IAU06Array,
     iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
@@ -417,10 +430,11 @@ def compute_iau_matrices(
         ddeps (float): Nutation correction for delta epsilon in radians
         option (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation
                                                      model
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         iau06arr (IAU06Array): IAU 2006 data
         iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -436,13 +450,13 @@ def compute_iau_matrices(
     # Get the precession matrix and the Earth's rotation vector
     iau_opt = "06" if "06" in option else option
     prec, *_, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, opt=iau_opt, eqeterms=eqeterms
+        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, iau80arr, opt=iau_opt, eqeterms=eqeterms
     )
 
     # Get orbit effects based on the option
     if option == "80":
         # IAU 1980 model
-        deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps)
+        deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
         st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms)
     else:
         if option == "06c":
@@ -478,6 +492,7 @@ def eci2pef(
     ddpsi: float,
     ddeps: float,
     option: Literal["80", "06a", "06b", "06c"],
+    iau80arr: IAU80Array,
     iau06arr: IAU06Array,
     iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
@@ -501,6 +516,7 @@ def eci2pef(
         ddeps (float): Nutation correction for delta epsilon in radians
         option (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation
                                                      model
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         iau06arr (IAU06Array): IAU 2006 data
         iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
         ddx (float, optional): EOP correction for x in radians (default 0.0)
@@ -521,6 +537,7 @@ def eci2pef(
         ddpsi,
         ddeps,
         option,
+        iau80arr,
         iau06arr,
         iau06_pnold_arr,
         ddx,
@@ -549,6 +566,7 @@ def pef2eci(
     lod: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the pseudo Earth-fixed (PEF) frame to the ECI mean
@@ -566,6 +584,7 @@ def pef2eci(
         lod (float): Excess length of day in seconds
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -576,7 +595,7 @@ def pef2eci(
     """
     # Find matrices that account for various orbit effects
     prec, nut, st, _, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform vectors
@@ -609,6 +628,7 @@ def eci2tod(
     ddpsi: float,
     ddeps: float,
     option: Literal["80", "06a", "06b", "06c"],
+    iau80arr: IAU80Array,
     iau06arr: IAU06Array,
     iau06_pnold_arr: IAU06pnOldArray | None = None,
     ddx: float = 0.0,
@@ -629,10 +649,11 @@ def eci2tod(
         ddeps (float): Delta epsilon correction to GCRF in radians
         option (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation
                                                      model
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         iau06arr (IAU06Array): IAU 2006 data
         iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
 
     Returns:
         tuple: (rtod, vtod, atod)
@@ -648,6 +669,7 @@ def eci2tod(
         ddpsi,
         ddeps,
         option,
+        iau80arr,
         iau06arr,
         iau06_pnold_arr,
         ddx,
@@ -670,6 +692,7 @@ def tod2eci(
     ttt: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the true equator, true equinox of date (TOD) frame
     to the ECI mean equator, mean equinox (J2000) frame.
@@ -684,6 +707,7 @@ def tod2eci(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (reci, veci, aeci)
@@ -695,7 +719,7 @@ def tod2eci(
     prec, *_ = precess(ttt, opt="80")
 
     # Nutation
-    *_, nut = nutation(ttt, ddpsi, ddeps)
+    *_, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
 
     # Transform vectors
     reci = prec @ nut @ np.asarray(rtod)
@@ -780,7 +804,7 @@ def mod2eci(
 
 
 def _get_teme_eci_transform(
-    ttt: float, ddpsi: float, ddeps: float
+    ttt: float, ddpsi: float, ddeps: float, iau80arr: IAU80Array
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Generates the transformation matrices for TEME ↔ ECI.
 
@@ -788,6 +812,7 @@ def _get_teme_eci_transform(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (prec, nut, eqe)
@@ -799,7 +824,7 @@ def _get_teme_eci_transform(
     prec, *_ = precess(ttt, opt="80")
 
     # Nutation
-    deltapsi, _, meaneps, _, nut = nutation(ttt, ddpsi, ddeps)
+    deltapsi, _, meaneps, _, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
 
     # Equation of equinoxes (geometric terms only)
     eqeg = deltapsi * np.cos(meaneps)
@@ -820,6 +845,7 @@ def eci2teme(
     ttt: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the ECI mean equator, mean equinox (J2000) frame to the
     true equator, mean equinox (TEME) frame.
@@ -834,6 +860,7 @@ def eci2teme(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (rteme, vteme, ateme)
@@ -842,7 +869,7 @@ def eci2teme(
             ateme (np.ndarray): TEME acceleration vector in km/s²
     """
     # Get the individual transformation matrices
-    prec, nut, eqe = _get_teme_eci_transform(ttt, ddpsi, ddeps)
+    prec, nut, eqe = _get_teme_eci_transform(ttt, ddpsi, ddeps, iau80arr)
 
     # Combined transformation matrix
     tm = eqe @ nut.T @ prec.T
@@ -862,6 +889,7 @@ def teme2eci(
     ttt: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the true equator, mean equinox (TEME) frame to the ECI
     mean equator, mean equinox (J2000) frame.
@@ -877,6 +905,7 @@ def teme2eci(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (reci, veci, aeci)
@@ -885,7 +914,7 @@ def teme2eci(
             aeci (np.ndarray): ECI acceleration vector in km/s²
     """
     # Get the individual transformation matrices
-    prec, nut, eqe = _get_teme_eci_transform(ttt, ddpsi, ddeps)
+    prec, nut, eqe = _get_teme_eci_transform(ttt, ddpsi, ddeps, iau80arr)
 
     # Combined transformation matrix
     tm = prec @ nut @ eqe.T
@@ -1007,6 +1036,7 @@ def ecef2tod(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the Earth-fixed (ITRF) frame to the true-of-date (TOD)
@@ -1026,6 +1056,7 @@ def ecef2tod(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1038,7 +1069,7 @@ def ecef2tod(
     """
     # Find matrices that account for various orbit effects
     _, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform position
@@ -1070,6 +1101,7 @@ def tod2ecef(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the true-of-date (TOD) frame to the Earth-fixed (ITRF)
@@ -1089,6 +1121,7 @@ def tod2ecef(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1101,7 +1134,7 @@ def tod2ecef(
     """
     # Find matrices that account for various orbit effects
     _, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform position
@@ -1138,6 +1171,7 @@ def ecef2mod(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the Earth-fixed (ITRF) frame to the mean-of-date (MOD)
@@ -1157,6 +1191,7 @@ def ecef2mod(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1169,7 +1204,7 @@ def ecef2mod(
     """
     # Find matrices that account for various orbit effects
     _, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform position
@@ -1202,6 +1237,7 @@ def mod2ecef(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the mean-of-date (MOD) frame to the Earth-fixed (ITRF)
@@ -1221,6 +1257,7 @@ def mod2ecef(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1233,7 +1270,7 @@ def mod2ecef(
     """
     # Find matrices that account for various orbit effects
     _, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform position
@@ -1260,7 +1297,13 @@ def mod2ecef(
 
 
 def get_teme_transform_matrices(
-    ttt: float, jdut1: float, lod: float, xp: float, yp: float, eqeterms: bool
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    xp: float,
+    yp: float,
+    iau80arr: IAU80Array,
+    eqeterms: bool,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the matrices and Earth rotation vector for TEME transformations.
 
@@ -1270,7 +1313,8 @@ def get_teme_transform_matrices(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
-        eqeterms (bool): Add terms for ast calculation (True/False)
+        iau80arr (IAU80Array): IAU 1980 data for nutation
+        eqeterms (bool): Add terms for ast calculation
 
     Returns:
         tuple: (st, pm, omegaearth)
@@ -1311,7 +1355,7 @@ def get_teme_transform_matrices(
 
     # Polar motion matrix and Earth's rotation vector
     *_, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, 0, 0, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, 0, 0, iau80arr, eqeterms=eqeterms
     )
 
     return st, pm, omegaearth
@@ -1326,6 +1370,7 @@ def ecef2teme(
     lod: float,
     xp: float,
     yp: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the Earth-fixed (ITRF) frame to the
@@ -1345,6 +1390,7 @@ def ecef2teme(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1354,7 +1400,9 @@ def ecef2teme(
             ateme (np.ndarray): TEME acceleration vector in km/s²
     """
     # Get common matrices and Earth rotation vector
-    st, pm, omegaearth = get_teme_transform_matrices(ttt, jdut1, lod, xp, yp, eqeterms)
+    st, pm, omegaearth = get_teme_transform_matrices(
+        ttt, jdut1, lod, xp, yp, iau80arr, eqeterms
+    )
 
     # Transform position
     rpef = pm @ recef
@@ -1383,6 +1431,7 @@ def teme2ecef(
     lod: float,
     xp: float,
     yp: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the true equator, mean equinox (TEME) frame to the
@@ -1402,6 +1451,7 @@ def teme2ecef(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1411,7 +1461,9 @@ def teme2ecef(
             aecef (np.ndarray): ECEF acceleration vector in km/s²
     """
     # Get common matrices and Earth rotation vector
-    st, pm, omegaearth = get_teme_transform_matrices(ttt, jdut1, lod, xp, yp, eqeterms)
+    st, pm, omegaearth = get_teme_transform_matrices(
+        ttt, jdut1, lod, xp, yp, iau80arr, eqeterms
+    )
 
     # Transform position
     rpef = st.T @ rteme

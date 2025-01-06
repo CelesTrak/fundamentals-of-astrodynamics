@@ -1,6 +1,12 @@
 import pytest
 
-from src.valladopy.astro.time.data import iau06in_pnold, iau06in, readxys
+from src.valladopy.astro.time.data import iau80in, iau06in_pnold, iau06in, readxys
+
+
+@pytest.fixture()
+def iau80arr():
+    """Load the IAU 1980 data"""
+    return iau80in()
 
 
 @pytest.fixture()

@@ -4,7 +4,6 @@ import pytest
 import numpy as np
 import scipy
 
-from src.valladopy.astro.time.data import iau80in
 from ...conftest import custom_allclose
 
 
@@ -74,10 +73,7 @@ def xys_data(current_dir):
     return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 
-def test_iau80in(iau80_mat_data):
-    # Load data using iau80in
-    iau80arr = iau80in()
-
+def test_iau80in(iau80arr, iau80_mat_data):
     # Check that they are the same
     assert np.array_equal(iau80arr.iar80, iau80_mat_data.iar80)
     assert custom_allclose(iau80arr.rar80, iau80_mat_data.rar80)

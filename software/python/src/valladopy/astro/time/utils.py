@@ -12,7 +12,7 @@ from typing import Tuple
 
 import numpy as np
 
-from .data import iau80in
+from .data import IAU80Array
 from ...constants import ARCSEC2RAD, DEG2ARCSEC, TWOPI
 
 
@@ -339,7 +339,7 @@ def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, floa
 
 
 def nutation(
-    ttt: float, ddpsi: float, ddeps: float
+    ttt: float, ddpsi: float, ddeps: float, iau80arr: IAU80Array
 ) -> Tuple[float, float, float, float, np.ndarray]:
     """Calculates the transformation matrix that accounts for the effects of nutation.
 
@@ -350,6 +350,7 @@ def nutation(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta eps correction to GCRF in radians
+        iau80arr (IAU80Array): Data object containing the nutation matrices
 
     Returns:
         tuple:
@@ -359,10 +360,6 @@ def nutation(
             omega (float): Delaunay element in radians
             nut (np.ndarray): Transformation matrix for TOD - MOD
     """
-    # Load nutation coefficients
-    iau80arr = iau80in()
-    iar80, rar80 = iau80arr.iar80, iau80arr.rar80
-
     # Mean obliquity of the ecliptic
     meaneps = -46.815 * ttt - 0.00059 * ttt**2 + 0.001813 * ttt**3 + 84381.448
     meaneps = float(np.radians(np.remainder(meaneps / DEG2ARCSEC, np.degrees(TWOPI))))
@@ -372,16 +369,20 @@ def nutation(
 
     # Calculate nutation parameters
     deltapsi, deltaeps = 0, 0
-    for i in range(len(iar80)):
+    for i in range(len(iau80arr.iar80)):
         tempval = (
-            iar80[i, 0] * fundargs.l
-            + iar80[i, 1] * fundargs.l1
-            + iar80[i, 2] * fundargs.f
-            + iar80[i, 3] * fundargs.d
-            + iar80[i, 4] * fundargs.omega
+            iau80arr.iar80[i, 0] * fundargs.l
+            + iau80arr.iar80[i, 1] * fundargs.l1
+            + iau80arr.iar80[i, 2] * fundargs.f
+            + iau80arr.iar80[i, 3] * fundargs.d
+            + iau80arr.iar80[i, 4] * fundargs.omega
         )
-        deltapsi += (rar80[i, 0] + rar80[i, 1] * ttt) * np.sin(tempval)
-        deltaeps += (rar80[i, 2] + rar80[i, 3] * ttt) * np.cos(tempval)
+        deltapsi += (iau80arr.rar80[i, 0] + iau80arr.rar80[i, 1] * ttt) * np.sin(
+            tempval
+        )
+        deltaeps += (iau80arr.rar80[i, 2] + iau80arr.rar80[i, 3] * ttt) * np.cos(
+            tempval
+        )
 
     # Add corrections
     deltapsi = math.remainder(deltapsi + ddpsi, TWOPI)

@@ -86,8 +86,7 @@ def orbit_effects_inputs():
     yp = 0.333309 * ARCSEC2RAD  # polar motion coefficient, rad
     ddpsi = -0.052195 * ARCSEC2RAD  # delta psi correction to GCRF, rad
     ddeps = -0.003875 * ARCSEC2RAD  # delta epsilon correction to GCRF, rad
-    eqeterms = True  # add extra terms for ast calculation
-    return xp, yp, ddpsi, ddeps, eqeterms
+    return xp, yp, ddpsi, ddeps
 
 
 @pytest.fixture
@@ -97,13 +96,13 @@ def eop_corrections():
     return ddx, ddy
 
 
-def test_eci2ecef(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs):
+def test_eci2ecef(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected ECEF output vectors
     recef, vecef, _ = rva_ecef
 
     # Call the function with test inputs
     recef_out, vecef_out, aecef_out = fc.eci2ecef(
-        *rva_eci, *t_inputs, *orbit_effects_inputs
+        *rva_eci, *t_inputs, *orbit_effects_inputs, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
@@ -141,6 +140,7 @@ def test_eci2ecef(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs):
     ],
 )
 def test_eci2ecef06(
+    iau80arr,
     iau06arr,
     iau06data_old,
     rva_eci,
@@ -157,7 +157,15 @@ def test_eci2ecef06(
 
     # Call the function with test inputs
     recef_out, vecef_out, aecef_out = fc.eci2ecef06(
-        *rva_eci, *t_inputs, xp, yp, opt, iau06arr, iau06data_old, *eop_corrections
+        *rva_eci,
+        *t_inputs,
+        xp,
+        yp,
+        opt,
+        iau80arr,
+        iau06arr,
+        iau06data_old,
+        *eop_corrections,
     )
 
     # Check if the output vectors are close to the expected values
@@ -166,13 +174,13 @@ def test_eci2ecef06(
     assert custom_allclose(aecef_exp, aecef_out)
 
 
-def test_ecef2eci(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs):
+def test_ecef2eci(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected ECI output vectors
     reci, veci, aeci = rva_eci
 
     # Call the function with test inputs
     reci_out, veci_out, aeci_out = fc.ecef2eci(
-        *rva_ecef, *t_inputs, *orbit_effects_inputs
+        *rva_ecef, *t_inputs, *orbit_effects_inputs, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
@@ -205,6 +213,7 @@ def test_ecef2eci(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs):
     ],
 )
 def test_ecef2eci06(
+    iau80arr,
     iau06arr,
     iau06data_old,
     rva_ecef,
@@ -221,7 +230,15 @@ def test_ecef2eci06(
 
     # Call the function with test inputs
     reci_out, veci_out, aeci_out = fc.ecef2eci06(
-        *rva_ecef, *t_inputs, xp, yp, opt, iau06arr, iau06data_old, *eop_corrections
+        *rva_ecef,
+        *t_inputs,
+        xp,
+        yp,
+        opt,
+        iau80arr,
+        iau06arr,
+        iau06data_old,
+        *eop_corrections,
     )
 
     # Check if the output vectors are close to the expected values
@@ -255,6 +272,7 @@ def test_ecef2eci06(
     ],
 )
 def test_eci2pef(
+    iau80arr,
     iau06arr,
     iau06data_old,
     rva_eci,
@@ -267,7 +285,7 @@ def test_eci2pef(
     apef_exp,
 ):
     # Orbit effects inputs
-    *_, ddpsi, ddeps, eqeterms = orbit_effects_inputs
+    *_, ddpsi, ddeps = orbit_effects_inputs
 
     # Call the function with test inputs
     rpef_out, vpef_out, apef_out = fc.eci2pef(
@@ -276,10 +294,10 @@ def test_eci2pef(
         ddpsi,
         ddeps,
         opt,
+        iau80arr,
         iau06arr,
         iau06data_old,
         *eop_corrections,
-        eqeterms,
     )
 
     # Check if the output vectors are close to the expected values
@@ -288,16 +306,16 @@ def test_eci2pef(
     assert custom_allclose(apef_exp, apef_out)
 
 
-def test_pef2eci(t_inputs, orbit_effects_inputs, rva_eci, rva_pef):
+def test_pef2eci(t_inputs, orbit_effects_inputs, rva_eci, rva_pef, iau80arr):
     # Expected ECI output vectors
     reci, veci, aeci = rva_eci
 
     # Orbit effects inputs
-    *_, ddpsi, ddeps, eqeterms = orbit_effects_inputs
+    *_, ddpsi, ddeps = orbit_effects_inputs
 
     # Call the function with test inputs
     reci_out, veci_out, aeci_out = fc.pef2eci(
-        *rva_pef, *t_inputs, ddpsi, ddeps, eqeterms
+        *rva_pef, *t_inputs, ddpsi, ddeps, iau80arr
     )
 
     # Expected ECI output vectors
@@ -331,6 +349,7 @@ def test_pef2eci(t_inputs, orbit_effects_inputs, rva_eci, rva_pef):
     ],
 )
 def test_eci2tod(
+    iau80arr,
     iau06arr,
     iau06data_old,
     rva_eci,
@@ -344,11 +363,19 @@ def test_eci2tod(
 ):
     # Extract inputs
     ttt, *_ = t_inputs
-    _, _, ddpsi, ddeps, _ = orbit_effects_inputs
+    *_, ddpsi, ddeps = orbit_effects_inputs
 
     # Call the function with test inputs
     rtod_out, vtod_out, atod_out = fc.eci2tod(
-        *rva_eci, ttt, ddpsi, ddeps, opt, iau06arr, iau06data_old, *eop_corrections
+        *rva_eci,
+        ttt,
+        ddpsi,
+        ddeps,
+        opt,
+        iau80arr,
+        iau06arr,
+        iau06data_old,
+        *eop_corrections,
     )
 
     # Check if the output vectors are close to the expected values
@@ -357,16 +384,16 @@ def test_eci2tod(
     assert custom_allclose(atod_exp, atod_out)
 
 
-def test_tod2eci(t_inputs, orbit_effects_inputs, rva_eci, rva_tod):
+def test_tod2eci(t_inputs, orbit_effects_inputs, rva_eci, rva_tod, iau80arr):
     # Expected ECI output vectors
     reci, veci, aeci = rva_eci
 
     # Extract inputs
     ttt, *_ = t_inputs
-    *_, ddpsi, ddeps, _ = orbit_effects_inputs
+    *_, ddpsi, ddeps = orbit_effects_inputs
 
     # Call the function with test inputs
-    reci_out, veci_out, aeci_out = fc.tod2eci(*rva_tod, ttt, ddpsi, ddeps)
+    reci_out, veci_out, aeci_out = fc.tod2eci(*rva_tod, ttt, ddpsi, ddeps, iau80arr)
 
     # Expected ECI output vectors
     assert custom_allclose(reci, reci_out)
@@ -406,16 +433,16 @@ def test_mod2eci(rva_eci, rva_mod, t_inputs):
     assert custom_allclose(aeci, aeci_out)
 
 
-def test_eci2teme(rva_eci, rva_teme, t_inputs, orbit_effects_inputs):
+def test_eci2teme(rva_eci, rva_teme, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected TEME output vectors
     rteme, vteme, ateme = rva_teme
 
     # Extract inputs
     ttt, *_ = t_inputs
-    _, _, ddpsi, ddeps, _ = orbit_effects_inputs
+    *_, ddpsi, ddeps = orbit_effects_inputs
 
     # Call the function with test inputs
-    rteme_out, vteme_out, ateme_out = fc.eci2teme(*rva_eci, ttt, ddpsi, ddeps)
+    rteme_out, vteme_out, ateme_out = fc.eci2teme(*rva_eci, ttt, ddpsi, ddeps, iau80arr)
 
     # Check if the output vectors are close to the expected values
     assert custom_allclose(rteme, rteme_out)
@@ -423,16 +450,16 @@ def test_eci2teme(rva_eci, rva_teme, t_inputs, orbit_effects_inputs):
     assert custom_allclose(ateme, ateme_out)
 
 
-def test_teme2eci(rva_eci, rva_teme, t_inputs, orbit_effects_inputs):
+def test_teme2eci(rva_eci, rva_teme, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected ECI output vectors
     reci, veci, aeci = rva_eci
 
     # Extract inputs
     ttt, *_ = t_inputs
-    _, _, ddpsi, ddeps, _ = orbit_effects_inputs
+    *_, ddpsi, ddeps = orbit_effects_inputs
 
     # Call the function with test inputs
-    reci_out, veci_out, aeci_out = fc.teme2eci(*rva_teme, ttt, ddpsi, ddeps)
+    reci_out, veci_out, aeci_out = fc.teme2eci(*rva_teme, ttt, ddpsi, ddeps, iau80arr)
 
     # Check if the output vectors are close to the expected values
     assert custom_allclose(reci, reci_out)
@@ -479,7 +506,7 @@ def test_pef2ecef(rva_ecef, rva_pef, t_inputs, orbit_effects_inputs):
     assert custom_allclose(aecef, aecef_out)
 
 
-def test_ecef2tod(rva_ecef, rva_tod, t_inputs, orbit_effects_inputs):
+def test_ecef2tod(rva_ecef, rva_tod, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected TOD output vectors
     # The acceleration vector is not correct so we will just compare it to the expected
     rtod, vtod, _ = rva_tod
@@ -487,7 +514,7 @@ def test_ecef2tod(rva_ecef, rva_tod, t_inputs, orbit_effects_inputs):
 
     # Call the function with test inputs
     rtod_out, vtod_out, atod_out = fc.ecef2tod(
-        *rva_ecef, *t_inputs, *orbit_effects_inputs
+        *rva_ecef, *t_inputs, *orbit_effects_inputs, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
@@ -496,7 +523,7 @@ def test_ecef2tod(rva_ecef, rva_tod, t_inputs, orbit_effects_inputs):
     assert custom_allclose(atod, atod_out)
 
 
-def test_tod2ecef(rva_ecef, rva_tod, t_inputs, orbit_effects_inputs):
+def test_tod2ecef(rva_ecef, rva_tod, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected ECEF output vectors
     # The acceleration vector is not correct so we will just compare it to the expected
     recef, vecef, _ = rva_ecef
@@ -504,7 +531,7 @@ def test_tod2ecef(rva_ecef, rva_tod, t_inputs, orbit_effects_inputs):
 
     # Call the function with test inputs
     recef_out, vecef_out, aecef_out = fc.tod2ecef(
-        *rva_tod, *t_inputs, *orbit_effects_inputs
+        *rva_tod, *t_inputs, *orbit_effects_inputs, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
@@ -513,7 +540,7 @@ def test_tod2ecef(rva_ecef, rva_tod, t_inputs, orbit_effects_inputs):
     assert custom_allclose(aecef, aecef_out)
 
 
-def test_ecef2mod(rva_ecef, rva_mod, t_inputs, orbit_effects_inputs):
+def test_ecef2mod(rva_ecef, rva_mod, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected MOD output vectors
     # The acceleration vector is not correct so we will just compare it to the expected
     rmod, vmod, _ = rva_mod
@@ -521,7 +548,7 @@ def test_ecef2mod(rva_ecef, rva_mod, t_inputs, orbit_effects_inputs):
 
     # Call the function with test inputs
     rmod_out, vmod_out, amod_out = fc.ecef2mod(
-        *rva_ecef, *t_inputs, *orbit_effects_inputs
+        *rva_ecef, *t_inputs, *orbit_effects_inputs, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
@@ -530,7 +557,7 @@ def test_ecef2mod(rva_ecef, rva_mod, t_inputs, orbit_effects_inputs):
     assert custom_allclose(amod, amod_out)
 
 
-def test_mod2ecef(rva_ecef, rva_mod, t_inputs, orbit_effects_inputs):
+def test_mod2ecef(rva_ecef, rva_mod, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected ECEF output vectors
     # The acceleration vector is not correct so we will just compare it to the expected
     recef, vecef, _ = rva_ecef
@@ -538,7 +565,7 @@ def test_mod2ecef(rva_ecef, rva_mod, t_inputs, orbit_effects_inputs):
 
     # Call the function with test inputs
     recef_out, vecef_out, aecef_out = fc.mod2ecef(
-        *rva_mod, *t_inputs, *orbit_effects_inputs
+        *rva_mod, *t_inputs, *orbit_effects_inputs, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
@@ -547,18 +574,18 @@ def test_mod2ecef(rva_ecef, rva_mod, t_inputs, orbit_effects_inputs):
     assert custom_allclose(aecef, aecef_out)
 
 
-def test_ecef2teme(rva_ecef, rva_teme, t_inputs, orbit_effects_inputs):
+def test_ecef2teme(rva_ecef, rva_teme, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected TEME output vectors
     # The acceleration vector is not correct so we will just compare it to the expected
     rteme, vteme, _ = rva_teme
     ateme = [-0.0010028068479698174, -0.001798937729169217, 0.0029999960860945377]
 
     # Extract inputs
-    xp, yp, *_, eqeterms = orbit_effects_inputs
+    xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
     rteme_out, vteme_out, ateme_out = fc.ecef2teme(
-        *rva_ecef, *t_inputs, xp, yp, eqeterms
+        *rva_ecef, *t_inputs, xp, yp, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
@@ -567,18 +594,18 @@ def test_ecef2teme(rva_ecef, rva_teme, t_inputs, orbit_effects_inputs):
     assert custom_allclose(ateme, ateme_out)
 
 
-def test_teme2ecef(rva_ecef, rva_teme, t_inputs, orbit_effects_inputs):
+def test_teme2ecef(rva_ecef, rva_teme, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected ECEF output vectors
     # The acceleration vector is not correct so we will just compare it to the expected
     recef, vecef, _ = rva_ecef
     aecef = [-0.0004622929817929205, -0.002187260694890291, 0.0030001393321037566]
 
     # Extract inputs
-    xp, yp, *_, eqeterms = orbit_effects_inputs
+    xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
     recef_out, vecef_out, aecef_out = fc.teme2ecef(
-        *rva_teme, *t_inputs, xp, yp, eqeterms
+        *rva_teme, *t_inputs, xp, yp, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
