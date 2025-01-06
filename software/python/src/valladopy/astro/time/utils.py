@@ -44,7 +44,7 @@ def fundarg(ttt: float, opt: str) -> FundArgs:
 
     Args:
         ttt (float): Julian centuries of TT
-        opt (str): Method option ('06', '96', or '80')
+        opt (str): Method option ('06', '02', '96', or '80')
 
     Returns:
         FundArgs: Delaunay fundamental arguments and planetary values
@@ -98,6 +98,16 @@ def fundarg(ttt: float, opt: str) -> FundArgs:
         fundargs.lonurn = np.mod((5.481293872 + 7.4781598567 * ttt), TWOPI)
         fundargs.lonnep = np.mod((5.311886287 + 3.8133035638 * ttt), TWOPI)
         fundargs.precrate = (0.02438175 + 0.00000538691 * ttt) * ttt
+
+    # Determine coefficients from IAU 2000b theory
+    elif opt == "02":
+        # Delaunay fundamental arguments in deg
+        # Planetary longitues and precession rates remain at zero
+        fundargs.l = 134.96340251 + (1717915923.2178 * ttt) / DEG2ARCSEC  # noqa
+        fundargs.l1 = 357.52910918 + (129596581.0481 * ttt) / DEG2ARCSEC
+        fundargs.f = 93.27209062 + (1739527262.8478 * ttt) / DEG2ARCSEC
+        fundargs.d = 297.85019547 + (1602961601.209 * ttt) / DEG2ARCSEC
+        fundargs.omega = 125.04455501 + (-6962890.5431 * ttt) / DEG2ARCSEC
 
     # Determine coefficients from IAU 1996 theory
     elif opt == "96":
