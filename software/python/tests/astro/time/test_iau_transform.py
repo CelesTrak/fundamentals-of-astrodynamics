@@ -24,15 +24,15 @@ def fundargs():
         f=3.0276889929096353,
         d=3.2212027489393993,
         omega=5.089920270731961,
-        lonmer=0.02422268041366862,
-        lonven=0.08339248169484563,
-        lonear=0.030584726431970796,
-        lonmar=0.03334439906671072,
-        lonjup=0.1029125735528856,
-        lonsat=0.05248218685834288,
-        lonurn=0.10871847648477687,
-        lonnep=0.09936537545632083,
-        precrate=4.2555121682972836e-05,
+        lonmer=1.387857356197415,
+        lonven=4.778037244236629,
+        lonear=1.7523757421141397,
+        lonmar=1.9104933369224852,
+        lonjup=5.896456123410001,
+        lonsat=3.0070078066000003,
+        lonurn=6.22910985767,
+        lonnep=5.69321664338,
+        precrate=0.0024382288691000005,
     )
 
 
@@ -64,18 +64,18 @@ def test_iau06gst(ttt, fundargs, iau06arr):
     # Check against expected values
     st_exp = np.array(
         [
-            [-0.8894007799234658, -0.4571282671980926, 0],
-            [0.4571282671980926, -0.8894007799234658, 0],
+            [-0.8894007799222967, -0.4571282672003672, 0],
+            [0.4571282672003672, -0.8894007799222967, 0],
             [0, 0, 1],
         ]
     )
-    assert custom_allclose(gst, 2.6668289843344684)
+    assert custom_allclose(gst, 2.666828984331911)
     assert custom_allclose(st, st_exp)
 
 
-def test_iau06pna(ttt, iau06data_old):
+def test_iau06pna(ttt, fundargs, iau06data_old):
     # Call function
-    deltapsi, pnb, prec, nut, fundargs = iau_transform.iau06pna(ttt, iau06data_old)
+    deltapsi, pnb, prec, nut, fundargs_out = iau_transform.iau06pna(ttt, iau06data_old)
 
     # Check against expected values
     pnb_exp = np.array(
@@ -103,20 +103,20 @@ def test_iau06pna(ttt, iau06data_old):
     assert custom_allclose(prec, prec_exp, rtol=ROTATION_MATRIX_TOL)
     assert custom_allclose(nut, nut_exp, rtol=ROTATION_MATRIX_TOL)
     assert custom_isclose(deltapsi, 7.974539290449716e-05)
-    assert custom_isclose(fundargs.l, 5.844239313494585)
-    assert custom_isclose(fundargs.l1, 6.23840254543787)
-    assert custom_isclose(fundargs.f, 3.0276889929096353)
-    assert custom_isclose(fundargs.d, 3.2212027489393993)
-    assert custom_isclose(fundargs.omega, 5.089920270731961)
-    assert custom_isclose(fundargs.lonmer, 1.387857356197415)
-    assert custom_isclose(fundargs.lonven, 4.778037244236629)
-    assert custom_isclose(fundargs.lonear, 1.7523757421141397)
-    assert custom_isclose(fundargs.lonmar, 1.9104933369224852)
-    assert custom_isclose(fundargs.lonjup, 5.896456123410001)
-    assert custom_isclose(fundargs.lonsat, 3.0070078066000003)
-    assert custom_isclose(fundargs.lonurn, 6.22910985767)
-    assert custom_isclose(fundargs.lonnep, 5.69321664338)
-    assert custom_isclose(fundargs.precrate, 0.0024382288691000005)
+    assert custom_isclose(fundargs_out.l, fundargs.l)
+    assert custom_isclose(fundargs_out.l1, fundargs.l1)
+    assert custom_isclose(fundargs_out.f, fundargs.f)
+    assert custom_isclose(fundargs_out.d, fundargs.d)
+    assert custom_isclose(fundargs_out.omega, fundargs.omega)
+    assert custom_isclose(fundargs_out.lonmer, fundargs.lonmer)
+    assert custom_isclose(fundargs_out.lonven, fundargs.lonven)
+    assert custom_isclose(fundargs_out.lonear, fundargs.lonear)
+    assert custom_isclose(fundargs_out.lonmar, fundargs.lonmar)
+    assert custom_isclose(fundargs_out.lonjup, fundargs.lonjup)
+    assert custom_isclose(fundargs_out.lonsat, fundargs.lonsat)
+    assert custom_isclose(fundargs_out.lonurn, fundargs.lonurn)
+    assert custom_isclose(fundargs_out.lonnep, fundargs.lonnep)
+    assert custom_isclose(fundargs_out.precrate, fundargs.precrate)
 
 
 def test_iau06pnb(ttt, iau06data_old):
@@ -170,9 +170,9 @@ def test_iau06xys_series(ttt, fundargs, iau06arr):
     x, y, s = iau_transform.iau06xys_series(ttt, fundargs, iau06arr)
 
     # Check against expected values
-    assert custom_isclose(x, 0.0010033097412569085)
-    assert custom_isclose(y, 1.248474017229823e-05)
-    assert custom_isclose(s, 7.765595105574456e-09)
+    assert custom_isclose(x, 0.001003308023544622)
+    assert custom_isclose(y, 1.2487218189628587e-05)
+    assert custom_isclose(s, 7.766920280134978e-09)
 
 
 def test_iau06xys(ttt, iau06arr):
