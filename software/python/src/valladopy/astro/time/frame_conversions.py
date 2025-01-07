@@ -12,10 +12,22 @@ from numpy.typing import ArrayLike
 from typing import Literal, Tuple
 
 from . import iau_transform as iau
-from .data import IAU80Array, IAU06pnOldArray, IAU06Array
+from .data import IAU80Array, IAU06pnOldArray, IAU06Array, IAU06xysArray
 from .sidereal import gstime, sidereal
 from .utils import precess, nutation, polarm
 from ... import constants as const
+
+
+def calc_omegaearth(lod: float) -> np.ndarray:
+    """Calculates the Earth's rotation vector.
+
+    Args:
+        lod (float): Excess length of day in seconds
+
+    Returns:
+        np.ndarray: Earth's rotation vector in rad/s
+    """
+    return np.array([0, 0, const.EARTHROT * (1 - lod / const.DAY2SEC)])
 
 
 def calc_orbit_effects(
@@ -64,8 +76,7 @@ def calc_orbit_effects(
     pm = polarm(xp, yp, ttt, use_iau80=use_iau80)
 
     # Calculate the effects of Earth's rotation
-    thetasa = const.EARTHROT * (1 - lod / const.DAY2SEC)
-    omegaearth = np.array([0, 0, thetasa])
+    omegaearth = calc_omegaearth(lod)
 
     return prec, nut, st, pm, omegaearth
 
@@ -212,15 +223,14 @@ def eci2ecef06(
     lod: float,
     xp: float,
     yp: float,
-    option: Literal["06a", "06b", "06c"],
-    iau80arr: IAU80Array,
     iau06arr: IAU06Array,
-    iau06_pnold_arr: IAU06pnOldArray | None = None,
+    iau06xysarr: IAU06xysArray,
     ddx: float = 0.0,
     ddy: float = 0.0,
+    use_full_series: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the ECI frame (GCRF) to the Earth-fixed frame (ITRF)
-    using IAU 2006 models.
+    using the IAU 2006 xys approach.
 
     References:
         Vallado, 2022, p. 223-230
@@ -234,12 +244,12 @@ def eci2ecef06(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
-        option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
-        iau80arr (IAU80Array): IAU 1980 data for nutation
         iau06arr (IAU06Array): IAU 2006 data
-        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+                                          (default True)
 
     Returns:
         tuple: (recef, vecef, aecef)
@@ -247,10 +257,15 @@ def eci2ecef06(
             vecef (np.ndarray): ECEF velocity vector in km/s
             aecef (np.ndarray): ECEF acceleration vector in km/s²
     """
-    # Compute the IAU 2006 matrices
-    pnb, st, pm, omegaearth = compute_iau06_matrices(
-        ttt, jdut1, lod, xp, yp, option, iau80arr, iau06arr, iau06_pnold_arr, ddx, ddy
-    )
+    # Calculate precession-nutation and sidereal matrices
+    *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy, iau06xysarr, use_full_series)
+    st, _ = sidereal(jdut1, 0, 0, 0, lod, use_iau80=False)
+
+    # Earth rotation
+    omegaearth = calc_omegaearth(lod)
+
+    # Polar motion matrix
+    pm = polarm(xp, yp, ttt, use_iau80=False)
 
     # Transform position
     rpef = st.T @ pnb.T @ reci
@@ -342,12 +357,11 @@ def ecef2eci06(
     lod: float,
     xp: float,
     yp: float,
-    option: Literal["06a", "06b", "06c"],
-    iau80arr: IAU80Array,
     iau06arr: IAU06Array,
-    iau06_pnold_arr: IAU06pnOldArray | None = None,
+    iau06xysarr: IAU06xysArray,
     ddx: float = 0.0,
     ddy: float = 0.0,
+    use_full_series: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the Earth-fixed frame (ITRF) to the ECI frame (GCRF).
 
@@ -363,12 +377,11 @@ def ecef2eci06(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
-        option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
-        iau80arr (IAU80Array): IAU 1980 data for nutation
         iau06arr (IAU06Array): IAU 2006 data
-        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
         ddx (float, optional): EOP correction for x in radians (default 0)
         ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
 
     Returns:
         tuple: (reci, veci, aeci)
@@ -376,10 +389,15 @@ def ecef2eci06(
             veci (np.ndarray): ECI velocity vector in km/s
             aeci (np.ndarray): ECI acceleration vector in km/s²
     """
-    # Compute the IAU 2006 matrices
-    pnb, st, pm, omegaearth = compute_iau06_matrices(
-        ttt, jdut1, lod, xp, yp, option, iau80arr, iau06arr, iau06_pnold_arr, ddx, ddy
-    )
+    # Calculate precession-nutation and sidereal matrices
+    *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy, iau06xysarr, use_full_series)
+    st, _ = sidereal(jdut1, 0, 0, 0, lod, use_iau80=False)
+
+    # Earth rotation
+    omegaearth = calc_omegaearth(lod)
+
+    # Polar motion matrix
+    pm = polarm(xp, yp, ttt, use_iau80=False)
 
     # Transform position
     rpef = pm @ recef

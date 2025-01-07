@@ -116,59 +116,21 @@ def test_eci2ecef(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs, iau80arr):
     assert custom_allclose(aecef, aecef_out)
 
 
-@pytest.mark.parametrize(
-    "opt, recef_exp, vecef_exp, aecef_exp",
-    [
-        (
-            "06a",
-            [-1033.4777968587534, 7901.295483852328, 6380.356594577433],
-            [-3.2256370941340173, -2.872450802333607, 5.5319244477380165],
-            [0.000293683625863172, 0.003115166744892741, 0.0030001489539333904],
-        ),
-        (
-            "06b",
-            [-1033.477797432571, 7901.295481366386, 6380.356597563021],
-            [-3.2256370948206516, -2.872450804444807, 5.5319244462434085],
-            [0.0002936836252815092, 0.003115166743809768, 0.003000148955013103],
-        ),
-        (
-            "06c",
-            [-1033.4778040252972, 7901.295481365824, 6380.3565964958425],
-            [-3.2256371005292754, -2.872450803966763, 5.531924442318752],
-            [0.00029368362221701087, 0.003115166744642978, 0.0030001489557543396],
-        ),
-    ],
-)
 def test_eci2ecef06(
-    iau80arr,
-    iau06arr,
-    iau06data_old,
-    rva_eci,
-    t_inputs,
-    orbit_effects_inputs,
-    eop_corrections,
-    opt,
-    recef_exp,
-    vecef_exp,
-    aecef_exp,
+    iau06arr, iau06xysarr, rva_eci, t_inputs, orbit_effects_inputs, eop_corrections
 ):
     # Extract inputs
     xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
     recef_out, vecef_out, aecef_out = fc.eci2ecef06(
-        *rva_eci,
-        *t_inputs,
-        xp,
-        yp,
-        opt,
-        iau80arr,
-        iau06arr,
-        iau06data_old,
-        *eop_corrections,
+        *rva_eci, *t_inputs, xp, yp, iau06arr, iau06xysarr, *eop_corrections
     )
 
     # Check if the output vectors are close to the expected values
+    recef_exp = [-1033.4778040252972, 7901.295481365824, 6380.3565964958425]
+    vecef_exp = [-3.2256371005292754, -2.872450803966763, 5.531924442318752]
+    aecef_exp = [0.00029368362221701087, 0.003115166744642978, 0.0030001489557543396]
     assert custom_allclose(recef_exp, recef_out)
     assert custom_allclose(vecef_exp, vecef_out)
     assert custom_allclose(aecef_exp, aecef_out)
@@ -189,59 +151,21 @@ def test_ecef2eci(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs, iau80arr):
     assert custom_allclose(aeci, aeci_out)
 
 
-@pytest.mark.parametrize(
-    "opt, reci_exp, veci_exp, aeci_exp",
-    [
-        (
-            "06a",
-            [2989.9067033950946, -7387.1999649340005, 6379.4381834754995],
-            [2.9404011860944217, 3.8093957968842975, 5.530649355276203],
-            [-0.0010033493008024942, -0.0017978754925833521, 0.003000451455713543],
-        ),
-        (
-            "06b",
-            [2989.9067034637646, -7387.199967484449, 6379.4381804899685],
-            [2.9404011861473762, 3.809395794673409, 5.530649356770861],
-            [-0.0010033493007712768, -0.0017978754937844617, 0.0030004514550042755],
-        ),
-        (
-            "06c",
-            [2989.9066970835006, -7387.199969143014, 6379.4381815596935],
-            [2.940401180624492, 3.8093957932352307, 5.530649360697722],
-            [-0.0010033493037707247, -0.0017978754945625359, 0.0030004514535350384],
-        ),
-    ],
-)
 def test_ecef2eci06(
-    iau80arr,
-    iau06arr,
-    iau06data_old,
-    rva_ecef,
-    t_inputs,
-    orbit_effects_inputs,
-    eop_corrections,
-    opt,
-    reci_exp,
-    veci_exp,
-    aeci_exp,
+    iau06arr, iau06xysarr, rva_ecef, t_inputs, orbit_effects_inputs, eop_corrections
 ):
     # Extract inputs
     xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
     reci_out, veci_out, aeci_out = fc.ecef2eci06(
-        *rva_ecef,
-        *t_inputs,
-        xp,
-        yp,
-        opt,
-        iau80arr,
-        iau06arr,
-        iau06data_old,
-        *eop_corrections,
+        *rva_ecef, *t_inputs, xp, yp, iau06arr, iau06xysarr, *eop_corrections
     )
 
     # Check if the output vectors are close to the expected values
+    reci_exp = [2989.9066970835006, -7387.199969143014, 6379.4381815596935]
+    veci_exp = [2.940401180624492, 3.8093957932352307, 5.530649360697722]
+    aeci_exp = [-0.0010033493037707247, -0.0017978754945625359, 0.0030004514535350384]
     assert custom_allclose(reci_exp, reci_out)
     assert custom_allclose(veci_exp, veci_out)
     assert custom_allclose(aeci_exp, aeci_out)
