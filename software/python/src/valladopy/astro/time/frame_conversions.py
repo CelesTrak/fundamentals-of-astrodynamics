@@ -213,7 +213,7 @@ def eci2ecef06(
     ddy: float = 0.0,
     use_full_series: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI frame (GCRF) to the Earth-fixed frame (ECEF)
+    """Transforms a vector from the ECI frame (J2000) to the Earth-fixed frame (ECEF)
     using the IAU 2006 xys approach.
 
     References:
@@ -643,8 +643,8 @@ def tod2eci(
     ddeps: float,
     iau80arr: IAU80Array,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the true equator, true equinox of date (TOD) frame
-    to the ECI mean equator, mean equinox (J2000) frame.
+    """Transforms a vector from the true equator, true equinox of date (TOD) frame to
+    the ECI mean equator, mean equinox (J2000) frame.
 
     References:
         Vallado: 2022, p. 225
@@ -1409,8 +1409,8 @@ def teme2ecef(
     vecef = pm.T @ vpef
 
     # Transform acceleration
-    aecef = (
-        pm.T @ ateme
+    aecef = pm.T @ (
+        st.T @ ateme
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
         - 2 * np.cross(omegaearth, vpef)
     )

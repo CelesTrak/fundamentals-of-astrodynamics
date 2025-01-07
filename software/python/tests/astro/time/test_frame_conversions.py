@@ -84,6 +84,13 @@ def rva_teme():
 
 
 @pytest.fixture
+def rva_teme_ecef(rva_teme):
+    rteme, vteme, _ = rva_teme
+    ateme = [-0.0010028068479698174, -0.001798937729169217, 0.0029999960860945377]
+    return rteme, vteme, ateme
+
+
+@pytest.fixture
 def t_inputs():
     # Time inputs
     ttt = 0.042623631888994  # Julian centuries of TT
@@ -410,11 +417,9 @@ def test_mod2ecef(rva_ecef, rva_mod_ecef, t_inputs, orbit_effects_inputs, iau80a
     assert custom_allclose(aecef, aecef_out, rtol=1e-6)
 
 
-def test_ecef2teme(rva_ecef, rva_teme, t_inputs, orbit_effects_inputs, iau80arr):
+def test_ecef2teme(rva_ecef, rva_teme_ecef, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected TEME output vectors
-    # The acceleration vector is not correct so we will just compare it to the expected
-    rteme, vteme, _ = rva_teme
-    ateme = [-0.0010028068479698174, -0.001798937729169217, 0.0029999960860945377]
+    rteme, vteme, ateme = rva_teme_ecef
 
     # Extract inputs
     xp, yp, *_ = orbit_effects_inputs
@@ -430,18 +435,16 @@ def test_ecef2teme(rva_ecef, rva_teme, t_inputs, orbit_effects_inputs, iau80arr)
     assert custom_allclose(ateme, ateme_out)
 
 
-def test_teme2ecef(rva_ecef, rva_teme, t_inputs, orbit_effects_inputs, iau80arr):
+def test_teme2ecef(rva_ecef, rva_teme_ecef, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected ECEF output vectors
-    # The acceleration vector is not correct so we will just compare it to the expected
-    recef, vecef, _ = rva_ecef
-    aecef = [-0.0004622929817929205, -0.002187260694890291, 0.0030001393321037566]
+    recef, vecef, aecef = rva_ecef
 
     # Extract inputs
     xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
     recef_out, vecef_out, aecef_out = fc.teme2ecef(
-        *rva_teme, *t_inputs, xp, yp, iau80arr
+        *rva_teme_ecef, *t_inputs, xp, yp, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
