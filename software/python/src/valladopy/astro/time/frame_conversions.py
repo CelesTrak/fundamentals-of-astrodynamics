@@ -1169,7 +1169,7 @@ def ecef2mod(
     amod = (
         nut
         @ st
-        @ (pm @ aecef + np.cross(omegaearth, temp) + 2.0 * np.cross(omegaearth, vpef))
+        @ (pm @ aecef + np.cross(omegaearth, temp) + 2 * np.cross(omegaearth, vpef))
     )
 
     return rmod, vmod, amod
