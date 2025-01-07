@@ -26,17 +26,13 @@ def rva_ecef():
     return recef, vecef, aecef
 
 
-def get_rvpef():
+@pytest.fixture
+def rva_pef():
     # Example PEF vectors (km, km/s, km/s^2) [opt = "80"]
     rpef = [-1033.4750313057266, 7901.305585585349, 6380.344532748868]
     vpef = [-3.225632746974616, -2.872442510803122, 5.531931287696299]
     apef = [0.000293685046453725, 0.0031151716514636447, 0.0030001437204660755]
     return rpef, vpef, apef
-
-
-@pytest.fixture
-def rva_pef():
-    return get_rvpef()
 
 
 @pytest.fixture
@@ -171,60 +167,17 @@ def test_ecef2eci06(
     assert custom_allclose(aeci_exp, aeci_out)
 
 
-@pytest.mark.parametrize(
-    "opt, rpef_exp, vpef_exp, apef_exp",
-    [
-        ("80", *get_rvpef()),
-        (
-            "06a",
-            [-1033.473445096449, 7901.305794046576, 6380.344531524881],
-            [-3.225633321133365, -2.872441863108953, 5.531931289433664],
-            [0.0002936856721282679, 0.0031151715929094172, 0.003000143719739133],
-        ),
-        (
-            "06b",
-            [-1033.4734456702645, 7901.305791560639, 6380.344534510474],
-            [-3.22563332182, -2.8724418652201553, 5.531931287939059],
-            [0.0002936856715466058, 0.003115171591826446, 0.003000143720818848],
-        ),
-        (
-            "06c",
-            [-1033.4734522629915, 7901.305791560075, 6380.3445334433],
-            [-3.2256333275286266, -2.8724418647421177, 5.531931284014407],
-            [0.000293685668482108, 0.003115171592659657, 0.0030001437215600854],
-        ),
-    ],
-)
-def test_eci2pef(
-    iau80arr,
-    iau06arr,
-    iau06data_old,
-    rva_eci,
-    t_inputs,
-    orbit_effects_inputs,
-    eop_corrections,
-    opt,
-    rpef_exp,
-    vpef_exp,
-    apef_exp,
-):
+def test_eci2pef(iau80arr, rva_eci, rva_pef, t_inputs, orbit_effects_inputs):
     # Orbit effects inputs
     *_, ddpsi, ddeps = orbit_effects_inputs
 
     # Call the function with test inputs
     rpef_out, vpef_out, apef_out = fc.eci2pef(
-        *rva_eci,
-        *t_inputs,
-        ddpsi,
-        ddeps,
-        opt,
-        iau80arr,
-        iau06arr,
-        iau06data_old,
-        *eop_corrections,
+        *rva_eci, *t_inputs, ddpsi, ddeps, iau80arr
     )
 
     # Check if the output vectors are close to the expected values
+    rpef_exp, vpef_exp, apef_exp = rva_pef
     assert custom_allclose(rpef_exp, rpef_out)
     assert custom_allclose(vpef_exp, vpef_out)
     assert custom_allclose(apef_exp, apef_out)

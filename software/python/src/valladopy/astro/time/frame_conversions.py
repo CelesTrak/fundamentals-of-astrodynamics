@@ -483,16 +483,11 @@ def eci2pef(
     lod: float,
     ddpsi: float,
     ddeps: float,
-    option: Literal["80", "06a", "06b", "06c"],
     iau80arr: IAU80Array,
-    iau06arr: IAU06Array,
-    iau06_pnold_arr: IAU06pnOldArray | None = None,
-    ddx: float = 0.0,
-    ddy: float = 0.0,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the mean equator, mean equinox frame (ECI),
-    to the pseudo earth-fixed frame (PEF).
+    """Transforms a vector from the mean equator, mean equinox frame (ECI), to the
+    pseudo Earth-fixed frame (PEF).
 
     References:
         Vallado: 2022, p. 224
@@ -506,13 +501,7 @@ def eci2pef(
         lod (float): Excess length of day in seconds
         ddpsi (float): Nutation correction for delta psi in radians
         ddeps (float): Nutation correction for delta epsilon in radians
-        option (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation
-                                                     model
         iau80arr (IAU80Array): IAU 1980 data for nutation
-        iau06arr (IAU06Array): IAU 2006 data
-        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
         eqeterms (bool): Add terms for ast calculation (default True)
 
     Returns:
@@ -522,19 +511,8 @@ def eci2pef(
             apef (np.ndarray): PEF acceleration vector in km/s²
     """
     # Compute the IAU matrices
-    prec, nut, st, omegaearth = compute_iau_matrices(
-        ttt,
-        jdut1,
-        lod,
-        ddpsi,
-        ddeps,
-        option,
-        iau80arr,
-        iau06arr,
-        iau06_pnold_arr,
-        ddx,
-        ddy,
-        eqeterms=eqeterms,
+    prec, nut, st, pm, omegaearth = calc_orbit_effects(
+        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform vectors
