@@ -44,17 +44,13 @@ def rva_mod():
     return rmod, vmod, amod
 
 
-def get_rvatod():
+@pytest.fixture
+def rva_tod():
     # Example TOD vectors (km, km/s, km/s^2) [opt = "80"]
     rtod = [2994.049189091933, -7384.738996771148, 6380.344532748868]
     vtod = [2.9348194081733827, 3.8118380124472613, 5.531931287696299]
     atod = [-3.801990321023478e-05, -0.002699702600291877, 0.0030001437204660755]
     return rtod, vtod, atod
-
-
-@pytest.fixture
-def rva_tod():
-    return get_rvatod()
 
 
 @pytest.fixture
@@ -201,61 +197,16 @@ def test_pef2eci(t_inputs, orbit_effects_inputs, rva_eci, rva_pef, iau80arr):
     assert custom_allclose(aeci, aeci_out)
 
 
-@pytest.mark.parametrize(
-    "opt, rtod_exp, vtod_exp, atod_exp",
-    [
-        ("80", *get_rvatod()),
-        (
-            "06a",
-            [2994.051083753484, -7384.7382296617725, 6380.344531524881],
-            [2.934818428013317, 3.8118387645728835, 5.531931289433664],
-            [-3.801921072721114e-05, -0.002699702610851866, 0.003000143719739133],
-        ),
-        (
-            "06b",
-            [2994.051083864024, -7384.73822703743, 6380.344534510474],
-            [2.934818427864671, 3.8118387668563694, 5.531931287939059],
-            [-3.8019210693728655e-05, -0.0026997026096524635, 0.003000143720818848],
-        ),
-        (
-            "06c",
-            [2987.4142201856234, -7387.4255911857335, 6380.3445334433],
-            [2.938242430396298, 3.809200106673821, 5.531931284014407],
-            [-4.044504843792661e-05, -0.0026996673562784206, 0.0030001437215600854],
-        ),
-    ],
-)
-def test_eci2tod(
-    iau80arr,
-    iau06arr,
-    iau06data_old,
-    rva_eci,
-    t_inputs,
-    orbit_effects_inputs,
-    eop_corrections,
-    opt,
-    rtod_exp,
-    vtod_exp,
-    atod_exp,
-):
+def test_eci2tod(iau80arr, rva_eci, rva_tod, t_inputs, orbit_effects_inputs):
     # Extract inputs
     ttt, *_ = t_inputs
     *_, ddpsi, ddeps = orbit_effects_inputs
 
     # Call the function with test inputs
-    rtod_out, vtod_out, atod_out = fc.eci2tod(
-        *rva_eci,
-        ttt,
-        ddpsi,
-        ddeps,
-        opt,
-        iau80arr,
-        iau06arr,
-        iau06data_old,
-        *eop_corrections,
-    )
+    rtod_out, vtod_out, atod_out = fc.eci2tod(*rva_eci, ttt, ddpsi, ddeps, iau80arr)
 
     # Check if the output vectors are close to the expected values
+    rtod_exp, vtod_exp, atod_exp = rva_tod
     assert custom_allclose(rtod_exp, rtod_out)
     assert custom_allclose(vtod_exp, vtod_out)
     assert custom_allclose(atod_exp, atod_out)

@@ -597,15 +597,10 @@ def eci2tod(
     ttt: float,
     ddpsi: float,
     ddeps: float,
-    option: Literal["80", "06a", "06b", "06c"],
     iau80arr: IAU80Array,
-    iau06arr: IAU06Array,
-    iau06_pnold_arr: IAU06pnOldArray | None = None,
-    ddx: float = 0.0,
-    ddy: float = 0.0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI mean equator, mean equinox frame
-    (J2000) to the true equator, true equinox of date (TOD) frame.
+    """Transforms a vector from the ECI mean equator, mean equinox frame (J2000) to the
+    true equator, true equinox of date (TOD) frame.
 
     References:
         Vallado: 2022, p. 225
@@ -617,13 +612,7 @@ def eci2tod(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
-        option (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation
-                                                     model
         iau80arr (IAU80Array): IAU 1980 data for nutation
-        iau06arr (IAU06Array): IAU 2006 data
-        iau06_pnold_arr (IAU06pnOldArray, optional): IAU 2006 old nutation data
-        ddx (float, optional): EOP correction for x in radians (default 0)
-        ddy (float, optional): EOP correction for y in radians (default 0)
 
     Returns:
         tuple: (rtod, vtod, atod)
@@ -631,21 +620,11 @@ def eci2tod(
             vtod (np.ndarray): TOD velocity vector in km/s
             atod (np.ndarray): TOD acceleration vector in km/s²
     """
-    # Compute the IAU matrices
-    prec, nut, *_ = compute_iau_matrices(
-        ttt,
-        0,
-        0,
-        ddpsi,
-        ddeps,
-        option,
-        iau80arr,
-        iau06arr,
-        iau06_pnold_arr,
-        ddx,
-        ddy,
-        eqeterms=False,
-    )
+    # Precession (IAU 1980 model)
+    prec, *_ = precess(ttt, opt="80")
+
+    # Nutation
+    *_, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
 
     # Transform vectors
     rtod = nut.T @ prec.T @ np.asarray(reci)
