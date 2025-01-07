@@ -27,6 +27,14 @@ def rva_ecef():
 
 
 @pytest.fixture
+def rva_ecef06():
+    recef = [-1033.4778040252972, 7901.295481365824, 6380.3565964958425]
+    vecef = [-3.2256371005292754, -2.872450803966763, 5.531924442318752]
+    aecef = [0.00029368362221701087, 0.003115166744642978, 0.0030001489557543396]
+    return recef, vecef, aecef
+
+
+@pytest.fixture
 def rva_pef():
     # Example PEF vectors (km, km/s, km/s^2) [opt = "80"]
     rpef = [-1033.4750313057266, 7901.305585585349, 6380.344532748868]
@@ -137,7 +145,13 @@ def test_eci2ecef(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs, iau80arr):
 
 
 def test_eci2ecef06(
-    iau06arr, iau06xysarr, rva_eci, t_inputs, orbit_effects_inputs, eop_corrections
+    iau06arr,
+    iau06xysarr,
+    rva_eci,
+    rva_ecef06,
+    t_inputs,
+    orbit_effects_inputs,
+    eop_corrections,
 ):
     # Extract inputs
     xp, yp, *_ = orbit_effects_inputs
@@ -148,9 +162,7 @@ def test_eci2ecef06(
     )
 
     # Check if the output vectors are close to the expected values
-    recef_exp = [-1033.4778040252972, 7901.295481365824, 6380.3565964958425]
-    vecef_exp = [-3.2256371005292754, -2.872450803966763, 5.531924442318752]
-    aecef_exp = [0.00029368362221701087, 0.003115166744642978, 0.0030001489557543396]
+    recef_exp, vecef_exp, aecef_exp = rva_ecef06
     assert custom_allclose(recef_exp, recef_out)
     assert custom_allclose(vecef_exp, vecef_out)
     assert custom_allclose(aecef_exp, aecef_out)
@@ -172,20 +184,24 @@ def test_ecef2eci(rva_ecef, rva_eci, t_inputs, orbit_effects_inputs, iau80arr):
 
 
 def test_ecef2eci06(
-    iau06arr, iau06xysarr, rva_ecef, t_inputs, orbit_effects_inputs, eop_corrections
+    iau06arr,
+    iau06xysarr,
+    rva_eci,
+    rva_ecef06,
+    t_inputs,
+    orbit_effects_inputs,
+    eop_corrections,
 ):
     # Extract inputs
     xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
     reci_out, veci_out, aeci_out = fc.ecef2eci06(
-        *rva_ecef, *t_inputs, xp, yp, iau06arr, iau06xysarr, *eop_corrections
+        *rva_ecef06, *t_inputs, xp, yp, iau06arr, iau06xysarr, *eop_corrections
     )
 
     # Check if the output vectors are close to the expected values
-    reci_exp = [2989.9066970835006, -7387.199969143014, 6379.4381815596935]
-    veci_exp = [2.940401180624492, 3.8093957932352307, 5.530649360697722]
-    aeci_exp = [-0.0010033493037707247, -0.0017978754945625359, 0.0030004514535350384]
+    reci_exp, veci_exp, aeci_exp = rva_eci
     assert custom_allclose(reci_exp, reci_out)
     assert custom_allclose(veci_exp, veci_out)
     assert custom_allclose(aeci_exp, aeci_out)
