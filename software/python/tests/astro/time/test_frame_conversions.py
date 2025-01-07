@@ -36,6 +36,13 @@ def rva_pef():
 
 
 @pytest.fixture
+def rva_pef_ecef(rva_pef):
+    rpef, vpef, _ = rva_pef
+    apef = [0.0010000020461365159, 0.0020000048477791838, 0.0029999960860945377]
+    return rpef, vpef, apef
+
+
+@pytest.fixture
 def rva_mod():
     # Example MOD vectors (km, km/s, km/s^2)
     rmod = [2994.30249664958, -7384.348641268552, 6380.677444947862]
@@ -309,19 +316,16 @@ def test_teme2eci(rva_eci, rva_teme, t_inputs, orbit_effects_inputs, iau80arr):
     assert custom_allclose(aeci, aeci_out)
 
 
-def test_ecef2pef(rva_ecef, rva_pef, t_inputs, orbit_effects_inputs):
+def test_ecef2pef(rva_ecef, rva_pef_ecef, t_inputs, orbit_effects_inputs):
     # Expected PEF output vectors
-    # For some reason, the acceleration out does not quite match that from the
-    # original PEF input
-    rpef, vpef, _ = rva_pef
-    apef = [0.0010000020461365159, 0.0020000048477791838, 0.0029999960860945377]
+    rpef, vpef, apef = rva_pef_ecef
 
     # Extract inputs
     ttt, *_ = t_inputs
     xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
-    rpef_out, vpef_out, apef_out = fc.ecef2pef(*rva_ecef, xp, yp, ttt, option="80")
+    rpef_out, vpef_out, apef_out = fc.ecef2pef(*rva_ecef, xp, yp, ttt)
 
     # Check if the output vectors are close to the expected values
     assert custom_allclose(rpef, rpef_out)
@@ -329,18 +333,16 @@ def test_ecef2pef(rva_ecef, rva_pef, t_inputs, orbit_effects_inputs):
     assert custom_allclose(apef, apef_out)
 
 
-def test_pef2ecef(rva_ecef, rva_pef, t_inputs, orbit_effects_inputs):
+def test_pef2ecef(rva_ecef, rva_pef_ecef, t_inputs, orbit_effects_inputs):
     # Expected ECEF output vectors
-    # The acceleration vector is not correct so we will just compare it to the expected
-    recef, vecef, _ = rva_ecef
-    aecef = [0.00029368300021545085, 0.0031151668034444385, 0.0030001489546600006]
+    recef, vecef, aecef = rva_ecef
 
     # Extract inputs
     ttt, *_ = t_inputs
     xp, yp, *_ = orbit_effects_inputs
 
     # Call the function with test inputs
-    recef_out, vecef_out, aecef_out = fc.pef2ecef(*rva_pef, xp, yp, ttt, option="80")
+    recef_out, vecef_out, aecef_out = fc.pef2ecef(*rva_pef_ecef, xp, yp, ttt)
 
     # Check if the output vectors are close to the expected values
     assert custom_allclose(recef, recef_out)
@@ -350,7 +352,6 @@ def test_pef2ecef(rva_ecef, rva_pef, t_inputs, orbit_effects_inputs):
 
 def test_ecef2tod(rva_ecef, rva_tod_ecef, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected TOD output vectors
-    # The acceleration vector is not correct so we will just compare it to the expected
     rtod, vtod, atod = rva_tod_ecef
 
     # Call the function with test inputs
@@ -366,7 +367,6 @@ def test_ecef2tod(rva_ecef, rva_tod_ecef, t_inputs, orbit_effects_inputs, iau80a
 
 def test_tod2ecef(rva_ecef, rva_tod_ecef, t_inputs, orbit_effects_inputs, iau80arr):
     # Expected ECEF output vectors
-    # The acceleration vector is not correct so we will just compare it to the expected
     recef, vecef, aecef = rva_ecef
 
     # Call the function with test inputs

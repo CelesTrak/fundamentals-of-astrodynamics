@@ -888,7 +888,7 @@ def ecef2pef(
     xp: float,
     yp: float,
     ttt: float,
-    option: Literal["80", "06"],
+    use_iau80: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the Earth-fixed (ITRF) frame to the pseudo
     Earth-fixed (PEF) frame.
@@ -903,18 +903,15 @@ def ecef2pef(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         ttt (float): Julian centuries of TT
-        option (Literal["80", "06"]): Polar motion model option ('80' or '06')
+        use_iau80 (bool, optional): Use IAU 1980 data for polar motion (default True)
 
     Returns:
         tuple: (rpef, vpef, apef)
             rpef (np.ndarray): PEF position vector in km
             vpef (np.ndarray): PEF velocity vector in km/s
             apef (np.ndarray): PEF acceleration vector in km/s²
-
-    TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Compute polar motion matrix
-    use_iau80 = True if option == "80" else False
     pm = polarm(xp, yp, ttt, use_iau80)
 
     # Transform vectors
@@ -932,7 +929,7 @@ def pef2ecef(
     xp: float,
     yp: float,
     ttt: float,
-    option: Literal["80", "06"],
+    use_iau80: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the pseudo Earth-fixed (PEF) frame to the
     Earth-fixed (ITRF) frame.
@@ -947,18 +944,15 @@ def pef2ecef(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         ttt (float): Julian centuries of TT
-        option (Literal["80", "06"]): Polar motion model option ('80' or '06')
+        use_iau80 (bool, optional): Use IAU 1980 data for polar motion (default True)
 
     Returns:
         tuple: (recef, vecef, aecef)
             recef (np.ndarray): ECEF position vector in km
             vecef (np.ndarray): ECEF velocity vector in km/s
             aecef (np.ndarray): ECEF acceleration vector in km/s²
-
-    TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Compute polar motion matrix
-    use_iau80 = True if option == "80" else False
     pm = polarm(xp, yp, ttt, use_iau80)
 
     # Transform vectors
