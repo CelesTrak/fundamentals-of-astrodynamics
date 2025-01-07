@@ -43,8 +43,8 @@ def calc_orbit_effects(
     eqeterms: bool = True,
     use_iau80: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Calculates the orbit effects from precession, nutation, sidereal time,
-    and polar motion.
+    """Calculates the orbit effects from precession, nutation, sidereal time, and polar
+    motion.
 
     Args:
         ttt (float): Julian centuries of TT
@@ -147,8 +147,8 @@ def eci2ecef(
     iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI mean equator, mean equinox frame
-    (J2000) to the Earth-fixed frame (ECEF).
+    """Transforms a vector from the ECI mean equator, mean equinox frame (J2000) to the
+    Earth-fixed frame (ECEF).
 
     References:
         Vallado: 2022, p. 223-230
@@ -213,7 +213,7 @@ def eci2ecef06(
     ddy: float = 0.0,
     use_full_series: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI frame (GCRF) to the Earth-fixed frame (ITRF)
+    """Transforms a vector from the ECI frame (GCRF) to the Earth-fixed frame (ECEF)
     using the IAU 2006 xys approach.
 
     References:
@@ -278,8 +278,8 @@ def ecef2eci(
     iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame (ECEF) to the ECI
-    mean equator, mean equinox (J2000) frame.
+    """Transforms a vector from the Earth-fixed frame (ECEF) to the ECI mean equator,
+    mean equinox (J2000) frame.
 
     References:
         Vallado: 2022, p. 223-230
@@ -342,7 +342,7 @@ def ecef2eci06(
     ddy: float = 0.0,
     use_full_series: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed frame (ITRF) to the ECI frame (GCRF).
+    """Transforms a vector from the Earth-fixed frame (ECEF) to the ECI (J2000) frame.
 
     References:
         Vallado, 2022, p. 223-230
@@ -411,8 +411,8 @@ def compute_iau_matrices(
     ddy: float = 0.0,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Computes the precession/nutation matrix, sidereal time matrix,
-    polar motion matrix, and Earth rotation vector.
+    """Computes the precession/nutation matrix, sidereal time matrix, polar motion
+    matrix, and Earth rotation vector.
 
     Args:
         ttt (float): Julian centuries of TT
@@ -486,7 +486,7 @@ def eci2pef(
     iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the mean equator, mean equinox frame (ECI), to the
+    """Transforms a vector from the ECI mean equator, mean equinox frame (J2000), to the
     pseudo Earth-fixed frame (PEF).
 
     References:
@@ -686,8 +686,8 @@ def tod2eci(
 def eci2mod(
     reci: ArrayLike, veci: ArrayLike, aeci: ArrayLike, ttt: float
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI mean equator, mean equinox frame
-    (J2000) to the mean equator, mean equinox of date (MOD) frame.
+    """Transforms a vector from the ECI mean equator, mean equinox frame (J2000) to the
+    mean equator, mean equinox of date (MOD) frame.
 
     References:
         Vallado: 2022, p. 227
@@ -890,8 +890,8 @@ def ecef2pef(
     ttt: float,
     use_iau80: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame to the pseudo
-    Earth-fixed (PEF) frame.
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the pseudo Earth-fixed
+    (PEF) frame.
 
     References:
         Vallado: 2022, p. 224
@@ -931,8 +931,8 @@ def pef2ecef(
     ttt: float,
     use_iau80: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the pseudo Earth-fixed (PEF) frame to the
-    Earth-fixed (ITRF) frame.
+    """Transforms a vector from the pseudo Earth-fixed (PEF) frame to the Earth-fixed
+    (ECEF) frame.
 
     References:
         Vallado: 2022, p. 224
@@ -982,7 +982,7 @@ def ecef2tod(
     iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame to the true-of-date (TOD)
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the true-of-date (TOD)
     frame.
 
     References:
@@ -1045,7 +1045,7 @@ def tod2ecef(
     iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the true-of-date (TOD) frame to the Earth-fixed (ITRF)
+    """Transforms a vector from the true-of-date (TOD) frame to the Earth-fixed (ECEF)
     frame.
 
     References:
@@ -1113,7 +1113,7 @@ def ecef2mod(
     iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame to the mean-of-date (MOD)
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the mean-of-date (MOD)
     frame.
 
     References:
@@ -1177,7 +1177,7 @@ def mod2ecef(
     iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the mean-of-date (MOD) frame to the Earth-fixed (ITRF)
+    """Transforms a vector from the mean-of-date (MOD) frame to the Earth-fixed (ECEF)
     frame.
 
     References:
@@ -1308,8 +1308,8 @@ def ecef2teme(
     iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame to the
-    true equator, mean equinox (TEME) frame.
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the true equator, mean
+    mean equinox (TEME) frame.
 
     Results take into account the effects of sidereal time and polar motion.
 
@@ -1370,7 +1370,7 @@ def teme2ecef(
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the true equator, mean equinox (TEME) frame to the
-    Earth-fixed (ITRF) frame.
+    Earth-fixed (ECEF) frame.
 
     Results take into account the effects of sidereal time and polar motion.
 
