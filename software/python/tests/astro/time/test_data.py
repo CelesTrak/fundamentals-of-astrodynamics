@@ -4,7 +4,8 @@ import pytest
 import numpy as np
 import scipy
 
-from ...conftest import custom_allclose
+from src.valladopy.astro.time.data import DATA_DIR, readeop
+from ...conftest import custom_isclose, custom_allclose
 
 
 def load_matlab_data(file_path: str, keys: list) -> dict:
@@ -113,3 +114,32 @@ def test_readxys(iau06xysarr, xys_data):
     assert custom_allclose(iau06xysarr.y, xys_data.y)
     assert custom_allclose(iau06xysarr.s, xys_data.s)
     assert custom_allclose(iau06xysarr.mjd_tt, xys_data.mjd_tt)
+
+
+def test_readeop():
+    # Get EOP data
+    eoparr = readeop(os.path.join(DATA_DIR, "EOP-All-v1.1_2023-01-01.txt"))
+
+    # Check that the first line is correct
+    assert int(eoparr.mjd[0]) == 37665
+    assert custom_isclose(eoparr.xp[0], -0.0127)
+    assert custom_isclose(eoparr.yp[0], 0.213)
+    assert custom_isclose(eoparr.dut1[0], 0.0326338)
+    assert custom_isclose(eoparr.lod[0], 0.001723)
+    assert custom_isclose(eoparr.ddpsi[0], 0.064261)
+    assert custom_isclose(eoparr.ddeps[0], 0.006067)
+    assert custom_isclose(eoparr.dx[0], 0)
+    assert custom_isclose(eoparr.dy[0], 0)
+    assert int(eoparr.dat[0]) == 2
+
+    # Check that the last line is correct
+    assert int(eoparr.mjd[-1]) == 60126
+    assert custom_isclose(eoparr.xp[-1], 0.203662)
+    assert custom_isclose(eoparr.yp[-1], 0.492913)
+    assert custom_isclose(eoparr.dut1[-1], -0.0114449)
+    assert custom_isclose(eoparr.lod[-1], -0.0009071)
+    assert custom_isclose(eoparr.ddpsi[-1], -0.113661)
+    assert custom_isclose(eoparr.ddeps[-1], -0.009266)
+    assert custom_isclose(eoparr.dx[-1], 0.000121)
+    assert custom_isclose(eoparr.dy[-1], -0.000211)
+    assert int(eoparr.dat[-1]) == 37

@@ -445,9 +445,7 @@ def findxysparam(
     return x, y, s
 
 
-def iau06xys_series(
-    ttt: float, fundargs: FundArgs, iau06arr: IAU06Array
-) -> Tuple[float, float, float]:
+def iau06xys_series(ttt: float, iau06arr: IAU06Array) -> Tuple[float, float, float]:
     """Calculates the XYS parameters for the IAU2006 CIO theory.
 
     This is the series implementation of the XYS parameters, which are used to compute
@@ -458,7 +456,6 @@ def iau06xys_series(
 
     Args:
         ttt (float): Julian centuries of TT
-        fundargs (FundArgs): Delaunay and planetary arguments
         iau06arr (IAU06Array): IAU 2006 data
 
     Returns:
@@ -467,6 +464,9 @@ def iau06xys_series(
             y (float): Coordinate of CIP in radians
             s (float): Coordinate in radians
     """
+    # Fundamental arguments from the IAU 2006 nutation theory
+    fundargs = fundarg(ttt, opt="06")
+
     # Powers of TTT
     ttt2, ttt3, ttt4, ttt5 = ttt**2, ttt**3, ttt**4, ttt**5
 
@@ -635,13 +635,10 @@ def iau06xys(
             s (float): Coordinate in radians
             pn (np.ndarray): Transformation matrix for TIRS-GCRF
     """
-    # Fundamental arguments from the IAU 2006 nutation theory
-    fundargs = fundarg(ttt, opt="06")
-
     # Calculate X, Y, and S components
     if use_full_series:
         # Use the full series implementation
-        x, y, s = iau06xys_series(ttt, fundargs, iau06arr)
+        x, y, s = iau06xys_series(ttt, iau06arr)
     else:
         # Check that the XYS array is provided
         if not iau06xysarr:

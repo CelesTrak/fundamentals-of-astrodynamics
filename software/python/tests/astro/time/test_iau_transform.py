@@ -196,9 +196,9 @@ def test_findxysparam(iau06xysarr, interp, x_exp, y_exp, s_exp):
     assert custom_isclose(s, s_exp)
 
 
-def test_iau06xys_series(ttt, fundargs, iau06arr):
+def test_iau06xys_series(ttt, iau06arr):
     # Call function
-    x, y, s = iau_transform.iau06xys_series(ttt, fundargs, iau06arr)
+    x, y, s = iau_transform.iau06xys_series(ttt, iau06arr)
 
     # Check against expected values
     assert custom_isclose(x, 0.001003308023544622)

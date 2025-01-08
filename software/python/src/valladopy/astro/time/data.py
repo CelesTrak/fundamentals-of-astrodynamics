@@ -6,6 +6,7 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +14,9 @@ from pathlib import Path
 import numpy as np
 
 from ...constants import ARCSEC2RAD, JD_TO_MJD_OFFSET
+
+
+logger = logging.getLogger(__name__)
 
 
 # Default data directory
@@ -60,6 +64,20 @@ class IAU06Array:
     apl0i: np.ndarray = None
     aapn0: np.ndarray = None
     aapn0i: np.ndarray = None
+
+
+@dataclass
+class EOPArray:
+    mjd: np.ndarray = None
+    xp: np.ndarray = None
+    yp: np.ndarray = None
+    dut1: np.ndarray = None
+    lod: np.ndarray = None
+    ddpsi: np.ndarray = None
+    ddeps: np.ndarray = None
+    dx: np.ndarray = None
+    dy: np.ndarray = None
+    dat: np.ndarray = None
 
 
 @dataclass
@@ -249,3 +267,71 @@ def readxys(data_dir: str = DATA_DIR) -> IAU06xysArray:
     iau06xysarr.mjd_tt = iau06xysarr.jd + iau06xysarr.jdf - JD_TO_MJD_OFFSET
 
     return iau06xysarr
+
+
+def readeop(filepath: str) -> EOPArray:
+    """Reads the EOP coefficients from a file into an EOPArray dataclass.
+
+    Args:
+        filepath (str): Path to the EOP file
+
+    Returns:
+        EOPArray: Dataclass containing the EOP values
+    """
+    # Initialize lists to hold the data
+    mjd, xp, yp, dut1, lod, ddpsi, ddeps, dx, dy, dat = ([] for _ in range(10))
+    i = 0
+
+    # Read in EOP file
+    with open(filepath) as infile:
+        lines = infile.readlines()
+
+    # Process each line in the file
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Process NUM_OBSERVED_POINTS and NUM_PREDICTED_POINTS
+        if "NUM_OBSERVED_POINTS" in line or "NUM_PREDICTED_POINTS" in line:
+            num_records = int(line.split()[-1])  # extract number of records
+            i += 2  # move to the next line containing data
+
+            for _ in range(num_records):
+                if i >= len(lines):
+                    break
+
+                # Extract data from the line
+                data_line = lines[i].strip()
+
+                try:
+                    # Adjust fixed-width indices based on file structure
+                    mjd.append(float(data_line[10:16]))
+                    xp.append(float(data_line[16:26]))
+                    yp.append(float(data_line[26:36]))
+                    dut1.append(float(data_line[36:47]))
+                    lod.append(float(data_line[47:58]))
+                    ddpsi.append(float(data_line[58:68]))
+                    ddeps.append(float(data_line[68:78]))
+                    dx.append(float(data_line[78:88]))
+                    dy.append(float(data_line[88:98]))
+                    dat.append(float(data_line[98:102]))
+                except ValueError:
+                    # Skip lines that do not match the expected format
+                    logger.warning(f"Skipping malformed line: {data_line}")
+                i += 1
+
+        # Move to the next line if no match
+        else:
+            i += 1
+
+    return EOPArray(
+        mjd=np.array(mjd),
+        xp=np.array(xp),
+        yp=np.array(yp),
+        dut1=np.array(dut1),
+        lod=np.array(lod),
+        ddpsi=np.array(ddpsi),
+        ddeps=np.array(ddeps),
+        dx=np.array(dx),
+        dy=np.array(dy),
+        dat=np.array(dat),
+    )
