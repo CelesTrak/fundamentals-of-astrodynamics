@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 
 from ...constants import ARCSEC2RAD, JD_TO_MJD_OFFSET
+from ...mathtime.julian_date import jday
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,21 @@ class IAU06Array:
 
 
 @dataclass
+class IAU06xysArray:
+    # fmt: off
+    """Data class for IAU 2006 XYS data."""
+    jd: np.ndarray = None
+    jdf: np.ndarray = None
+    x: np.ndarray = None
+    y: np.ndarray = None
+    s: np.ndarray = None
+    mjd_tt: np.ndarray = None
+
+
+@dataclass
 class EOPArray:
+    # fmt: off
+    """Data class for Earth Orientation Parameters."""
     mjd: np.ndarray = None
     xp: np.ndarray = None
     yp: np.ndarray = None
@@ -81,15 +96,20 @@ class EOPArray:
 
 
 @dataclass
-class IAU06xysArray:
-    # fmt: off
-    """Data class for IAU 2006 XYS data."""
-    jd: np.ndarray = None  # Julian Date
-    jdf: np.ndarray = None  # fractional Julian Date
-    x: np.ndarray = None  # x coordinate in radians
-    y: np.ndarray = None  # y coordinate in radians
-    s: np.ndarray = None  # s coordinate in radians
-    mjd_tt: np.ndarray = None  # modified Julian Date (computed)
+class SPWArray:
+    # fmt: off`
+    """Data class for Space Weather data."""
+    kparray: np.ndarray = None
+    sumkp: np.ndarray = None
+    aparray: np.ndarray = None
+    avgap: np.ndarray = None
+    adjf107: np.ndarray = None
+    adjctrf81: np.ndarray = None
+    adjlstf81: np.ndarray = None
+    obsf107: np.ndarray = None
+    obsctrf81: np.ndarray = None
+    obslstf81: np.ndarray = None
+    mjd: np.ndarray = None
 
 
 def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
@@ -334,4 +354,89 @@ def readeop(filepath: str) -> EOPArray:
         dx=np.array(dx),
         dy=np.array(dy),
         dat=np.array(dat, dtype=int),
+    )
+
+
+def readspw(filepath: str) -> SPWArray:
+    """Reads the Space Weather data from a file into an SPWArray dataclass.
+
+    Args:
+        filepath (str): Path to the Space Weather file
+
+    Returns:
+        SPWArray: Dataclass containing the Space Weather data
+    """
+    # Initialize lists to hold the data
+    mjd, kparray, sumkp, aparray, avgap = [], [], [], [], []
+    adjf107, adjctrf81, adjlstf81 = [], [], []
+    obsf107, obsctrf81, obslstf81 = [], [], []
+    i = 0
+
+    # Read in Space Weather file
+    with open(filepath) as file:
+        lines = file.readlines()
+
+    # Process each line in the file
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Process NUM_OBSERVED_POINTS and NUM_DAILY_PREDICTED_POINTS
+        if "NUM_OBSERVED_POINTS" in line or "NUM_DAILY_PREDICTED_POINTS" in line:
+            num_records = int(line.split()[-1])  # extract number of records
+            i += 2  # move to the next line containing data
+
+            for _ in range(num_records):
+                if i >= len(lines):
+                    break
+
+                # Extract data from the line
+                data_line = lines[i]
+
+                try:
+                    # Extract values using fixed-width indices
+                    year = int(data_line[0:4].strip())
+                    month = int(data_line[5:8].strip())
+                    day = int(data_line[8:11].strip())
+                    kparray.append(
+                        [float(data_line[i : i + 3].strip()) for i in range(19, 43, 3)]
+                    )
+                    sumkp.append(float(data_line[43:46].strip()))
+                    aparray.append(
+                        [float(data_line[i : i + 4].strip()) for i in range(47, 79, 4)]
+                    )
+                    avgap.append(float(data_line[80:82].strip()))
+                    adjf107.append(float(data_line[93:98].strip()))
+                    adjctrf81.append(float(data_line[101:106].strip()))
+                    adjlstf81.append(float(data_line[107:112].strip()))
+                    obsf107.append(float(data_line[113:118].strip()))
+                    obsctrf81.append(float(data_line[119:124].strip()))
+                    obslstf81.append(float(data_line[125:130].strip()))
+
+                    # Convert date to MJD
+                    jd, jdf = jday(year, month, day)
+                    mjd.append(jd + jdf - JD_TO_MJD_OFFSET)
+
+                except ValueError:
+                    # Skip lines that do not match the expected format
+                    logger.warning(f"Skipping malformed line: {data_line}")
+
+                i += 1
+
+        # Move to the next line if no match
+        else:
+            i += 1
+
+    # Convert lists to numpy arrays
+    return SPWArray(
+        kparray=np.array(kparray),
+        sumkp=np.array(sumkp),
+        aparray=np.array(aparray),
+        avgap=np.array(avgap),
+        adjf107=np.array(adjf107),
+        adjctrf81=np.array(adjctrf81),
+        adjlstf81=np.array(adjlstf81),
+        obsf107=np.array(obsf107),
+        obsctrf81=np.array(obsctrf81),
+        obslstf81=np.array(obslstf81),
+        mjd=np.array(mjd),
     )

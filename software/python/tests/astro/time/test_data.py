@@ -139,3 +139,29 @@ def test_readeop(eoparr):
     assert custom_isclose(eoparr.dx[-1], 0.000121)
     assert custom_isclose(eoparr.dy[-1], -0.000211)
     assert eoparr.dat[-1] == 37
+
+
+def test_readspw(spwarr):
+    # Check that the first line is correct
+    assert custom_isclose(spwarr.mjd[0], 36112)
+    assert custom_allclose(spwarr.kparray[0], [43, 40, 30, 20, 37, 23, 43, 37])
+    assert custom_isclose(spwarr.sumkp[0], 273)
+    assert custom_allclose(spwarr.aparray[0], [32, 27, 15, 7, 22, 9, 32, 22])
+    assert custom_isclose(spwarr.avgap[0], 21)
+    assert custom_isclose(spwarr.adjf107[0], 268.0)
+    assert custom_isclose(spwarr.adjctrf81[0], 265.2)
+    assert custom_isclose(spwarr.obsf107[0], 269.3)
+    assert custom_isclose(spwarr.obsctrf81[0], 266.6)
+    assert custom_isclose(spwarr.obslstf81[0], 230.9)
+
+    # Check that the last line is correct
+    assert custom_isclose(spwarr.mjd[-1], 59467)
+    assert custom_allclose(spwarr.kparray[-1], [13, 13, 13, 13, 13, 13, 13, 13])
+    assert custom_isclose(spwarr.sumkp[-1], 104)
+    assert custom_allclose(spwarr.aparray[-1], [5, 5, 5, 5, 5, 5, 5, 5])
+    assert custom_isclose(spwarr.avgap[-1], 5)
+    assert custom_isclose(spwarr.adjf107[-1], 80.0)
+    assert custom_isclose(spwarr.adjctrf81[-1], 69.0)
+    assert custom_isclose(spwarr.obsf107[-1], 78.9)
+    assert custom_isclose(spwarr.obsctrf81[-1], 68.3)
+    assert custom_isclose(spwarr.obslstf81[-1], 78.9)
