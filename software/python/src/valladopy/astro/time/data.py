@@ -333,5 +333,5 @@ def readeop(filepath: str) -> EOPArray:
         ddeps=np.array(ddeps),
         dx=np.array(dx),
         dy=np.array(dy),
-        dat=np.array(dat),
+        dat=np.array(dat, dtype=int),
     )

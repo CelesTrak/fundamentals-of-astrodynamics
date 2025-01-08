@@ -12,7 +12,7 @@ from typing import Tuple
 import numpy as np
 from scipy.interpolate import CubicSpline
 
-from .data import IAU06pnOldArray, IAU06Array, IAU06xysArray
+from .data import IAU06pnOldArray, IAU06Array, IAU06xysArray, EOPArray
 from .utils import FundArgs, fundarg, precess
 from ... import constants as const
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
@@ -361,6 +361,20 @@ def iau06pnb(
 ########################################################################################
 
 
+def _get_mfme_recnum(jdtt, jdttf, mjd0):
+    # Calculate the Julian day at 0000 hr
+    jdb = np.floor(jdtt + jdttf) + 0.5
+    mfme = (jdtt + jdttf - jdb) * const.DAY2MIN
+    if mfme < 0:
+        mfme += const.DAY2MIN
+
+    # Find the record number corresponding to the desired day
+    jdxysstarto = np.floor(jdtt + jdttf - mjd0 - const.JD_TO_MJD_OFFSET)
+    recnum = int(np.floor(jdxysstarto))
+
+    return mfme, recnum
+
+
 def findxysparam(
     jdtt: float,
     jdttf: float,
@@ -384,17 +398,8 @@ def findxysparam(
             y (float): Y component of CIO in radians
             s (float): S component in radians
     """
-    # Calculate the Julian day at 0000 hr
-    jdb = np.floor(jdtt + jdttf) + 0.5
-    mfme = (jdtt + jdttf - jdb) * const.DAY2MIN
-    if mfme < 0:
-        mfme += const.DAY2MIN
-
     # Find the record number corresponding to the desired day
-    jdxysstarto = np.floor(
-        jdtt + jdttf - iau06xysarr.mjd_tt[0] - const.JD_TO_MJD_OFFSET
-    )
-    recnum = int(np.floor(jdxysstarto))
+    mfme, recnum = _get_mfme_recnum(jdtt, jdttf, iau06xysarr.mjd_tt[0])
 
     # Check for out-of-bound values
     if 0 <= recnum <= len(iau06xysarr.x) - 1:
@@ -670,3 +675,82 @@ def iau06xys(
     pn = np.dot(nut1, nut2)
 
     return x, y, s, pn
+
+
+########################################################################################
+# Earth Orientation Parameters (EOP)
+########################################################################################
+
+
+def findeopparam(
+    jdtdb: float,
+    jdtdbf: float,
+    eoparr: EOPArray,
+    interp: InterpolationMode | None = None,
+) -> Tuple[float, float, float, float, float, float, float, float, float]:
+    """Finds the EOP parameters for a given time with optional interpolation.
+
+    References:
+        Vallado, 2013
+
+    Args:
+        jdtdb (float): Epoch Julian day (days from 4713 BC)
+        jdtdbf (float): Epoch Julian day fraction (day fraction from jdutc)
+        eoparr (EOPArray): EOP data
+        interp (InterpolationMode, optional): Interpolation mode (default: None)
+
+    Returns:
+        tuple: (dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy)
+            dut1 (float): Julian date of UT1 (days from 4713 BC)
+            dat (int): TAI - UTC in seconds
+            lod (float): Length of day in seconds
+            xp (float): Polar motion coefficient in radians
+            yp (float): Polar motion coefficient in radians
+            ddpsi (float): Delta psi (nutation in longitude) correction in radians
+            ddeps (float): Delta epsilon (nutation in obliquity) correction in radians
+            dx (float): Celestial pole (CIP) x offset in radians
+            dy (float): Celestial pole (CIP) y offset in radians
+    """
+    # Find the record number corresponding to the desired day
+    mfme, recnum = _get_mfme_recnum(jdtdb, jdtdbf, eoparr.mjd[0])
+
+    # Ensure recnum is within valid bounds
+    if 0 <= recnum < len(eoparr.mjd) - 1:
+        mjd = eoparr.mjd
+        params = np.vstack(
+            [
+                eoparr.dut1,
+                eoparr.dat,
+                eoparr.lod,
+                eoparr.xp,
+                eoparr.yp,
+                eoparr.ddpsi,
+                eoparr.ddeps,
+                eoparr.dx,
+                eoparr.dy,
+            ]
+        ).T
+
+        if interp == InterpolationMode.LINEAR:
+            # Linear interpolation
+            fixf = mfme / const.DAY2MIN
+            weights = [1 - fixf, fixf]
+            interp_params = params[recnum : recnum + 2].T @ weights
+        elif interp == InterpolationMode.SPLINE:
+            # Cubic spline interpolation
+            cs = CubicSpline(
+                mjd[recnum - 1 : recnum + 3], params[recnum - 1 : recnum + 3], axis=0
+            )
+            interp_params = cs(mjd[recnum] + mfme / const.DAY2MIN)
+        else:
+            # No interpolation
+            interp_params = params[recnum]
+    else:
+        # Default values for out-of-bounds requests
+        interp_params = np.zeros(9)
+
+    # Convert units for certain parameters
+    interp_params[1] = int(interp_params[1])
+    interp_params[3:9] *= const.ARCSEC2RAD
+
+    return tuple(interp_params)

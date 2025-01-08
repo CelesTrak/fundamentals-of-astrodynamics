@@ -36,6 +36,11 @@ def fundargs():
     )
 
 
+@pytest.fixture()
+def jdtt_jdttf():
+    return 2453101.5, 0.328154745474537
+
+
 def test_iau06era():
     # Expected values
     era_exp = np.array(
@@ -183,12 +188,9 @@ def test_iau06pnb(ttt, iau06data_old):
         ),
     ],
 )
-def test_findxysparam(iau06xysarr, interp, x_exp, y_exp, s_exp):
-    # Input definitions
-    jdtt, jdttf = 2453101.5, 0.328154745474537
-
+def test_findxysparam(iau06xysarr, jdtt_jdttf, interp, x_exp, y_exp, s_exp):
     # Call function
-    x, y, s = iau_transform.findxysparam(jdtt, jdttf, iau06xysarr, interp=interp)
+    x, y, s = iau_transform.findxysparam(*jdtt_jdttf, iau06xysarr, interp=interp)
 
     # Check against expected values
     assert custom_isclose(x, x_exp)
@@ -254,3 +256,60 @@ def test_iau06xys_bad(ttt, iau06arr):
     """Check for raised error when full series is not used without the XYS data."""
     with pytest.raises(ValueError):
         iau_transform.iau06xys(ttt, iau06arr, use_full_series=False)
+
+
+@pytest.mark.parametrize(
+    "interp, eop_params_exp",
+    # eop_params_exp in tuple (dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy)
+    [
+        (
+            None,
+            (
+                -0.4399623,
+                32,
+                0.0015308,
+                -6.829327918949478e-07,
+                1.6164366867345482e-06,
+                -2.532763632852438e-07,
+                -1.9154988540637765e-08,
+                -5.914726909536339e-10,
+                -5.187506387872035e-10,
+            ),
+        ),
+        (
+            iau_transform.InterpolationMode.LINEAR,
+            (
+                -0.4404350725418587,
+                32,
+                0.0014723556398243643,
+                -6.817554969598743e-07,
+                1.6210488191896547e-06,
+                -2.541195610090128e-07,
+                -1.9110442245797138e-08,
+                -5.994273864608887e-10,
+                -4.630677702364201e-10,
+            ),
+        ),
+        (
+            iau_transform.InterpolationMode.SPLINE,
+            (
+                -0.4404508444133234,
+                32,
+                0.0014873148833432495,
+                -6.817301763697862e-07,
+                1.6207593674283049e-06,
+                -2.5409384906011997e-07,
+                -1.9005342733934667e-08,
+                -6.29147015448284e-10,
+                -4.747972687881268e-10,
+            ),
+        ),
+    ],
+)
+def test_findeopparam(eoparr, jdtt_jdttf, interp, eop_params_exp):
+    eop_params = iau_transform.findeopparam(*jdtt_jdttf, eoparr, interp=interp)
+    for i, param in enumerate(eop_params):
+        if i == 1:  # dat
+            assert int(param) == eop_params_exp[i]
+        else:
+            assert custom_isclose(param, eop_params_exp[i])

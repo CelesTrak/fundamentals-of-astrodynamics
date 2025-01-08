@@ -4,7 +4,6 @@ import pytest
 import numpy as np
 import scipy
 
-from src.valladopy.astro.time.data import DATA_DIR, readeop
 from ...conftest import custom_isclose, custom_allclose
 
 
@@ -116,10 +115,7 @@ def test_readxys(iau06xysarr, xys_data):
     assert custom_allclose(iau06xysarr.mjd_tt, xys_data.mjd_tt)
 
 
-def test_readeop():
-    # Get EOP data
-    eoparr = readeop(os.path.join(DATA_DIR, "EOP-All-v1.1_2023-01-01.txt"))
-
+def test_readeop(eoparr):
     # Check that the first line is correct
     assert int(eoparr.mjd[0]) == 37665
     assert custom_isclose(eoparr.xp[0], -0.0127)
@@ -130,7 +126,7 @@ def test_readeop():
     assert custom_isclose(eoparr.ddeps[0], 0.006067)
     assert custom_isclose(eoparr.dx[0], 0)
     assert custom_isclose(eoparr.dy[0], 0)
-    assert int(eoparr.dat[0]) == 2
+    assert eoparr.dat[0] == 2
 
     # Check that the last line is correct
     assert int(eoparr.mjd[-1]) == 60126
@@ -142,4 +138,4 @@ def test_readeop():
     assert custom_isclose(eoparr.ddeps[-1], -0.009266)
     assert custom_isclose(eoparr.dx[-1], 0.000121)
     assert custom_isclose(eoparr.dy[-1], -0.000211)
-    assert int(eoparr.dat[-1]) == 37
+    assert eoparr.dat[-1] == 37
