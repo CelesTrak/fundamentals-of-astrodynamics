@@ -63,13 +63,13 @@ function [deltapsi, trueeps, meaneps, omega, nut] = nutationqmod(iau80arr, ttt)
     for i= 106:-1: 1  % not 106, but do they do it in reverse?? shouldn't be a big diff because only 9 terms
         tempval = iau80arr.iar80(i, 1) * fArgs96(1) + iau80arr.iar80(i, 2) * fArgs96(2) + iau80arr.iar80(i, 3) * fArgs96(3) + ...
             iau80arr.iar80(i, 4) * fArgs96(4) + iau80arr.iar80(i, 5) * fArgs96(5);
-        deltapsi = deltapsi + (iau80arr.rar80(ii, 1) + iau80arr.rar80(ii, 2) * ttt) * sin(tempval);
-        deltaeps = deltaeps + (iau80arr.rar80(ii, 3) + iau80arr.rar80(ii, 4) * ttt) * cos(tempval);
+        deltapsi = deltapsi + (iau80arr.rar80(i, 1) + iau80arr.rar80(i, 2) * ttt) * sin(tempval);
+        deltaeps = deltaeps + (iau80arr.rar80(i, 3) + iau80arr.rar80(i, 4) * ttt) * cos(tempval);
     end
 
     % --------------- find nutation parameters --------------------
-    deltapsi = rem( deltapsi, 360.0  ) * deg2rad;  % + ddpsi/deg2rad,360.0
-    deltaeps = rem( deltaeps, 360.0  ) * deg2rad;  % + ddeps/deg2rad,360.0
+    deltapsi = rem( deltapsi, 2.0 * pi );  % + ddpsi/deg2rad,360.0
+    deltaeps = rem( deltaeps, 2.0 * pi );  % + ddeps/deg2rad,360.0
     trueeps  = meaneps + deltaeps;
 
     %fprintf(1,'meaneps %11.7f dp  %11.7f de  %11.7f te  %11.7f  \n',meaneps*180/pi,deltapsi*180/pi,deltaeps*180/pi,trueeps*180/pi );
