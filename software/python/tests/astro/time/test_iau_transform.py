@@ -313,3 +313,10 @@ def test_findeopparam(eoparr, jdtt_jdttf, interp, eop_params_exp):
             assert int(param) == eop_params_exp[i]
         else:
             assert custom_isclose(param, eop_params_exp[i])
+
+
+def test_findspwparam(spwarr, jdtt_jdttf):
+    f107, f107bar, ap, avgap, aparr, kp, sumkp, kparr = iau_transform.findspwparam(
+        *jdtt_jdttf, "n", "b", "x", spwarr
+    )
+    assert True

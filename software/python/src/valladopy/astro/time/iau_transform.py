@@ -12,7 +12,7 @@ from typing import Tuple
 import numpy as np
 from scipy.interpolate import CubicSpline
 
-from .data import IAU06pnOldArray, IAU06Array, IAU06xysArray, EOPArray
+from .data import IAU06pnOldArray, IAU06Array, IAU06xysArray, EOPArray, SPWArray
 from .utils import FundArgs, fundarg, precess
 from ... import constants as const
 from ...mathtime.vector import rot1mat, rot2mat, rot3mat
@@ -678,7 +678,7 @@ def iau06xys(
 
 
 ########################################################################################
-# Earth Orientation Parameters (EOP)
+# Earth Orientation Parameters (EOP) and Space Weather Data
 ########################################################################################
 
 
@@ -754,3 +754,131 @@ def findeopparam(
     interp_params[3:9] *= const.ARCSEC2RAD
 
     return tuple(interp_params)
+
+
+def findspwparam(
+    jd: float, jdf: float, interp: str, fluxtype: str, f81type: str, spwarr: SPWArray
+) -> Tuple[float, float, float, float, np.ndarray, float, float, np.ndarray]:
+    """Finds SPW parameters for a given time with optional interpolation.
+
+    Args:
+        jd: Julian date (TDB)
+        jdf: Fractional Julian date (TDB)
+        interp: Interpolation type ('n', 'l', 's')
+        fluxtype: Flux type ('a' for adjusted, 'o' for observed)
+        f81type: F10.7 type ('l' for last, 'c' for centered)
+        spwarr: SPWArray containing space weather records
+
+    Returns:
+        Tuple containing f107, f107bar, ap, avgap, aparr, kparr, sumkp, kparr
+    """
+    jd1 = np.floor(jd + jdf) + 0.5
+    mfme = (jd + jdf - jd1) * 1440.0
+    if mfme < 0.0:
+        mfme += 1440.0
+
+    fluxtime = 1200.0 if jd > 2448407.5 else 1020.0
+
+    jdspwstarto = np.floor(jd + jdf - spwarr.mjd[0] - 2400000.5)
+    recnum = int(np.floor(jdspwstarto))
+
+    aparr, kparr = np.zeros(8), np.zeros(8)
+
+    if 0 <= recnum < len(spwarr.mjd):
+        if fluxtype == "a":
+            f107 = spwarr.adjf107[recnum]
+            f107bar = (
+                spwarr.adjlstf81[recnum] if f81type == "l" else spwarr.adjctrf81[recnum]
+            )
+        else:
+            f107 = spwarr.obsf107[recnum]
+            f107bar = (
+                spwarr.obslstf81[recnum] if f81type == "l" else spwarr.obsctrf81[recnum]
+            )
+
+        avgap = spwarr.avgap[recnum]
+        sumkp = spwarr.sumkp[recnum]
+
+        idx = min(max(int(mfme / 180.0), 0), 7)
+
+        ap = spwarr.aparray[recnum, idx]
+        kp = spwarr.kparray[recnum, idx] * 0.1
+
+        for i in range(8):
+            if idx >= 0:
+                aparr[7 - i] = spwarr.aparray[recnum, idx]
+                kparr[7 - i] = spwarr.kparray[recnum, idx]
+            else:
+                aparr[7 - i] = spwarr.aparray[recnum - 1, 8 + idx]
+                kparr[7 - i] = spwarr.kparray[recnum - 1, 8 + idx]
+            idx -= 1
+
+        if interp == "l":
+            recnumt = recnum + 1 if mfme > fluxtime else recnum - 1
+            fixf = (
+                (fluxtime - mfme) / 1440.0
+                if mfme > fluxtime - 720.0
+                else (mfme + (1440 - fluxtime)) / 1440.0
+            )
+
+            if fluxtype == "a":
+                tf107 = spwarr.adjf107[recnumt]
+                tf107bar = (
+                    spwarr.adjlstf81[recnumt]
+                    if f81type == "l"
+                    else spwarr.adjctrf81[recnumt]
+                )
+            else:
+                tf107 = spwarr.obsf107[recnumt]
+                tf107bar = (
+                    spwarr.obslstf81[recnumt]
+                    if f81type == "l"
+                    else spwarr.obsctrf81[recnumt]
+                )
+
+            if mfme <= fluxtime:
+                if mfme > fluxtime - 720.0:
+                    f107 += (tf107 - f107) * fixf
+                    f107bar += (tf107bar - f107bar) * fixf
+                else:
+                    f107 = tf107 + (f107 - tf107) * fixf
+                    f107bar = tf107bar + (f107bar - tf107bar) * fixf
+            else:
+                f107 += (tf107 - f107) * fixf
+                f107bar += (tf107bar - f107bar) * fixf
+
+        elif interp == "s":
+            fixf = mfme / 1440.0
+            if fluxtype == "a":
+                f107 = CubicSpline(
+                    spwarr.mjd[recnum - 1 : recnum + 3],
+                    spwarr.adjf107[recnum - 1 : recnum + 3],
+                )(spwarr.mjd[recnum] + fixf)
+
+                f107bar = CubicSpline(
+                    spwarr.mjd[recnum - 1 : recnum + 3],
+                    (
+                        spwarr.adjlstf81[recnum - 1 : recnum + 3]
+                        if f81type == "l"
+                        else spwarr.adjctrf81[recnum - 1 : recnum + 3]
+                    ),
+                )(spwarr.mjd[recnum] + fixf)
+            else:
+                f107 = CubicSpline(
+                    spwarr.mjd[recnum - 1 : recnum + 3],
+                    spwarr.obsf107[recnum - 1 : recnum + 3],
+                )(spwarr.mjd[recnum] + fixf)
+
+                f107bar = CubicSpline(
+                    spwarr.mjd[recnum - 1 : recnum + 3],
+                    (
+                        spwarr.obslstf81[recnum - 1 : recnum + 3]
+                        if f81type == "l"
+                        else spwarr.obsctrf81[recnum - 1 : recnum + 3]
+                    ),
+                )(spwarr.mjd[recnum] + fixf)
+
+    else:
+        f107 = f107bar = ap = kp = avgap = sumkp = 0
+
+    return f107, f107bar, ap, avgap, aparr, kp, sumkp, kparr
