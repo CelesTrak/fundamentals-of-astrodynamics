@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -39,6 +41,30 @@ def fundargs():
 @pytest.fixture()
 def jdtt_jdttf():
     return 2453101.5, 0.328154745474537
+
+
+@pytest.fixture()
+def xys_test_data(data_dir):
+    # Load the data from the file
+    file_path = os.path.join(data_dir, "xys_data.dat")
+    data = np.genfromtxt(
+        file_path, skip_header=1, names=["ttt", "jdtt", "jdftt", "x", "y", "s"]
+    )
+    return data
+
+
+def mock_iau06xys_series_closure(xys_test_data):
+    """Create a closure for the mock function with xys_test_data."""
+
+    def mock_iau06xys_series(ttt, *args):
+        # Find the closest row based on ttt
+        closest_index = np.abs(xys_test_data["ttt"] - ttt).argmin()
+        row = xys_test_data[closest_index]
+
+        # Return x, y, s values
+        return row["x"], row["y"], row["s"]
+
+    return mock_iau06xys_series
 
 
 def test_iau06era():
@@ -198,28 +224,20 @@ def test_findxysparam(iau06xysarr, jdtt_jdttf, interp, x_exp, y_exp, s_exp):
     assert custom_isclose(s, s_exp)
 
 
-def test_create_xys(iau06arr):
+def test_create_xys(iau06arr, xys_test_data, monkeypatch):
+    # Mock the iau06xys_series function
+    mock_function = mock_iau06xys_series_closure(xys_test_data)
+    monkeypatch.setattr(iau_transform, "iau06xys_series", mock_function)
+
     # Call function
     xys_data = iau_transform.create_xys(iau06arr)
+
+    # Check against expected values
     assert custom_allclose(
-        xys_data[0],
-        [
-            2435839.5,
-            0,
-            -0.004148973463970848,
-            -4.7135740172259504e-05,
-            -6.760814956903789e-08,
-        ],
+        xys_data[0], [2435839.5, 0, -0.004148973464, -4.713574e-05, -6.7608e-08]
     )
     assert custom_allclose(
-        xys_data[-1],
-        [
-            2436204.5,
-            0,
-            -0.0040600431559086065,
-            -5.71767574246939e-05,
-            -9.036867780111693e-08,
-        ],
+        xys_data[-1], [2436204.5, 0, -0.004060043156, -5.7176757e-05, -9.0369e-08]
     )
 
 

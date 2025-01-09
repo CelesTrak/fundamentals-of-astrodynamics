@@ -42,34 +42,29 @@ def load_matlab_data(file_path: str, keys: list) -> dict:
 
 
 @pytest.fixture()
-def current_dir():
-    return os.path.dirname(os.path.abspath(__file__))
-
-
-@pytest.fixture()
-def iau80_mat_data(current_dir):
+def iau80_mat_data(data_dir):
     struct_name = "iau80arr"
-    file_path = os.path.join(current_dir, "data", "iau80in_data.mat")
+    file_path = os.path.join(data_dir, "iau80in_data.mat")
     return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 
 @pytest.fixture()
-def iau06_pnold_mat_data(current_dir):
-    file_path = os.path.join(current_dir, "data", "iau06in_pnold_data.mat")
+def iau06_pnold_mat_data(data_dir):
+    file_path = os.path.join(data_dir, "iau06in_pnold_data.mat")
     return load_matlab_data(file_path, keys=["apn", "apni", "appl", "appli"])
 
 
 @pytest.fixture()
-def iau06_mat_data(current_dir):
+def iau06_mat_data(data_dir):
     struct_name = "iau06arr"
-    file_path = os.path.join(current_dir, "data", "iau06in_data.mat")
+    file_path = os.path.join(data_dir, "iau06in_data.mat")
     return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 
 @pytest.fixture()
-def xys_data(current_dir):
+def xys_data(data_dir):
     struct_name = "xys06table_struct"
-    file_path = os.path.join(current_dir, "data", "xys_data.mat")
+    file_path = os.path.join(data_dir, "xys_data.mat")
     return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 

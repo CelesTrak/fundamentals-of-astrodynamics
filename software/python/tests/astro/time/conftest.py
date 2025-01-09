@@ -9,6 +9,11 @@ def filepath(filename):
 
 
 @pytest.fixture()
+def data_dir():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
+
+@pytest.fixture()
 def iau80arr():
     """Load the IAU 1980 data"""
     return data.iau80in()
