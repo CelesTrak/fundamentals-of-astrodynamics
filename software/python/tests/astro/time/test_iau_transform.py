@@ -200,9 +200,27 @@ def test_findxysparam(iau06xysarr, jdtt_jdttf, interp, x_exp, y_exp, s_exp):
 
 def test_create_xys(iau06arr):
     # Call function
-    xys_data = iau_transform.create_xys(iau06arr, yr_span=1, ymdhms=(1956, 12, 31, 0, 0, 0))
-    assert custom_allclose(xys_data[0], [2435839.5, 0.0, -0.004148973463970848, -4.7135740172259504e-05, -6.760814956903789e-08])
-    assert custom_allclose(xys_data[-1], [2436204.5, 0.0, -0.0040600431559086065, -5.71767574246939e-05, -9.036867780111693e-08])
+    xys_data = iau_transform.create_xys(iau06arr)
+    assert custom_allclose(
+        xys_data[0],
+        [
+            2435839.5,
+            0,
+            -0.004148973463970848,
+            -4.7135740172259504e-05,
+            -6.760814956903789e-08,
+        ],
+    )
+    assert custom_allclose(
+        xys_data[-1],
+        [
+            2436204.5,
+            0,
+            -0.0040600431559086065,
+            -5.71767574246939e-05,
+            -9.036867780111693e-08,
+        ],
+    )
 
 
 def test_iau06xys_series(ttt, iau06arr):
