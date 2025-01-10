@@ -425,7 +425,8 @@ def nutation(
 def nutation_qmod(
     ttt: float, iau80arr: IAU80Array, use_eutelsat_approx: bool = False
 ) -> Tuple[float, float, float, float, np.ndarray]:
-    """Calculate the transformation matrix that accounts for the effects of nutation.
+    """Calculates the transformation matrix that accounts for the effects of nutation
+    within the Quasi Mean-of-Date (QMOD) paradigm.
 
     References:
         Vallado: 2022, p. 225-227
