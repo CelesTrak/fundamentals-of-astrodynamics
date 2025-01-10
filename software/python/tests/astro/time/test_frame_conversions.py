@@ -402,6 +402,19 @@ def test_eci2tirs(iau06arr, iau06xysarr, rva_eci, rva_tirs, t_inputs, eop_correc
     assert custom_allclose(atirs_exp, atirs_out)
 
 
+def test_tirs2eci(iau06arr, iau06xysarr, rva_eci, rva_tirs, t_inputs, eop_corrections):
+    # Call the function with test inputs
+    reci_out, veci_out, aeci_out = fc.tirs2eci(
+        *rva_tirs, *t_inputs, iau06arr, iau06xysarr, *eop_corrections
+    )
+
+    # Check if the output vectors are close to the expected values
+    reci, veci, aeci = rva_eci
+    assert custom_allclose(reci, reci_out)
+    assert custom_allclose(veci, veci_out)
+    assert custom_allclose(aeci, aeci_out)
+
+
 def test_ecef2pef(rva_ecef, rva_pef_ecef, t_inputs, orbit_effects_inputs):
     # Expected PEF output vectors
     rpef, vpef, apef = rva_pef_ecef

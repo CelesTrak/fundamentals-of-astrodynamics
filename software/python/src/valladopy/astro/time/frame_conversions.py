@@ -956,6 +956,73 @@ def eci2tirs(
     return rtirs, vtirs, atirs
 
 
+def tirs2eci(
+    rtirs: ArrayLike,
+    vtirs: ArrayLike,
+    atirs: ArrayLike,
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    use_full_series: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Terrestrial Intermediate Reference System (TIRS)
+    frame to the ECI mean equator, mean equinox (J2000) frame using the XYS approach.
+
+    References:
+        Vallado: 2022, p. 213
+
+    Args:
+        rtirs (array_like): TIRS position vector in km
+        vtirs (array_like): TIRS velocity vector in km/s
+        atirs (array_like): TIRS acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        jdut1 (float): Julian date of UT1 (days from 4713 BC)
+        lod (float): Excess length of day in seconds
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+
+    Returns:
+        tuple: (reci, veci, aeci)
+            reci (np.ndarray): ECI position vector in km
+            veci (np.ndarray): ECI velocity vector in km/s
+            aeci (np.ndarray): ECI acceleration vector in km/s²
+    """
+    # Compute transformation matrices using XYS approach
+    prec = np.eye(3)
+    nut, st, _, omegaearth = compute_iau06_matrices(
+        ttt, jdut1, lod, 0, 0, iau06arr, iau06xysarr, ddx, ddy, use_full_series
+    )
+
+    # Position transformation
+    reci = prec @ nut @ st @ np.asarray(rtirs)
+
+    # Velocity transformation
+    veci = (
+        prec @ nut @ st @ (np.asarray(vtirs) + np.cross(omegaearth, np.asarray(rtirs)))
+    )
+
+    # Acceleration transformation
+    aeci = (
+        prec
+        @ nut
+        @ st
+        @ (
+            np.asarray(atirs)
+            + np.cross(omegaearth, np.cross(omegaearth, np.asarray(rtirs)))
+            + 2 * np.cross(omegaearth, np.asarray(vtirs))
+        )
+    )
+
+    return reci, veci, aeci
+
+
 ########################################################################################
 # ECEF <-> PEF Frame Conversions
 ########################################################################################
