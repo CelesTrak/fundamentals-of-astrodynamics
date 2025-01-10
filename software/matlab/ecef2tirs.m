@@ -4,7 +4,8 @@
 %                           function ecef2tirs
 %
 %  this function transforms a vector from the earth fixed itrf frame
-%    (itrf), to the pseudo earth fixed frame (pef).
+%    (itrf), to the tirs frame. the results take into account
+%    the effects of  polar motion.
 %
 %  author        : david vallado                  719-573-2600   27 may 2002
 %
@@ -19,9 +20,9 @@
 %    ttt         - julian centuries of tt         centuries
 %
 %  outputs       :
-%    rpef        - position pseudo earth fixed    km
-%    vpef        - velocity pseudo earth fixed    km/s
-%    apef        - acceleration pseudo earth fixedkm/s2
+%    rtirs        - position vector tirs            km
+%    vtirs        - velocity vector tirs            km/s
+%    atirs        - acceleration vector tirs        km/s2
 %
 %  locals        :
 %
@@ -31,17 +32,17 @@
 %  references    :
 %    vallado       2001, 219, eq 3-65 to 3-66
 %
-% [rpef, vpef, apef] = ecef2tirs  ( recef, vecef, aecef, opt, xp, yp, ttt )
+% [rtirs, vtirs, atirs] = ecef2tirs  ( recef, vecef, aecef, opt, xp, yp, ttt )
 % ----------------------------------------------------------------------------
 
-function [rpef, vpef, apef] = ecef2tirs  ( recef, vecef, aecef, ttt, xp, yp )
+function [rtirs, vtirs, atirs] = ecef2tirs  ( recef, vecef, aecef, ttt, xp, yp )
 
     [pm] = polarm(xp, yp, ttt, '06');
 
-    rpef = pm*recef;
+    rtirs = pm*recef;
 
-    vpef = pm*vecef;
+    vtirs = pm*vecef;
 
-    apef = pm*aecef;
+    atirs = pm*aecef;
 
 
