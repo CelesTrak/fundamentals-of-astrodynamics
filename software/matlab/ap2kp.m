@@ -37,8 +37,6 @@ function kpout = ap2kp(apin);
        % now normalize the time to be 0, t1, t2, 1
 %       t1 = 1.0/3.0;
 %       t2 = 2.0/3.0;
-t1 = 0.0;
-t2 = 0.0;
 
        % find starting point in files based on input
        i = 1;
@@ -53,13 +51,13 @@ t2 = 0.0;
                p2 = kp(i - 1);
                p3 = kp(i );
                p4 = kp(i + 1);
-               [ac0,ac1,ac2,ac3] = cubicspl(p1,p2,p3,p4,t1,t2);
+               [ac0,ac1,ac2,ac3] = cubicspl(p1,p2,p3,p4);
 
                p1 = ap(i - 2);
                p2 = ap(i - 1);
                p3 = ap(i );
                p4 = ap(i + 1);
-               [kac0,kac1,kac2,kac3] = cubicspl(p1,p2,p3,p4,t1,t2);
+               [kac0,kac1,kac2,kac3] = cubicspl(p1,p2,p3,p4);
 %p1
 %p2
 %p3
