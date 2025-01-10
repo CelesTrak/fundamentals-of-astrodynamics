@@ -13,7 +13,8 @@ from typing import Tuple
 import numpy as np
 
 from .data import IAU80Array
-from ...constants import ARCSEC2RAD, DEG2ARCSEC, TWOPI
+from ...constants import ARCSEC2RAD, DEG2ARCSEC, TWOPI, HR2SEC
+from ...mathtime.vector import rot1mat, rot2mat
 
 
 @dataclass
@@ -353,7 +354,7 @@ def nutation(
         iau80arr (IAU80Array): Data object containing the nutation matrices
 
     Returns:
-        tuple:
+        tuple: (deltapsi, trueeps, meaneps, omega, nut)
             deltapsi (float): Nutation angle in radians
             trueeps (float): True obliquity of the ecliptic in radians
             meaneps (float): Mean obliquity of the ecliptic in radians
@@ -390,12 +391,9 @@ def nutation(
     trueeps = meaneps + deltaeps
 
     # Sine/cosine values of psi and eps
-    cospsi = np.cos(deltapsi)
-    sinpsi = np.sin(deltapsi)
-    coseps = np.cos(meaneps)
-    sineps = np.sin(meaneps)
-    costrueeps = np.cos(trueeps)
-    sintrueeps = np.sin(trueeps)
+    cospsi, sinpsi = np.cos(deltapsi), np.sin(deltapsi)
+    coseps, sineps = np.cos(meaneps), np.sin(meaneps)
+    costrueeps, sintrueeps = np.cos(trueeps), np.sin(trueeps)
 
     # Construct nutation rotation matrix
     nut = np.zeros((3, 3))
@@ -408,6 +406,81 @@ def nutation(
     nut[2, 0] = -sineps * sinpsi
     nut[2, 1] = costrueeps * sineps * cospsi - sintrueeps * coseps
     nut[2, 2] = sintrueeps * sineps * cospsi + costrueeps * coseps
+
+    return deltapsi, trueeps, meaneps, fundargs.omega, nut
+
+
+def nutation_qmod(
+    ttt: float, iau80arr: IAU80Array, use_eutelsat_approx: bool = False
+) -> Tuple[float, float, float, float, np.ndarray]:
+    """Calculate the transformation matrix that accounts for the effects of nutation.
+
+    References:
+        Vallado: 2022, p. 225-227
+
+    Args:
+        ttt (float): Julian centuries of TT
+        iau80arr (IAU80Array): Data object containing the nutation matrices
+        use_eutelsat_approx (bool, optional): Whether to use the Eutelsat
+                                              approximation (defaults to False)
+
+    Returns:
+        tuple: (deltapsi, trueeps, meaneps, omega, nut)
+            deltapsi (float): Nutation angle in radians
+            trueeps (float): True obliquity of the ecliptic in radians
+            meaneps (float): Mean obliquity of the ecliptic in radians
+            omega (float): Delaunay element in radians
+            nut (np.ndarray): Transformation matrix for TOD - MOD
+    """
+    # Mean obliquity of the ecliptic
+    meaneps = np.radians(84381.448 / HR2SEC) % TWOPI
+
+    # Get fundamental arguments
+    fundargs = fundarg(ttt, "96")
+
+    # Compute nutation angles
+    deltapsi, deltaeps = 0, 0
+    for i in range(len(iau80arr.iar80)):
+        tempval = (
+            iau80arr.iar80[i, 0] * fundargs.l
+            + iau80arr.iar80[i, 1] * fundargs.l1
+            + iau80arr.iar80[i, 2] * fundargs.f
+            + iau80arr.iar80[i, 3] * fundargs.d
+            + iau80arr.iar80[i, 4] * fundargs.omega
+        )
+        deltapsi += (iau80arr.rar80[i, 0] + iau80arr.rar80[i, 1] * ttt) * np.sin(
+            tempval
+        )
+        deltaeps += (iau80arr.rar80[i, 2] + iau80arr.rar80[i, 3] * ttt) * np.cos(
+            tempval
+        )
+
+    # Add corrections
+    deltapsi = math.remainder(deltapsi, TWOPI)
+    deltaeps = math.remainder(deltaeps, TWOPI)
+    trueeps = meaneps + deltaeps
+
+    # Sine/cosine values of psi and eps
+    cospsi, sinpsi = np.cos(deltapsi), np.sin(deltapsi)
+    coseps, sineps = np.cos(meaneps), np.sin(meaneps)
+    costrueeps, sintrueeps = np.cos(trueeps), np.sin(trueeps)
+
+    if use_eutelsat_approx:
+        # Eutelsat approximation
+        n1 = rot1mat(deltaeps)
+        n2 = rot2mat(-deltapsi * sineps)
+        nut = n2 @ n1
+    else:
+        nut = np.zeros((3, 3))
+        nut[0, 0] = cospsi
+        nut[0, 1] = costrueeps * sinpsi
+        nut[0, 2] = sintrueeps * sinpsi
+        nut[1, 0] = -coseps * sinpsi
+        nut[1, 1] = costrueeps * coseps * cospsi + sintrueeps * sineps
+        nut[1, 2] = sintrueeps * coseps * cospsi - sineps * costrueeps
+        nut[2, 0] = -sineps * sinpsi
+        nut[2, 1] = costrueeps * sineps * cospsi - sintrueeps * coseps
+        nut[2, 2] = sintrueeps * sineps * cospsi + costrueeps * coseps
 
     return deltapsi, trueeps, meaneps, fundargs.omega, nut
 
