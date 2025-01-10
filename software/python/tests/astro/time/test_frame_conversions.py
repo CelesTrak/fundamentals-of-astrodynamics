@@ -109,6 +109,7 @@ def rva_cirs():
 
 @pytest.fixture
 def rva_cirs_ecef(rva_cirs):
+    # Example CIRS vectors (km, km/s, km/s²)
     rcirs = [2987.4156966089436, -7387.424994731868, 6380.344532748866]
     vcirs = [2.938241662556575, 3.809200693603034, 5.531931287696301]
     acirs = [-0.0010045207033316204, -0.00179798128030906, 0.0029999960860945377]
@@ -121,6 +122,15 @@ def rva_tirs():
     rtirs = [-1033.4734522629915, 7901.305791560075, 6380.3445334433]
     vtirs = [-3.2256333275286266, -2.8724418647421177, 5.531931284014407]
     atirs = [0.000293685668482108, 0.003115171592659657, 0.0030001437215600854]
+    return rtirs, vtirs, atirs
+
+
+@pytest.fixture
+def rva_tirs_ecef():
+    # Example TIRS vectors (km, km/s, km/s²)
+    rtirs = [-1033.4750312376948, 7901.305585594248, 6380.344532748866]
+    vtirs = [-3.225632746999349, -2.8724425107753486, 5.531931287696301]
+    atirs = [0.0010000020461537363, 0.0020000048477705735, 0.0029999960860945377]
     return rtirs, vtirs, atirs
 
 
@@ -579,3 +589,33 @@ def test_cirs2ecef(rva_ecef, rva_cirs_ecef, t_inputs, orbit_effects_inputs):
     assert custom_allclose(recef_exp, recef_out)
     assert custom_allclose(vecef_exp, vecef_out)
     assert custom_allclose(aecef_exp, aecef_out, rtol=1e-6)
+
+
+def test_ecef2tirs(rva_ecef, rva_tirs_ecef, t_inputs, orbit_effects_inputs):
+    # Extract the inputs
+    ttt, *_ = t_inputs
+    xp, yp, *_ = orbit_effects_inputs
+
+    # Call the function with test inputs
+    rtirs_out, vtirs_out, atirs_out = fc.ecef2tirs(*rva_ecef, xp, yp, ttt)
+
+    # Check if the output vectors are close to the expected values
+    rtirs_exp, vtirs_exp, atirs_exp = rva_tirs_ecef
+    assert custom_allclose(rtirs_exp, rtirs_out)
+    assert custom_allclose(vtirs_exp, vtirs_out)
+    assert custom_allclose(atirs_exp, atirs_out)
+
+
+def test_tirs2ecef(rva_ecef, rva_tirs_ecef, t_inputs, orbit_effects_inputs):
+    # Extract the inputs
+    ttt, *_ = t_inputs
+    xp, yp, *_ = orbit_effects_inputs
+
+    # Call the function with test inputs
+    recef_out, vecef_out, aecef_out = fc.tirs2ecef(*rva_tirs_ecef, xp, yp, ttt)
+
+    # Check if the output vectors are close to the expected values
+    recef_exp, vecef_exp, aecef_exp = rva_ecef
+    assert custom_allclose(recef_exp, recef_out)
+    assert custom_allclose(vecef_exp, vecef_out)
+    assert custom_allclose(aecef_exp, aecef_out)

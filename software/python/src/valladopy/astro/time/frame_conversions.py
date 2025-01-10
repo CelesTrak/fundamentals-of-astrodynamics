@@ -1678,3 +1678,70 @@ def cirs2ecef(
     )
 
     return recef, vecef, aecef
+
+
+########################################################################################
+# ECEF <-> TIRS Frame Conversions
+########################################################################################
+
+
+def ecef2tirs(
+    recef: ArrayLike,
+    vecef: ArrayLike,
+    aecef: ArrayLike,
+    xp: float,
+    yp: float,
+    ttt: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the Terrestrial
+    Intermediate Reference System (TIRS) frame.
+
+    References:
+        Vallado: 2022, p. 213
+
+    Args:
+        recef (array_like): ECEF position vector in km
+        vecef (array_like): ECEF velocity vector in km/s
+        aecef (array_like): ECEF acceleration vector in km/s²
+        xp (float): Polar motion coefficient in radians
+        yp (float): Polar motion coefficient in radians
+        ttt (float): Julian centuries of TT
+
+    Returns:
+        tuple: (rtirs, vtirs, atirs)
+            rtirs (np.ndarray): TIRS position vector in km
+            vtirs (np.ndarray): TIRS velocity vector in km/s
+            atirs (np.ndarray): TIRS acceleration vector in km/s²
+    """
+    return ecef2pef(recef, vecef, aecef, xp, yp, ttt, use_iau80=False)
+
+
+def tirs2ecef(
+    rtirs: ArrayLike,
+    vtirs: ArrayLike,
+    atirs: ArrayLike,
+    xp: float,
+    yp: float,
+    ttt: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Terrestrial Intermediate Reference System (TIRS)
+    frame to the Earth-fixed (ECEF) frame.
+
+    References:
+        Vallado: 2022, p. 213
+
+    Args:
+        rtirs (array_like): TIRS position vector in km
+        vtirs (array_like): TIRS velocity vector in km/s
+        atirs (array_like): TIRS acceleration vector in km/s²
+        xp (float): Polar motion coefficient in radians
+        yp (float): Polar motion coefficient in radians
+        ttt (float): Julian centuries of TT
+
+    Returns:
+        tuple: (recef, vecef, aecef)
+            recef (np.ndarray): ECEF position vector in km
+            vecef (np.ndarray): ECEF velocity vector in km/s
+            aecef (np.ndarray): ECEF acceleration vector in km/s²
+    """
+    return pef2ecef(rtirs, vtirs, atirs, xp, yp, ttt, use_iau80=False)
