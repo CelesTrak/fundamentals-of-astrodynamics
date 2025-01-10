@@ -451,6 +451,73 @@ def findxysparam(
     return x, y, s
 
 
+def create_xys(
+    iau06arr: IAU06Array,
+    directory: str | None = None,
+    filename: str = "xysdata.dat",
+    yr_span: int = 1,
+    dt_day: int = 1,
+    ymdhms: Tuple[int, int, int, int, int, float] = (1957, 1, 1, 0, 0, 0.0),
+) -> np.ndarray:
+    """Generate the XYS data array and optionally save to a file.
+
+    This function precalculates the XYS parameters and optionally stores in a data file
+    for efficient access in the future.
+
+    Args:
+        iau06arr (IAU06Array): IAU 2006 data
+        directory (str, optional): Directory to save the output file (default: None)
+        filename (str, optional): Output filename (default: 'xysdata.dat')
+        yr_span (int, optional): Number of years to generate data (default: 142 years)
+        dt_day (int, optional): Time step in days (default: 1 day)
+        ymdhms (tuple, optional): Initial date in (yr, mo, day, hr, min, sec) format
+                                  (default: (1957, 1, 1, 0, 0, 0.0))
+
+    Returns:
+        np.ndarray: Array of XYS data with columns [jdtt, jdftt, x, y, s]
+
+    Notes:
+        - This is pretty slow due to `iau06xys_series` being called for each day and
+          could use some optimization.
+        - MATLAB and C# versions hardcode the year start and duration; the default
+          duration is set to 1 year here instead of the 142 years used in those
+
+    TODO:
+        - Look into using `jit` for performance improvements of downstream functions
+    """
+    # Initialize the starting Julian date
+    jdtt, jdftt = jday(*ymdhms)
+
+    # Calculate the number of rows for the array
+    num_rows = yr_span * int(const.YR2DAY) // dt_day + 1
+
+    # Pre-initialize the data array
+    xys_data = np.zeros((num_rows, 5))
+
+    # Generate the data
+    for i in range(num_rows):
+        ttt = (jdtt + jdftt - const.J2000) / const.CENT2DAY
+        x, y, s = iau06xys_series(ttt, iau06arr)
+
+        # Store data in the array
+        xys_data[i] = [jdtt, jdftt, x, y, s]
+
+        # Increment the Julian date
+        jdtt += dt_day
+
+    # Optionally save to a file
+    if directory:
+        np.savetxt(
+            f"{directory}/{filename}",
+            xys_data,
+            fmt=["%15.6f", "%13.11f", "%15.12f", "%15.12f", "%15.12f"],
+            header="jdtt jdftt x y s",
+            comments="",
+        )
+
+    return xys_data
+
+
 def iau06xys_series(ttt: float, iau06arr: IAU06Array) -> Tuple[float, float, float]:
     """Calculates the XYS parameters for the IAU2006 CIO theory.
 
@@ -609,73 +676,6 @@ def iau06xys_series(ttt: float, iau06arr: IAU06Array) -> Tuple[float, float, flo
     )
 
     return x, y, s
-
-
-def create_xys(
-    iau06arr: IAU06Array,
-    directory: str | None = None,
-    filename: str = "xysdata.dat",
-    yr_span: int = 1,
-    dt_day: int = 1,
-    ymdhms: Tuple[int, int, int, int, int, float] = (1957, 1, 1, 0, 0, 0.0),
-) -> np.ndarray:
-    """Generate the XYS data array and optionally save to a file.
-
-    This function precalculates the XYS parameters and optionally stores in a data file
-    for efficient access in the future.
-
-    Args:
-        iau06arr (IAU06Array): IAU 2006 data
-        directory (str, optional): Directory to save the output file (default: None)
-        filename (str, optional): Output filename (default: 'xysdata.dat')
-        yr_span (int, optional): Number of years to generate data (default: 142 years)
-        dt_day (int, optional): Time step in days (default: 1 day)
-        ymdhms (tuple, optional): Initial date in (yr, mo, day, hr, min, sec) format
-                                  (default: (1957, 1, 1, 0, 0, 0.0))
-
-    Returns:
-        np.ndarray: Array of XYS data with columns [jdtt, jdftt, x, y, s]
-
-    Notes:
-        - This is pretty slow due to `iau06xys_series` being called for each day and
-          could use some optimization.
-        - MATLAB and C# versions hardcode the year start and duration; the default
-          duration is set to 1 year here instead of the 142 years used in those
-
-    TODO:
-        - Look into using `jit` for performance improvements of downstream functions
-    """
-    # Initialize the starting Julian date
-    jdtt, jdftt = jday(*ymdhms)
-
-    # Calculate the number of rows for the array
-    num_rows = yr_span * int(const.YR2DAY) // dt_day + 1
-
-    # Pre-initialize the data array
-    xys_data = np.zeros((num_rows, 5))
-
-    # Generate the data
-    for i in range(num_rows):
-        ttt = (jdtt + jdftt - const.J2000) / const.CENT2DAY
-        x, y, s = iau06xys_series(ttt, iau06arr)
-
-        # Store data in the array
-        xys_data[i] = [jdtt, jdftt, x, y, s]
-
-        # Increment the Julian date
-        jdtt += dt_day
-
-    # Optionally save to a file
-    if directory:
-        np.savetxt(
-            f"{directory}/{filename}",
-            xys_data,
-            fmt=["%15.6f", "%13.11f", "%15.12f", "%15.12f", "%15.12f"],
-            header="jdtt jdftt x y s",
-            comments="",
-        )
-
-    return xys_data
 
 
 def iau06xys(

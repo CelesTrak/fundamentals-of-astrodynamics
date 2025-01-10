@@ -10,7 +10,7 @@ DEFAULT_TOL = 1e-12
 
 @pytest.fixture
 def rva_eci():
-    # Example ECI vectors (km, km/s, km/s^2)
+    # Example ECI vectors (km, km/s, km/s²)
     reci = [2989.905220660578, -7387.200565596868, 6379.438182851598]
     veci = [2.940401948462732, 3.809395206305895, 5.53064935673674]
     aeci = [-3.927364527726347e-05, -0.00269956155725574, 0.0030002544835211]
@@ -19,7 +19,7 @@ def rva_eci():
 
 @pytest.fixture
 def rva_ecef():
-    # Example ECEF vectors (km, km/s, km/s^2)
+    # Example ECEF vectors (km, km/s, km/s²)
     recef = [-1033.4793830, 7901.2952754, 6380.3565958]
     vecef = [-3.225636520, -2.872451450, 5.531924446]
     aecef = [0.001, 0.002, 0.003]
@@ -36,7 +36,7 @@ def rva_ecef06():
 
 @pytest.fixture
 def rva_pef():
-    # Example PEF vectors (km, km/s, km/s^2) [opt = "80"]
+    # Example PEF vectors (km, km/s, km/s²) [opt = "80"]
     rpef = [-1033.4750313057266, 7901.305585585349, 6380.344532748868]
     vpef = [-3.225632746974616, -2.872442510803122, 5.531931287696299]
     apef = [0.000293685046453725, 0.0031151716514636447, 0.0030001437204660755]
@@ -52,7 +52,7 @@ def rva_pef_ecef(rva_pef):
 
 @pytest.fixture
 def rva_mod():
-    # Example MOD vectors (km, km/s, km/s^2)
+    # Example MOD vectors (km, km/s, km/s²)
     rmod = [2994.30249664958, -7384.348641268552, 6380.677444947862]
     vmod = [2.934478765910065, 3.8121950281090644, 5.531865978456613]
     amod = [-3.79431747506729e-05, -0.0026995983568731115, 0.003000238492782315]
@@ -68,7 +68,7 @@ def rva_mod_ecef(rva_mod):
 
 @pytest.fixture
 def rva_tod():
-    # Example TOD vectors (km, km/s, km/s^2) [opt = "80"]
+    # Example TOD vectors (km, km/s, km/s²) [opt = "80"]
     rtod = [2994.049189091933, -7384.738996771148, 6380.344532748868]
     vtod = [2.9348194081733827, 3.8118380124472613, 5.531931287696299]
     atod = [-3.801990321023478e-05, -0.002699702600291877, 0.0030001437204660755]
@@ -84,7 +84,7 @@ def rva_tod_ecef(rva_tod):
 
 @pytest.fixture
 def rva_teme():
-    # Example TEME vectors (km, km/s, km/s^2)
+    # Example TEME vectors (km, km/s, km/s²)
     rteme = [2994.454240128889, -7384.574761007484, 6380.344532748868]
     vteme = [2.9346103230979974, 3.8119989825937415, 5.531931287696299]
     ateme = [-3.787182351239877e-05, -0.0026997046816358795, 0.0030001437204660755]
@@ -96,6 +96,15 @@ def rva_teme_ecef(rva_teme):
     rteme, vteme, _ = rva_teme
     ateme = [-0.0010028068479698174, -0.001798937729169217, 0.0029999960860945377]
     return rteme, vteme, ateme
+
+
+@pytest.fixture
+def rva_cirs():
+    # Example CIRS vectors (km, km/s, km/s²)
+    rcirs = [2987.4142201856234, -7387.425591185734, 6380.3445334433]
+    vcirs = [2.938242430396298, 3.8092001066738215, 5.531931284014407]
+    acirs = [-4.044504843792661e-05, -0.0026996673562784206, 0.0030001437215600854]
+    return rcirs, vcirs, acirs
 
 
 @pytest.fixture
@@ -337,6 +346,22 @@ def test_teme2eci(rva_eci, rva_teme, t_inputs, orbit_effects_inputs, iau80arr):
     assert custom_allclose(reci, reci_out)
     assert custom_allclose(veci, veci_out)
     assert custom_allclose(aeci, aeci_out)
+
+
+def test_eci2cirs(iau06arr, iau06xysarr, rva_eci, rva_cirs, t_inputs, eop_corrections):
+    # Extract inputs
+    ttt, *_ = t_inputs
+
+    # Call the function with test inputs
+    rcirs_out, vcirs_out, acirs_out = fc.eci2cirs(
+        *rva_eci, ttt, iau06arr, iau06xysarr, *eop_corrections
+    )
+
+    # Check if the output vectors are close to the expected values
+    rcirs_exp, vcirs_exp, acirs_exp = rva_cirs
+    assert custom_allclose(rcirs_exp, rcirs_out)
+    assert custom_allclose(vcirs_exp, vcirs_out)
+    assert custom_allclose(acirs_exp, acirs_out)
 
 
 def test_ecef2pef(rva_ecef, rva_pef_ecef, t_inputs, orbit_effects_inputs):

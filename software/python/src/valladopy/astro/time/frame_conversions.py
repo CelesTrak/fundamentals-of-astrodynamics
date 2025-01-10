@@ -797,6 +797,56 @@ def teme2eci(
 
 
 ########################################################################################
+# ECI <-> CIRS Frame Conversions
+########################################################################################
+
+
+def eci2cirs(
+    reci: ArrayLike,
+    veci: ArrayLike,
+    aeci: ArrayLike,
+    ttt: float,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    use_full_series: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the ECI mean equator, mean equinox (J2000) frame to the
+    Celestial Intermediate Reference System (CIRS) frame using the XYS approach.
+
+    References:
+        Vallado: 2022, p. 214
+
+    Args:
+        reci (array_like): ECI position vector in km
+        veci (array_like): ECI velocity vector in km/s
+        aeci (array_like): ECI acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+
+    Returns:
+        tuple: (rcirs, vcirs, acirs)
+            rcirs (np.ndarray): CIRS position vector in km
+            vcirs (np.ndarray): CIRS velocity vector in km/s
+            acirs (np.ndarray): CIRS acceleration vector in km/s²
+    """
+    # Compute transformation matrix using XYS approach
+    *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy, iau06xysarr, use_full_series)
+
+    # Transform vectors
+    rcirs = pnb.T @ np.asarray(reci)
+    vcirs = pnb.T @ np.asarray(veci)
+    acirs = pnb.T @ np.asarray(aeci)
+
+    return rcirs, vcirs, acirs
+
+
+########################################################################################
 # ECEF <-> PEF Frame Conversions
 ########################################################################################
 
