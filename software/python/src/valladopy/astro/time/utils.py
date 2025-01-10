@@ -339,6 +339,49 @@ def precess(ttt: float, opt: str) -> Tuple[np.ndarray, float, float, float, floa
     return prec, psia * ARCSEC2RAD, wa * ARCSEC2RAD, ea * ARCSEC2RAD, xa * ARCSEC2RAD
 
 
+def _get_nutation_parameters(ttt, iau80arr, model):
+    # Fundamental arguments
+    fundargs = fundarg(ttt, model)
+
+    # Calculate nutation parameters
+    deltapsi, deltaeps = 0, 0
+    for i in range(len(iau80arr.iar80)):
+        tempval = (
+            iau80arr.iar80[i, 0] * fundargs.l
+            + iau80arr.iar80[i, 1] * fundargs.l1
+            + iau80arr.iar80[i, 2] * fundargs.f
+            + iau80arr.iar80[i, 3] * fundargs.d
+            + iau80arr.iar80[i, 4] * fundargs.omega
+        )
+        deltapsi += (iau80arr.rar80[i, 0] + iau80arr.rar80[i, 1] * ttt) * np.sin(
+            tempval
+        )
+        deltaeps += (iau80arr.rar80[i, 2] + iau80arr.rar80[i, 3] * ttt) * np.cos(
+            tempval
+        )
+
+    return deltapsi, deltaeps, fundargs.omega
+
+
+def _build_nutation_matrix(deltapsi, meaneps, trueeps):
+    cospsi, sinpsi = np.cos(deltapsi), np.sin(deltapsi)
+    coseps, sineps = np.cos(meaneps), np.sin(meaneps)
+    costrueeps, sintrueeps = np.cos(trueeps), np.sin(trueeps)
+
+    nut = np.zeros((3, 3))
+    nut[0, 0] = cospsi
+    nut[0, 1] = costrueeps * sinpsi
+    nut[0, 2] = sintrueeps * sinpsi
+    nut[1, 0] = -coseps * sinpsi
+    nut[1, 1] = costrueeps * coseps * cospsi + sintrueeps * sineps
+    nut[1, 2] = sintrueeps * coseps * cospsi - sineps * costrueeps
+    nut[2, 0] = -sineps * sinpsi
+    nut[2, 1] = costrueeps * sineps * cospsi - sintrueeps * coseps
+    nut[2, 2] = sintrueeps * sineps * cospsi + costrueeps * coseps
+
+    return nut
+
+
 def nutation(
     ttt: float, ddpsi: float, ddeps: float, iau80arr: IAU80Array
 ) -> Tuple[float, float, float, float, np.ndarray]:
@@ -365,49 +408,18 @@ def nutation(
     meaneps = -46.815 * ttt - 0.00059 * ttt**2 + 0.001813 * ttt**3 + 84381.448
     meaneps = float(np.radians(np.remainder(meaneps / DEG2ARCSEC, np.degrees(TWOPI))))
 
-    # Fundamental arguments using the IAU80 theory
-    fundargs = fundarg(ttt, "80")
-
     # Calculate nutation parameters
-    deltapsi, deltaeps = 0, 0
-    for i in range(len(iau80arr.iar80)):
-        tempval = (
-            iau80arr.iar80[i, 0] * fundargs.l
-            + iau80arr.iar80[i, 1] * fundargs.l1
-            + iau80arr.iar80[i, 2] * fundargs.f
-            + iau80arr.iar80[i, 3] * fundargs.d
-            + iau80arr.iar80[i, 4] * fundargs.omega
-        )
-        deltapsi += (iau80arr.rar80[i, 0] + iau80arr.rar80[i, 1] * ttt) * np.sin(
-            tempval
-        )
-        deltaeps += (iau80arr.rar80[i, 2] + iau80arr.rar80[i, 3] * ttt) * np.cos(
-            tempval
-        )
+    deltapsi, deltaeps, omega = _get_nutation_parameters(ttt, iau80arr, "80")
 
     # Add corrections
     deltapsi = math.remainder(deltapsi + ddpsi, TWOPI)
     deltaeps = math.remainder(deltaeps + ddeps, TWOPI)
     trueeps = meaneps + deltaeps
 
-    # Sine/cosine values of psi and eps
-    cospsi, sinpsi = np.cos(deltapsi), np.sin(deltapsi)
-    coseps, sineps = np.cos(meaneps), np.sin(meaneps)
-    costrueeps, sintrueeps = np.cos(trueeps), np.sin(trueeps)
-
     # Construct nutation rotation matrix
-    nut = np.zeros((3, 3))
-    nut[0, 0] = cospsi
-    nut[0, 1] = costrueeps * sinpsi
-    nut[0, 2] = sintrueeps * sinpsi
-    nut[1, 0] = -coseps * sinpsi
-    nut[1, 1] = costrueeps * coseps * cospsi + sintrueeps * sineps
-    nut[1, 2] = sintrueeps * coseps * cospsi - sineps * costrueeps
-    nut[2, 0] = -sineps * sinpsi
-    nut[2, 1] = costrueeps * sineps * cospsi - sintrueeps * coseps
-    nut[2, 2] = sintrueeps * sineps * cospsi + costrueeps * coseps
+    nut = _build_nutation_matrix(deltapsi, meaneps, trueeps)
 
-    return deltapsi, trueeps, meaneps, fundargs.omega, nut
+    return deltapsi, trueeps, meaneps, omega, nut
 
 
 def nutation_qmod(
@@ -435,54 +447,24 @@ def nutation_qmod(
     # Mean obliquity of the ecliptic
     meaneps = np.radians(84381.448 / HR2SEC) % TWOPI
 
-    # Get fundamental arguments
-    fundargs = fundarg(ttt, "96")
-
-    # Compute nutation angles
-    deltapsi, deltaeps = 0, 0
-    for i in range(len(iau80arr.iar80)):
-        tempval = (
-            iau80arr.iar80[i, 0] * fundargs.l
-            + iau80arr.iar80[i, 1] * fundargs.l1
-            + iau80arr.iar80[i, 2] * fundargs.f
-            + iau80arr.iar80[i, 3] * fundargs.d
-            + iau80arr.iar80[i, 4] * fundargs.omega
-        )
-        deltapsi += (iau80arr.rar80[i, 0] + iau80arr.rar80[i, 1] * ttt) * np.sin(
-            tempval
-        )
-        deltaeps += (iau80arr.rar80[i, 2] + iau80arr.rar80[i, 3] * ttt) * np.cos(
-            tempval
-        )
+    # Calculate nutation parameters
+    deltapsi, deltaeps, omega = _get_nutation_parameters(ttt, iau80arr, "96")
 
     # Add corrections
     deltapsi = math.remainder(deltapsi, TWOPI)
     deltaeps = math.remainder(deltaeps, TWOPI)
     trueeps = meaneps + deltaeps
 
-    # Sine/cosine values of psi and eps
-    cospsi, sinpsi = np.cos(deltapsi), np.sin(deltapsi)
-    coseps, sineps = np.cos(meaneps), np.sin(meaneps)
-    costrueeps, sintrueeps = np.cos(trueeps), np.sin(trueeps)
-
+    # Construct nutation rotation matrix
     if use_eutelsat_approx:
         # Eutelsat approximation
         n1 = rot1mat(deltaeps)
-        n2 = rot2mat(-deltapsi * sineps)
+        n2 = rot2mat(-deltapsi * np.sin(meaneps))
         nut = n2 @ n1
     else:
-        nut = np.zeros((3, 3))
-        nut[0, 0] = cospsi
-        nut[0, 1] = costrueeps * sinpsi
-        nut[0, 2] = sintrueeps * sinpsi
-        nut[1, 0] = -coseps * sinpsi
-        nut[1, 1] = costrueeps * coseps * cospsi + sintrueeps * sineps
-        nut[1, 2] = sintrueeps * coseps * cospsi - sineps * costrueeps
-        nut[2, 0] = -sineps * sinpsi
-        nut[2, 1] = costrueeps * sineps * cospsi - sintrueeps * coseps
-        nut[2, 2] = sintrueeps * sineps * cospsi + costrueeps * coseps
+        nut = _build_nutation_matrix(deltapsi, meaneps, trueeps)
 
-    return deltapsi, trueeps, meaneps, fundargs.omega, nut
+    return deltapsi, trueeps, meaneps, omega, nut
 
 
 def polarm(xp: float, yp: float, ttt: float, use_iau80: bool = True) -> np.ndarray:
