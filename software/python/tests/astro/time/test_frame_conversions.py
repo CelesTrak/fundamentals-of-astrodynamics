@@ -108,6 +108,14 @@ def rva_cirs():
 
 
 @pytest.fixture
+def rva_cirs_ecef(rva_cirs):
+    rcirs = [2987.4156966089436, -7387.424994731868, 6380.344532748866]
+    vcirs = [2.938241662556575, 3.809200693603034, 5.531931287696301]
+    acirs = [-0.0010045207033316204, -0.00179798128030906, 0.0029999960860945377]
+    return rcirs, vcirs, acirs
+
+
+@pytest.fixture
 def rva_tirs():
     # Example TIRS vectors (km, km/s, km/s²)
     rtirs = [-1033.4734522629915, 7901.305791560075, 6380.3445334433]
@@ -543,3 +551,17 @@ def test_teme2ecef(rva_ecef, rva_teme_ecef, t_inputs, orbit_effects_inputs, iau8
     assert custom_allclose(recef, recef_out)
     assert custom_allclose(vecef, vecef_out)
     assert custom_allclose(aecef, aecef_out)
+
+
+def test_ecef2cirs(rva_ecef, rva_cirs_ecef, t_inputs, orbit_effects_inputs):
+    # Unpack the inputs
+    xp, yp, *_ = orbit_effects_inputs
+
+    # Call the function with test inputs
+    rcirs_out, vcirs_out, acirs_out = fc.ecef2cirs(*rva_ecef, *t_inputs, xp, yp)
+
+    # Check if the output vectors are close to the expected values
+    rcirs_exp, vcirs_exp, acirs_exp = rva_cirs_ecef
+    assert custom_allclose(rcirs_exp, rcirs_out)
+    assert custom_allclose(vcirs_exp, vcirs_out)
+    assert custom_allclose(acirs_exp, acirs_out)
