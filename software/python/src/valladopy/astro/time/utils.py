@@ -554,7 +554,7 @@ def kp2ap(kpin: float) -> float | None:
                    8, 8.33333, 8.66667, 9, 9.33333])
     # fmt: on
 
-    # Ensure kpin is within bounds (equivalent to MATLAB's index check)
+    # Ensure kpin is within bounds
     if kpin < kp[2] or kpin > kp[-3]:
         logger.warning(
             "Kp index out of bounds for conversion to Ap index using cubic spline "
