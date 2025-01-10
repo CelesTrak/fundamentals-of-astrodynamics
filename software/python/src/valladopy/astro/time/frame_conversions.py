@@ -892,6 +892,71 @@ def cirs2eci(
 
 
 ########################################################################################
+# ECI <-> TIRS Frame Conversions
+########################################################################################
+
+
+def eci2tirs(
+    reci: ArrayLike,
+    veci: ArrayLike,
+    aeci: ArrayLike,
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    use_full_series: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the ECI mean equator, mean equinox (J2000) frame to the
+    Terrestrial Intermediate Reference System (TIRS) frame using the XYS approach.
+
+    References:
+        Vallado: 2022, p. 213
+
+    Args:
+        reci (array_like): ECI position vector in km
+        veci (array_like): ECI velocity vector in km/s
+        aeci (array_like): ECI acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        jdut1 (float): Julian date of UT1 (days from 4713 BC)
+        lod (float): Excess length of day in seconds
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+
+    Returns:
+        tuple: (rtirs, vtirs, atirs)
+            rtirs (np.ndarray): TIRS position vector in km
+            vtirs (np.ndarray): TIRS velocity vector in km/s
+            atirs (np.ndarray): TIRS acceleration vector in km/s²
+    """
+    # Compute transformation matrices using XYS approach
+    prec = np.eye(3)
+    nut, st, _, omegaearth = compute_iau06_matrices(
+        ttt, jdut1, lod, 0, 0, iau06arr, iau06xysarr, ddx, ddy, use_full_series
+    )
+
+    # Position transformation
+    rtirs = st.T @ nut.T @ prec.T @ reci
+
+    # Velocity transformation
+    vtirs = st.T @ nut.T @ prec.T @ veci - np.cross(omegaearth, rtirs)
+
+    # Acceleration transformation
+    atirs = (
+        st.T @ nut.T @ prec.T @ aeci
+        - np.cross(omegaearth, np.cross(omegaearth, rtirs))
+        - 2 * np.cross(omegaearth, vtirs)
+    )
+
+    return rtirs, vtirs, atirs
+
+
+########################################################################################
 # ECEF <-> PEF Frame Conversions
 ########################################################################################
 

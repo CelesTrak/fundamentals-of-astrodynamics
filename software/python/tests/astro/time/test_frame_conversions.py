@@ -108,6 +108,15 @@ def rva_cirs():
 
 
 @pytest.fixture
+def rva_tirs():
+    # Example TIRS vectors (km, km/s, km/s²)
+    rtirs = [-1033.4734522629915, 7901.305791560075, 6380.3445334433]
+    vtirs = [-3.2256333275286266, -2.8724418647421177, 5.531931284014407]
+    atirs = [0.000293685668482108, 0.003115171592659657, 0.0030001437215600854]
+    return rtirs, vtirs, atirs
+
+
+@pytest.fixture
 def t_inputs():
     # Time inputs
     ttt = 0.042623631888994  # Julian centuries of TT
@@ -378,6 +387,19 @@ def test_cirs2eci(iau06arr, iau06xysarr, rva_eci, rva_cirs, t_inputs, eop_correc
     assert custom_allclose(reci, reci_out)
     assert custom_allclose(veci, veci_out)
     assert custom_allclose(aeci, aeci_out)
+
+
+def test_eci2tirs(iau06arr, iau06xysarr, rva_eci, rva_tirs, t_inputs, eop_corrections):
+    # Call the function with test inputs
+    rtirs_out, vtirs_out, atirs_out = fc.eci2tirs(
+        *rva_eci, *t_inputs, iau06arr, iau06xysarr, *eop_corrections
+    )
+
+    # Check if the output vectors are close to the expected values
+    rtirs_exp, vtirs_exp, atirs_exp = rva_tirs
+    assert custom_allclose(rtirs_exp, rtirs_out)
+    assert custom_allclose(vtirs_exp, vtirs_out)
+    assert custom_allclose(atirs_exp, atirs_out)
 
 
 def test_ecef2pef(rva_ecef, rva_pef_ecef, t_inputs, orbit_effects_inputs):
