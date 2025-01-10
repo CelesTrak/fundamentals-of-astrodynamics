@@ -565,3 +565,17 @@ def test_ecef2cirs(rva_ecef, rva_cirs_ecef, t_inputs, orbit_effects_inputs):
     assert custom_allclose(rcirs_exp, rcirs_out)
     assert custom_allclose(vcirs_exp, vcirs_out)
     assert custom_allclose(acirs_exp, acirs_out)
+
+
+def test_cirs2ecef(rva_ecef, rva_cirs_ecef, t_inputs, orbit_effects_inputs):
+    # Unpack the inputs
+    xp, yp, *_ = orbit_effects_inputs
+
+    # Call the function with test inputs
+    recef_out, vecef_out, aecef_out = fc.cirs2ecef(*rva_cirs_ecef, *t_inputs, xp, yp)
+
+    # Check if the output vectors are close to the expected values
+    recef_exp, vecef_exp, aecef_exp = rva_ecef
+    assert custom_allclose(recef_exp, recef_out)
+    assert custom_allclose(vecef_exp, vecef_out)
+    assert custom_allclose(aecef_exp, aecef_out, rtol=1e-6)

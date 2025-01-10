@@ -1623,3 +1623,58 @@ def ecef2cirs(
     )
 
     return rcirs, vcirs, acirs
+
+
+def cirs2ecef(
+    rcirs: ArrayLike,
+    vcirs: ArrayLike,
+    acirs: ArrayLike,
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    xp: float,
+    yp: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Celestial Intermediate Reference System (CIRS) frame
+    to the Earth-fixed (ECEF) frame.
+
+    References:
+        Vallado: 2022, p. 214
+
+    Args:
+        rcirs (array_like): CIRS position vector in km
+        vcirs (array_like): CIRS velocity vector in km/s
+        acirs (array_like): CIRS acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        jdut1 (float): Julian date of UT1 (days from 4713 BC)
+        lod (float): Excess length of day in seconds
+        xp (float): Polar motion coefficient in radians
+        yp (float): Polar motion coefficient in radians
+
+    Returns:
+        tuple: (recef, vecef, aecef)
+            recef (np.ndarray): ECEF position vector in km
+            vecef (np.ndarray): ECEF velocity vector in km/s
+            aecef (np.ndarray): ECEF acceleration vector in km/s²
+    """
+    # Compute transformation matrices
+    st, _ = sidereal(jdut1, 0, 0, 0, lod, use_iau80=False)
+    omegaearth = calc_omegaearth(lod)
+    pm = polarm(xp, yp, ttt, use_iau80=False)
+
+    # Transform position
+    rpef = st.T @ rcirs
+    recef = pm.T @ rpef
+
+    # Transform velocity
+    vpef = st.T @ vcirs - np.cross(omegaearth, rpef)
+    vecef = pm.T @ vpef
+
+    # Transform acceleration
+    aecef = (
+        pm.T @ (st.T @ acirs)
+        - np.cross(omegaearth, np.cross(omegaearth, rpef))
+        - 2 * np.cross(omegaearth, vpef)
+    )
+
+    return recef, vecef, aecef
