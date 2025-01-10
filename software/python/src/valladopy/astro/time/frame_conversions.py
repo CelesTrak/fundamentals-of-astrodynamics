@@ -846,6 +846,51 @@ def eci2cirs(
     return rcirs, vcirs, acirs
 
 
+def cirs2eci(
+    rcirs: ArrayLike,
+    vcirs: ArrayLike,
+    acirs: ArrayLike,
+    ttt: float,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    use_full_series: bool = True,
+):
+    """Transforms a vector from the Celestial Intermediate Reference System (CIRS) frame
+    to the ECI mean equator, mean equinox (J2000) frame using the XYS approach.
+
+    References:
+        Vallado: 2022, p. 214
+
+    Args:
+        rcirs (array_like): CIRS position vector in km
+        vcirs (array_like): CIRS velocity vector in km/s
+        acirs (array_like): CIRS acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+
+    Returns:
+        tuple: (reci, veci, aeci)
+            reci (np.ndarray): ECI position vector in km
+            veci (np.ndarray): ECI velocity vector in km/s
+            aeci (np.ndarray): ECI acceleration vector in km/s²
+    """
+    # Compute transformation matrix using XYS approach
+    *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy, iau06xysarr, use_full_series)
+
+    # Transform vectors
+    reci = pnb @ np.asarray(rcirs)
+    veci = pnb @ np.asarray(vcirs)
+    aeci = pnb @ np.asarray(acirs)
+
+    return reci, veci, aeci
+
+
 ########################################################################################
 # ECEF <-> PEF Frame Conversions
 ########################################################################################
