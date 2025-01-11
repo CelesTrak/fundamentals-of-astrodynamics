@@ -365,6 +365,10 @@ def readspw(filepath: str) -> SPWArray:
 
     Returns:
         SPWArray: Dataclass containing the Space Weather data
+
+    Notes:
+        - The data is first indexed and then converted to values for backwards
+          compatibility with older files that contained missing data.
     """
     # Initialize lists to hold the data
     mjd, kparray, sumkp, aparray, avgap = [], [], [], [], []
