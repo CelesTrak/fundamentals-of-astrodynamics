@@ -279,9 +279,14 @@ def test_polarm(xp, yp, ttt, use_iau80, pm_expected):
     assert custom_allclose(pm, pm_expected)
 
 
-def test_kp_ap_conversions():
-    kp, ap = 2.5, 10.438011223107981
+@pytest.mark.parametrize(
+    "kp, ap", [(0, 0), (3, 15), (9, 400), (2.5, 10.437984357072379)]
+)
+def test_kp_ap_conversions(kp, ap):
     assert custom_isclose(utils.kp2ap(kp), ap)
     assert custom_isclose(utils.ap2kp(ap), kp)
+
+
+def test_kp_ap_conversions_bad():
     assert utils.kp2ap(-0.5) is None
-    assert utils.ap2kp(-0.5) is None
+    assert utils.ap2kp(900) is None
