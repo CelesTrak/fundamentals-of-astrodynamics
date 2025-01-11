@@ -46,4 +46,4 @@ def eoparr():
 @pytest.fixture()
 def spwarr():
     """Load the Space Weather data"""
-    return data.readspw(filepath("SpaceWeather-All-v1.2_2021-07-28.txt"))
+    return data.readspw(filepath("SpaceWeather-All-v1.2_2025-01-10.txt"))

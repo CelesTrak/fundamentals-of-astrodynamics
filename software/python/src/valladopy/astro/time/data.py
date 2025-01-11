@@ -406,11 +406,11 @@ def readspw(filepath: str) -> SPWArray:
                     )
                     avgap.append(float(data_line[80:82].strip()))
                     adjf107.append(float(data_line[93:98].strip()))
-                    adjctrf81.append(float(data_line[101:106].strip()))
-                    adjlstf81.append(float(data_line[107:112].strip()))
-                    obsf107.append(float(data_line[113:118].strip()))
-                    obsctrf81.append(float(data_line[119:124].strip()))
-                    obslstf81.append(float(data_line[125:130].strip()))
+                    adjctrf81.append(float(data_line[101:107].strip()))
+                    adjlstf81.append(float(data_line[107:113].strip()))
+                    obsf107.append(float(data_line[113:119].strip()))
+                    obsctrf81.append(float(data_line[119:125].strip()))
+                    obslstf81.append(float(data_line[125:131].strip()))
 
                     # Convert date to MJD
                     jd, jdf = jday(year, month, day)

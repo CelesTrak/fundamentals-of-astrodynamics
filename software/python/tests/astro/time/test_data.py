@@ -112,7 +112,7 @@ def test_readxys(iau06xysarr, xys_data):
 
 def test_readeop(eoparr):
     # Check that the first line is correct
-    assert int(eoparr.mjd[0]) == 37665
+    assert custom_isclose(eoparr.mjd[0], 37665)
     assert custom_isclose(eoparr.xp[0], -0.0127)
     assert custom_isclose(eoparr.yp[0], 0.213)
     assert custom_isclose(eoparr.dut1[0], 0.0326338)
@@ -124,7 +124,7 @@ def test_readeop(eoparr):
     assert eoparr.dat[0] == 2
 
     # Check that the last line is correct
-    assert int(eoparr.mjd[-1]) == 60126
+    assert custom_isclose(eoparr.mjd[-1], 60126)
     assert custom_isclose(eoparr.xp[-1], 0.203662)
     assert custom_isclose(eoparr.yp[-1], 0.492913)
     assert custom_isclose(eoparr.dut1[-1], -0.0114449)
@@ -137,7 +137,7 @@ def test_readeop(eoparr):
 
 
 def test_readspw(spwarr):
-    # Check that the first line is correct
+    # Check that the first line is correct (1957 10 01)
     assert custom_isclose(spwarr.mjd[0], 36112)
     assert custom_allclose(spwarr.kparray[0], [43, 40, 30, 20, 37, 23, 43, 37])
     assert custom_isclose(spwarr.sumkp[0], 273)
@@ -149,14 +149,14 @@ def test_readspw(spwarr):
     assert custom_isclose(spwarr.obsctrf81[0], 266.6)
     assert custom_isclose(spwarr.obslstf81[0], 230.9)
 
-    # Check that the last line is correct
-    assert custom_isclose(spwarr.mjd[-1], 59467)
+    # Check that the last line is correct (2025 02 23)
+    assert custom_isclose(spwarr.mjd[-1], 60729)
     assert custom_allclose(spwarr.kparray[-1], [13, 13, 13, 13, 13, 13, 13, 13])
     assert custom_isclose(spwarr.sumkp[-1], 104)
     assert custom_allclose(spwarr.aparray[-1], [5, 5, 5, 5, 5, 5, 5, 5])
     assert custom_isclose(spwarr.avgap[-1], 5)
-    assert custom_isclose(spwarr.adjf107[-1], 80.0)
-    assert custom_isclose(spwarr.adjctrf81[-1], 69.0)
-    assert custom_isclose(spwarr.obsf107[-1], 78.9)
-    assert custom_isclose(spwarr.obsctrf81[-1], 68.3)
-    assert custom_isclose(spwarr.obslstf81[-1], 78.9)
+    assert custom_isclose(spwarr.adjf107[-1], 220.0)
+    assert custom_isclose(spwarr.adjctrf81[-1], 187.4)
+    assert custom_isclose(spwarr.obsf107[-1], 224.7)
+    assert custom_isclose(spwarr.obsctrf81[-1], 191.2)
+    assert custom_isclose(spwarr.obslstf81[-1], 202.1)
