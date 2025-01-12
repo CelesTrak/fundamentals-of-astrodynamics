@@ -1117,15 +1117,6 @@ def razel2rv(
     latgd: float,
     lon: float,
     alt: float,
-    ttt: float,
-    jdut1: float,
-    lod: float,
-    xp: float,
-    yp: float,
-    ddpsi: float,
-    ddeps: float,
-    iau80arr: IAU80Array,
-    eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Transforms range, azimuth, elevation, and their rates to the geocentric
     equatorial (ECI) position and velocity vectors.
@@ -1143,20 +1134,11 @@ def razel2rv(
         latgd (float): Geodetic latitude of site in radians
         lon (float): Longitude of site in radians
         alt (float): Altitude of site in km
-        ttt (float): Julian centuries of TT
-        jdut1 (float): Julian date of UT1
-        lod (float): Excess length of day in seconds
-        xp (float): Polar motion coefficient in radians
-        yp (float): Polar motion coefficient in radians
-        ddpsi (float): Delta psi correction to GCRF in radians
-        ddeps (float): Delta epsilon correction to GCRF in radians
-        iau80arr (IAU80Array): IAU 1980 data
-        eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
-        tuple: (reci, veci)
-            reci (np.ndarray): ECI position vector in km
-            veci (np.ndarray): ECI velocity vector in km/s
+        tuple: (recef, vecef)
+            recef (np.ndarray): ECEF position vector in km
+            vecef (np.ndarray): ECEF velocity vector in km/s
     """
     # Find SEZ range and velocity vectors
     rhosez, drhosez = raz2rvs(rho, az, el, drho, daz, del_el)
@@ -1170,32 +1152,13 @@ def razel2rv(
     recef = rhoecef + rs
     vecef = drhoecef
 
-    # Convert ECEF to ECI
-    a = np.array([0, 0, 0])
-    reci, veci, aeci = ecef2eci(
-        recef, vecef, a, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms
-    )
-
-    return reci, veci
+    return recef, vecef
 
 
 def rv2razel(
-    reci: ArrayLike,
-    veci: ArrayLike,
-    latgd: float,
-    lon: float,
-    alt: float,
-    ttt: float,
-    jdut1: float,
-    lod: float,
-    xp: float,
-    yp: float,
-    ddpsi: float,
-    ddeps: float,
-    iau80arr: IAU80Array,
-    eqeterms: bool = True,
+    recef: ArrayLike, vecef: ArrayLike, latgd: float, lon: float, alt: float
 ) -> Tuple[float, float, float, float, float, float]:
-    """Transforms ECI position and velocity vectors to range, azimuth, elevation, and
+    """Transforms ECEF position and velocity vectors to range, azimuth, elevation, and
     their rates.
 
     The value of `SMALL` can affect the rate term calculations. the solution uses the
@@ -1206,20 +1169,11 @@ def rv2razel(
         Vallado: 2022, p. 259-263, Algorithm 27
 
     Args:
-        reci (array_like): ECI position vector in km
-        veci (array_like): ECI velocity vector in km/s
+        recef (array_like): ECEF position vector in km
+        vecef (array_like): ECEF velocity vector in km/s
         latgd (float): Geodetic latitude of site in radians
         lon (float): Longitude of site in radians
         alt (float): Altitude of site in km
-        ttt (float): Julian centuries of TT
-        jdut1 (float): Julian date of UT1
-        lod (float): Excess length of day in seconds
-        xp (float): Polar motion coefficient in radians
-        yp (float): Polar motion coefficient in radians
-        ddpsi (float): Delta psi correction to GCRF in radians
-        ddeps (float): Delta epsilon correction to GCRF in radians
-        iau80arr (IAU80Array): IAU 1980 data
-        eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
         tuple: (rho, az, el, drho, daz, del_el)
@@ -1231,13 +1185,7 @@ def rv2razel(
             del_el (float): Elevation rate in rad/s
     """
     # Get site vector in ECEF
-    rsecef, vsecef = site(latgd, lon, alt)
-
-    # Convert ECI to ECEF
-    a = np.array([0, 0, 0])
-    recef, vecef, aecef = eci2ecef(
-        reci, veci, a, ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms
-    )
+    rsecef, _ = site(latgd, lon, alt)
 
     # Find ECEF range vector from site to satellite
     rhoecef = recef - rsecef
