@@ -105,8 +105,7 @@ def rv2adbar(
             fpav (float): Satellite flight path angle from vertical in radians
             az (float): Satellite flight path azimuth in radians
     """
-    rmag = np.linalg.norm(r)
-    vmag = np.linalg.norm(v)
+    rmag, vmag = np.linalg.norm(r), np.linalg.norm(v)
     rtemp = np.sqrt(r[0] ** 2 + r[1] ** 2)
     vtemp = np.sqrt(v[0] ** 2 + v[1] ** 2)
 
@@ -187,8 +186,7 @@ def coe2rv(
             argp = 0
 
     # Compute position and velocity in the perifocal coordinate system
-    cosnu = np.cos(nu)
-    sinnu = np.sin(nu)
+    cosnu, sinnu = np.cos(nu), np.sin(nu)
     r_pqw = np.array([cosnu, sinnu, 0]) * (p / (1 + ecc * cosnu))
     v_pqw = np.array([-sinnu, ecc + cosnu, 0]) * (np.sqrt(const.MU / p))
 
@@ -251,12 +249,10 @@ def rv2coe(
     orbit_type = None
 
     # Make sure position and velocity vectors are numpy arrays
-    r = np.array(r)
-    v = np.array(v)
+    r, v = np.array(r), np.array(v)
 
     # Get magnitude of position and velocity vectors
-    r_mag = np.linalg.norm(r)
-    v_mag = np.linalg.norm(v)
+    r_mag, v_mag = np.linalg.norm(r), np.linalg.norm(v)
 
     # Get angular momentum
     h = np.cross(r, v)
@@ -683,7 +679,7 @@ def flt2rv(
     decl = np.arcsin(reci[2] / rmag)
 
     # Form velocity vector
-    fpav = np.pi * 0.5 - fpa
+    fpav = const.HALFPI - fpa
     veci = vmag * np.array(
         [
             # First element
@@ -757,8 +753,7 @@ def rv2flt(
             vmag (float): Velocity vector magnitude in km/s
     """
     # Get magnitude of position and velocity vectors
-    rmag = np.linalg.norm(reci)
-    vmag = np.linalg.norm(veci)
+    rmag, vmag = np.linalg.norm(reci), np.linalg.norm(veci)
 
     # Convert r to ECEF for lat/lon calculations
     aecef = np.zeros(3)
@@ -787,7 +782,7 @@ def rv2flt(
     hmag = np.linalg.norm(h)
     rdotv = np.dot(reci, veci)
     fpav = np.arctan2(hmag, rdotv)
-    fpa = np.pi / 2 - fpav
+    fpa = const.HALFPI - fpav
 
     # Calculte azimuth
     hcrossr = np.cross(h, reci)
@@ -1304,6 +1299,42 @@ def rv2ntw(
     vntw = np.dot(transmat, veci)
 
     return rntw, vntw, transmat
+
+
+def rv2pqw(reci: ArrayLike, veci: ArrayLike) -> Tuple[np.ndarray, np.ndarray]:
+    """Transforms position and velocity vectors into perifocal (PQW) coordinates.
+
+    References:
+        Vallado: 2022, p. 166
+
+    Args:
+        reci (array_like): ECI position vector in km
+        veci (array_like): ECI velocity vector in km/s
+
+    Returns:
+        tuple: (rpqw, vpqw)
+            rpqw (np.ndarray): PQW position vector in km
+            vpqw (np.ndarray): PQW velocity vector in km/s
+    """
+    # Covert to classical elements
+    p, _, ecc, _, _, _, nu, *_ = rv2coe(reci, veci)
+
+    # Return if true anomaly is undefined
+    if np.isnan(nu):
+        return np.zeros(3), np.zeros(3)
+
+    # Form PQW position vector
+    sinnu, cosnu = np.sin(nu), np.cos(nu)
+    temp = p / (1 + ecc * cosnu)
+    rpqw = temp * np.array([cosnu, sinnu, 0])
+
+    # Form PQW velocity vector
+    p = const.SMALL if np.abs(p) < const.SMALL else p
+    vpqw = np.array(
+        [-np.sqrt(const.MU / p) * sinnu, np.sqrt(const.MU / p) * (ecc + cosnu), 0]
+    )
+
+    return rpqw, vpqw
 
 
 ########################################################################################

@@ -490,6 +490,18 @@ class TestSatCoord:
         assert np.allclose(vntw, vntw_exp, rtol=DEFAULT_TOL)
         assert custom_allclose(transmat, transmat_exp)
 
+    def test_rv2pqw(self, rv):
+        # Expected outputs
+        rpqw_exp = np.array([-6528.341050907748, 2526.017245197032, 0])
+        vpqw_exp = np.array([-7.307090980337026, -0.18794759095509114, 0])
+
+        # Call function with test inputs
+        rpqw, vpqw = fc.rv2pqw(*rv)
+
+        # Check if output values are close
+        assert np.allclose(rpqw, rpqw_exp, rtol=DEFAULT_TOL)
+        assert np.allclose(vpqw, vpqw_exp, rtol=DEFAULT_TOL)
+
 
 class TestGeodetic:
     @pytest.fixture
