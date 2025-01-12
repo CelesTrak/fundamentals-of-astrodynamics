@@ -1071,6 +1071,9 @@ def rvs2raz(
             daz (float): Azimuth rate in rad/s
             del_el (float): Elevation rate in rad/s
     """
+    # Range magnitude
+    rho = np.linalg.norm(rhosez)
+
     # Calculate azimuth
     temp = np.sqrt(rhosez[0] ** 2 + rhosez[1] ** 2)
     if abs(rhosez[1]) < const.SMALL:
@@ -1083,13 +1086,10 @@ def rvs2raz(
 
     # Calculate elevation
     el = (
-        np.sign(rhosez[2]) * const.SMALL
+        np.sign(rhosez[2]) * const.HALFPI
         if temp < const.SMALL
-        else np.arcsin(rhosez[2] / np.linalg.norm(rhosez))
+        else np.arcsin(rhosez[2] / rho)
     )
-
-    # Calculate range
-    rho = np.linalg.norm(rhosez)
 
     # Range rate
     drho = np.dot(rhosez, drhosez) / rho
