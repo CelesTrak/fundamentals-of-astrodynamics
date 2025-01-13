@@ -266,21 +266,21 @@ class TestLambertUniversal:
         assert np.allclose(tbil, tbil_exp, rtol=DEFAULT_TOL)
 
     @pytest.mark.parametrize(
-        "dm, psib_exp, tof_exp",
+        "dm, kbi_exp, tof_exp",
         [
             (lambert.DirectionOfMotion.LONG, 113.602815095262, 16971.386078436695),
             (lambert.DirectionOfMotion.SHORT, 57.8159275519482, 15048.626881962446),
         ],
     )
-    def test_universal_min(self, lambert_inputs, dm, psib_exp, tof_exp):
+    def test_universal_min(self, lambert_inputs, dm, kbi_exp, tof_exp):
         # Unpack inputs
         r1, r2, _, nrev, _ = lambert_inputs
 
         # Compute universal variable Lambert problem
-        psib, tof = lambert.universal_min(r1, r2, dm, nrev)
+        kbi, tof = lambert.universal_min(r1, r2, dm, nrev)
 
         # Check results
-        assert np.isclose(psib, psib_exp, rtol=DEFAULT_TOL)
+        assert np.isclose(kbi, kbi_exp, rtol=DEFAULT_TOL)
         assert np.isclose(tof, tof_exp, rtol=DEFAULT_TOL)
 
     @pytest.mark.parametrize(

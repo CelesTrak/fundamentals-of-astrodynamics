@@ -692,20 +692,20 @@ def get_tbiu(r1: ArrayLike, r2: ArrayLike, order: int) -> Tuple[np.ndarray, np.n
 
     Returns:
         tuple: (tbi, tbil)
-            tbi (np.ndarray): Matrix of psi and time of flight for SHORT direction
-            tbil (np.ndarray): Matrix of psi and time of flight for LONG direction
+            tbi (np.ndarray): Matrix of kbi and time of flight for SHORT direction
+            tbil (np.ndarray): Matrix of kbi and time of flight for LONG direction
     """
     tbi = np.zeros((order, 2))
     for i in range(order):
-        psib, tof = universal_min(r1, r2, DirectionOfMotion.SHORT, i + 1)
-        tbi[i, 0] = psib
+        kbi, tof = universal_min(r1, r2, DirectionOfMotion.SHORT, i + 1)
+        tbi[i, 0] = kbi
         tbi[i, 1] = tof
 
     tbil = np.zeros((order, 2))
     for i in range(order):
-        psib, tof = universal_min(r1, r2, DirectionOfMotion.LONG, i + 1)
-        tbil[i, 0] = psib
-        tbil[i, 1] = tof
+        kbil, tofl = universal_min(r1, r2, DirectionOfMotion.LONG, i + 1)
+        tbil[i, 0] = kbil
+        tbil[i, 1] = tofl
 
     return tbi, tbil
 
@@ -727,8 +727,8 @@ def universal_min(
         n_iter (int): Number of iterations to perform (defaults to 20)
 
     Returns:
-        tuple: (psib, tof)
-            psib (float): Minimum psi value (for min TOF for each revolution)
+        tuple: (kbi, tof)
+            kbi (float): K values for min TOF (for each revolution)
             tof (float): Time of flight in seconds (for each revolution)
 
     TODO:
@@ -802,9 +802,9 @@ def universal_min(
     # Calculate time of flight and final psi
     dtnew = (x**3 * c3 + vara * sqrty) * OOMU
     tof = dtnew
-    psib = psinew
+    kbi = psinew
 
-    return psib, tof
+    return kbi, tof
 
 
 def universal(
