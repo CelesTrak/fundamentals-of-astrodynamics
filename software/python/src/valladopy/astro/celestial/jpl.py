@@ -22,12 +22,16 @@ class JPLInterp(Enum):
     SPLINE = "s"
 
 
-def init_jplde(filepath: str) -> Tuple[Dict[str, np.ndarray], float, float]:
+def read_jplde(
+    filepath: str, include_hr: bool = True
+) -> Tuple[Dict[str, np.ndarray], float, float]:
     """Initializes the JPL planetary ephemeris data by loading the sun and moon
     positions.
 
     Args:
         filepath (str): Path to the input text file containing ephemeris data
+        include_hr (bool, optional): Set to True if the file includes the hour column
+                                     (defaults to True)
 
     Returns:
         tuple: (jpldearr, jdjpldestart, jdjpldestart_frac)
@@ -38,27 +42,47 @@ def init_jplde(filepath: str) -> Tuple[Dict[str, np.ndarray], float, float]:
     # Load the input file data
     file_data = np.loadtxt(filepath)
 
-    # Initialize the JPL DE data dictionary
+    # Adjust indices based on the presence of the hour column
+    offset = 1 if include_hr else 0
+
+    # Extract common fields
+    year = file_data[:, 0].astype(int)
+    month = file_data[:, 1].astype(int)
+    day = file_data[:, 2].astype(int)
+    hr = file_data[:, 3] if include_hr else np.zeros_like(year)
+
+    # Construct the JPL DE data dictionary
     jpldearr = {
-        "year": file_data[:, 0].astype(int),
-        "month": file_data[:, 1].astype(int),
-        "day": file_data[:, 2].astype(int),
-        "rsun1": file_data[:, 3],
-        "rsun2": file_data[:, 4],
-        "rsun3": file_data[:, 5],
-        "rsmag": file_data[:, 6],
-        "rmoon1": file_data[:, 8],
-        "rmoon2": file_data[:, 9],
-        "rmoon3": file_data[:, 10],
+        "year": year,
+        "month": month,
+        "day": day,
+        "hour": hr,
+        "rsun1": file_data[:, 3 + offset],
+        "rsun2": file_data[:, 4 + offset],
+        "rsun3": file_data[:, 5 + offset],
+        "rsmag": file_data[:, 6 + offset],
+        "rmoon1": file_data[:, 8 + offset],
+        "rmoon2": file_data[:, 9 + offset],
+        "rmoon3": file_data[:, 10 + offset],
+        "mjd": np.zeros_like(year),
     }
 
     # Calculate Modified Julian Date (MJD)
-    jd, jd_frac = jday(jpldearr["year"], jpldearr["month"], jpldearr["day"])
-    jpldearr["mjd"] = jd + jd_frac - const.JD_TO_MJD_OFFSET
+    for i in range(len(year)):
+        jd, jd_frac = jday(
+            jpldearr["year"][i],
+            jpldearr["month"][i],
+            jpldearr["day"][i],
+            jpldearr["hour"][i],
+        )
+        jpldearr["mjd"][i] = jd + jd_frac - const.JD_TO_MJD_OFFSET
 
     # Find the start epoch date
     jdjpldestart, jdjpldestart_frac = jday(
-        jpldearr["year"][0], jpldearr["month"][0], jpldearr["day"][0]
+        jpldearr["year"][0],
+        jpldearr["month"][0],
+        jpldearr["day"][0],
+        jpldearr["hour"][0],
     )
 
     return jpldearr, jdjpldestart, jdjpldestart_frac

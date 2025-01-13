@@ -14,19 +14,60 @@ def sunmooneph_filepath(data_dir):
     return filepath
 
 
-def test_init_jplde(sunmooneph_filepath):
+@pytest.fixture
+def sunmooneph_filepath_12hr(data_dir):
+    filepath = Path(data_dir) / "sunmooneph_430t12.txt"
+    assert filepath.exists()
+    return filepath
+
+
+@pytest.mark.parametrize(
+    "include_hr, jdstart, jdstartf, yr_start_stop, rsun0_exp, mjd0_exp",
+    [
+        (
+            False,
+            2435839.5,
+            0,
+            (1957, 2098),
+            [27869796.6511, -132514359.7840, -57466883.5187],
+            35839,
+        ),
+        (
+            True,
+            2435838.5,
+            0.5,
+            (1956, 2098),
+            [26583662.5476, -132737262.3623, -57563602.5894],
+            35838,
+        ),
+    ],
+)
+def test_read_jplde(
+    sunmooneph_filepath,
+    sunmooneph_filepath_12hr,
+    include_hr,
+    jdstart,
+    jdstartf,
+    yr_start_stop,
+    rsun0_exp,
+    mjd0_exp,
+):
+    # Get ephem filepath
+    filepath = sunmooneph_filepath_12hr if include_hr else sunmooneph_filepath
+
     # Call the function
-    jpldearr, jdjpldestart, jdjpldestart_frac = jpl.init_jplde(sunmooneph_filepath)
+    jpldearr, jdjpldestart, jdjpldestart_frac = jpl.read_jplde(filepath, include_hr)
 
     # Check start Julian date and fractional part
-    assert np.isclose(jdjpldestart, 2435839.5)
-    assert np.isclose(jdjpldestart_frac, 0.0)
+    assert np.isclose(jdjpldestart, jdstart, rtol=DEFAULT_TOL)
+    assert np.isclose(jdjpldestart_frac, jdstartf, rtol=DEFAULT_TOL)
 
     # Validate the structure of jpldearr
     expected_keys = {
         "year",
         "month",
         "day",
+        "hour",
         "rsun1",
         "rsun2",
         "rsun3",
@@ -45,9 +86,10 @@ def test_init_jplde(sunmooneph_filepath):
         assert len(jpldearr[keys]) == n_pts
 
     # Spot-check some values
-    assert jpldearr["year"][0], jpldearr["year"][-1] == (1957, 2098)
-    assert np.isclose(jpldearr["rsun1"][0], 27869796.6511, rtol=DEFAULT_TOL)
-    assert np.isclose(jpldearr["mjd"][0], 35839.0, rtol=DEFAULT_TOL)
+    rsun = np.array([jpldearr["rsun1"][0], jpldearr["rsun2"][0], jpldearr["rsun3"][0]])
+    assert jpldearr["year"][0], jpldearr["year"][-1] == yr_start_stop
+    assert np.allclose(rsun, rsun0_exp, rtol=DEFAULT_TOL)
+    assert np.isclose(jpldearr["mjd"][0], mjd0_exp, rtol=DEFAULT_TOL)
 
 
 @pytest.mark.parametrize(
@@ -74,7 +116,7 @@ def test_find_jplde_param(sunmooneph_filepath, interp, rsun_exp, rmoon_exp):
     jd, jd_frac = 2457884.5, 0.1609116400462963
 
     # Get the data
-    jpldearr, jdjpldestart, _ = jpl.init_jplde(sunmooneph_filepath)
+    jpldearr, jdjpldestart, _ = jpl.read_jplde(sunmooneph_filepath, include_hr=False)
 
     # Call the function
     rsun_out, rmoon_out = jpl.find_jplde_param(
