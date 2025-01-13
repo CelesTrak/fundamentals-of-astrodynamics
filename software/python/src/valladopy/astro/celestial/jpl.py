@@ -17,7 +17,6 @@ from ...mathtime.julian_date import jday
 
 
 class JPLInterp(Enum):
-    NONE = "n"
     LINEAR = "l"
     SPLINE = "s"
 
@@ -92,8 +91,7 @@ def find_jplde_param(
     jdtdb: float,
     jdtdb_f: float,
     jpldearr: dict[str, Any],
-    jdjpldestart: float,
-    interp: JPLInterp = JPLInterp.NONE,
+    interp: JPLInterp | None = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Finds the JPL DE parameters for a given time using interpolation.
 
@@ -104,9 +102,7 @@ def find_jplde_param(
         jdtdb (float): Epoch Julian date (days from 4713 BC)
         jdtdb_f (float): Fractional part of the epoch Julian date
         jpldearr (dict[str, Any]): Dictionary of JPL DE data records
-        jdjpldestart (float): Julian date of the start of the JPL DE data
-        interp (JPLInterp, optional): Interpolation method to use
-                                      (default is JPLInterp.NONE)
+        interp (JPLInterp, optional): Interpolation method to use (default is None)
 
     Returns:
         tuple: (rsun, rmoon)
@@ -116,11 +112,13 @@ def find_jplde_param(
     # Compute whole-day Julian date and minutes from midnight
     jdb = np.floor(jdtdb + jdtdb_f) + 0.5
     mfme = (jdtdb + jdtdb_f - jdb) * const.DAY2MIN
-    if mfme < 0.0:
+    if mfme < 0:
         mfme += const.DAY2MIN
 
     # Determine record index
-    jdjpldestarto = np.floor(jdtdb + jdtdb_f - jdjpldestart)
+    jdjpldestarto = np.floor(
+        jdtdb + jdtdb_f - jpldearr["mjd"][0] - const.JD_TO_MJD_OFFSET
+    )
     recnum = int(jdjpldestarto) - 1
 
     # Default values if out of bounds
@@ -183,3 +181,46 @@ def find_jplde_param(
         rmoon[2] = CubicSpline(mjds, jpldearr["rmoon3"][idx1:idx2])(mjds[1] + fixf)
 
     return rsun, rmoon
+
+
+def sunmoonjpl(
+    jdtdb: float,
+    jdtdb_f: float,
+    jpldearr: dict[str, Any],
+    interp: JPLInterp | None = None,
+) -> Tuple[np.ndarray, float, float, np.ndarray, float, float]:
+    """Calculates the geocentric equatorial position vectors of the Sun and Moon.
+
+    Args:
+        jdtdb (float): Epoch Julian date (days from 4713 BC)
+        jdtdb_f (float): Fractional part of the epoch Julian date
+        jpldearr (dict[str, Any]): Dictionary of JPL DE data records
+        interp (JPLInterp, optional): Interpolation method to use (default is None)
+
+    Returns:
+        tuple: (rsun, rtascs, decls, rmoon, rtascm, declm)
+            rsun (np.ndarray): ECI sun position vector in km
+            rtascs (float): Sun right ascension in radians
+            decls (float): Sun declination in radians
+            rmoon (np.ndarray): ECI moon position vector in km
+            rtascm (float): Moon right ascension in radians
+            declm (float): Moon declination in radians
+    """
+    # Get Sun and Moon position vectors and magnitudes
+    rsun, rmoon = find_jplde_param(jdtdb, jdtdb_f, jpldearr, interp)
+
+    # Sun right ascension
+    temp_sun = np.hypot(rsun[0], rsun[1])
+    rtascs = 0 if temp_sun < const.SMALL else np.arctan2(rsun[1], rsun[0])
+
+    # Sun declination
+    decls = np.arcsin(rsun[2] / np.linalg.norm(rsun))
+
+    # Moon right ascension
+    temp_moon = np.hypot(rmoon[0], rmoon[1])
+    rtascm = 0 if temp_moon < const.SMALL else np.arctan2(rmoon[1], rmoon[0])
+
+    # Moon declination
+    declm = np.arcsin(rmoon[2] / np.linalg.norm(rmoon))
+
+    return rsun, rtascs, decls, rmoon, rtascm, declm

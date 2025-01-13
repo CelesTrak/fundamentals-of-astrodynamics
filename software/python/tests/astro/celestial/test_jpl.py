@@ -96,7 +96,7 @@ def test_read_jplde(
     "interp, rsun_exp, rmoon_exp",
     [
         (
-            jpl.JPLInterp.NONE,
+            None,
             [98498799.3378, 105065115.0082, 45546069.1442],
             [-311173.3387, -246845.7203, -71047.7913],
         ),
@@ -119,9 +119,7 @@ def test_find_jplde_param(sunmooneph_filepath, interp, rsun_exp, rmoon_exp):
     jpldearr, jdjpldestart, _ = jpl.read_jplde(sunmooneph_filepath, include_hr=False)
 
     # Call the function
-    rsun_out, rmoon_out = jpl.find_jplde_param(
-        jd, jd_frac, jpldearr, jdjpldestart, interp
-    )
+    rsun_out, rmoon_out = jpl.find_jplde_param(jd, jd_frac, jpldearr, interp)
 
     # Check the outputs
     assert np.allclose(rsun_out, rsun_exp, rtol=DEFAULT_TOL)
