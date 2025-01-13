@@ -682,7 +682,7 @@ def _calculate_dtdpsi(
     ) * OOMU
 
 
-def get_tbiu(r1: ArrayLike, r2: ArrayLike, order: int) -> Tuple[np.ndarray, np.ndarray]:
+def get_kbiu(r1: ArrayLike, r2: ArrayLike, order: int) -> Tuple[np.ndarray, np.ndarray]:
     """Form the minimum time and universal variable matrix for multi-rev cases.
 
     Args:
@@ -691,29 +691,29 @@ def get_tbiu(r1: ArrayLike, r2: ArrayLike, order: int) -> Tuple[np.ndarray, np.n
         order (int): The number of revolutions to consider
 
     Returns:
-        tuple: (tbi, tbil)
-            tbi (np.ndarray): Matrix of kbi and time of flight for SHORT direction
-            tbil (np.ndarray): Matrix of kbi and time of flight for LONG direction
+        tuple: (kbi_arr, kbil_arr)
+            kbi_arr (np.ndarray): Matrix of kbi and time of flight for SHORT direction
+            kbil_arr (np.ndarray): Matrix of kbi and time of flight for LONG direction
     """
-    tbi = np.zeros((order, 2))
+    kbi_arr = np.zeros((order, 2))
     for i in range(order):
         kbi, tof = universal_min(r1, r2, DirectionOfMotion.SHORT, i + 1)
-        tbi[i, 0] = kbi
-        tbi[i, 1] = tof
+        kbi_arr[i, 0] = kbi
+        kbi_arr[i, 1] = tof
 
-    tbil = np.zeros((order, 2))
+    kbil_arr = np.zeros((order, 2))
     for i in range(order):
         kbil, tofl = universal_min(r1, r2, DirectionOfMotion.LONG, i + 1)
-        tbil[i, 0] = kbil
-        tbil[i, 1] = tofl
+        kbil_arr[i, 0] = kbil
+        kbil_arr[i, 1] = tofl
 
-    return tbi, tbil
+    return kbi_arr, kbil_arr
 
 
 def universal_min(
     r1: ArrayLike, r2: ArrayLike, dm: DirectionOfMotion, nrev: int, n_iter: int = 20
 ) -> Tuple[float, float]:
-    """Find the minimum psi values for the universal variable Lambert problem for the
+    """Find the minimum kbi value for the universal variable Lambert problem for the
     multi-rev cases.
 
     References:
@@ -728,8 +728,8 @@ def universal_min(
 
     Returns:
         tuple: (kbi, tof)
-            kbi (float): K values for min TOF (for each revolution)
-            tof (float): Time of flight in seconds (for each revolution)
+            kbi (float): K value for min TOF
+            tof (float): Time of flight in seconds
 
     TODO:
         - Identify and capture any exceptions that may occur due to bad inputs
@@ -815,7 +815,7 @@ def universal(
     dm: DirectionOfMotion,
     de: DirectionOfEnergy,
     nrev: int,
-    psi_vec: np.ndarray = None,
+    kbi: float,
     tol: float = 1e-05,
     n_iter: int = 20,
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -836,16 +836,15 @@ def universal(
         dm (DirectionOfMotion): Direction of motion (LONG or SHORT period)
         de (DirectionOfEnergy): Direction of energy (HIGH or LOW)
         nrev (int): Number of revolutions (0, 1, 2, ...)
-        psi_vec (np.ndarray): Array of psi corresponding to the number of
-                              revolutions for multi-rev cases (size of `nrev`)
+        kbi (float): K value for the minimum time of flight
         tol (float): Tolerance for the Lambert problem (defaults to 1e-05)
                      (can affect cases where znew is multiples of 2pi^2)
         n_iter (int): Maximum number of iterations to perform (defaults to 20)
 
     Returns:
         tuple: (v1dv, v2dv)
-            v1dv (np.ndarray): Transfer velocity vector at r1 in km/s
-            v2dv (np.ndarray): Transfer velocity vector at r2 in km/s
+            v1dv (np.ndarray): Transfer ECI velocity vector at r1 in km/s
+            v2dv (np.ndarray): Transfer ECI velocity vector at r2 in km/s
 
     Notes:
         - If the orbit is not possible, the method will log an error and return the
@@ -877,9 +876,9 @@ def universal(
         lower = 4 * nrev**2 * np.pi**2
         upper = 4 * (nrev + 1) ** 2 * np.pi**2
         if de == DirectionOfEnergy.HIGH:
-            upper = psi_vec[nrev - 1]
+            upper = kbi
         else:
-            lower = psi_vec[nrev - 1]
+            lower = kbi
 
     # Form initial guess for psi
     if nrev == 0:

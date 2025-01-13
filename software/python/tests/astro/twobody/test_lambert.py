@@ -238,19 +238,19 @@ class TestLambertUniversal:
         dtdpsi = lambert._calculate_dtdpsi(x, c2, c3, c2dot, c3dot, vara, y)
         assert np.isclose(dtdpsi, -2162.3620971040746, rtol=DEFAULT_TOL)
 
-    def test_get_tbiu(self, lambert_inputs):
+    def test_get_kbiu(self, lambert_inputs):
         # Unpack inputs
         r1, r2, _, _, _ = lambert_inputs
 
         # Expected values
-        tbi_exp = np.array(
+        kbi_exp = np.array(
             [
                 [57.81592755194815, 15048.626881962446],
                 [195.80115373119972, 26269.95060241361],
                 [412.98000230103014, 37370.33586904963],
             ]
         )
-        tbil_exp = np.array(
+        kbil_exp = np.array(
             [
                 [113.60281509526207, 16971.386078436695],
                 [291.6899864823016, 28199.561813444412],
@@ -259,11 +259,11 @@ class TestLambertUniversal:
         )
 
         # Compute universal variable Lambert problem
-        tbi, tbil = lambert.get_tbiu(r1, r2, order=3)
+        kbi, kbil = lambert.get_kbiu(r1, r2, order=3)
 
         # Check results
-        assert np.allclose(tbi, tbi_exp, rtol=DEFAULT_TOL)
-        assert np.allclose(tbil, tbil_exp, rtol=DEFAULT_TOL)
+        assert np.allclose(kbi, kbi_exp, rtol=DEFAULT_TOL)
+        assert np.allclose(kbil, kbil_exp, rtol=DEFAULT_TOL)
 
     @pytest.mark.parametrize(
         "dm, kbi_exp, tof_exp",
@@ -284,58 +284,58 @@ class TestLambertUniversal:
         assert np.isclose(tof, tof_exp, rtol=DEFAULT_TOL)
 
     @pytest.mark.parametrize(
-        "dm, de, nrev, psi_vec, v1dv_exp, v2dv_exp",
+        "dm, de, nrev, kbi, v1dv_exp, v2dv_exp",
         [
             (
                 lambert.DirectionOfMotion.LONG,
                 lambert.DirectionOfEnergy.HIGH,
                 1,
-                [113],
-                [-6.241103311949874, -1.3513393001017955, 0.0],
-                [5.649586717745847, 2.976517899131199, 0.0],
+                113,
+                [-6.241103311949874, -1.3513393001017955, 0],
+                [5.649586717745847, 2.976517899131199, 0],
             ),
             (
                 lambert.DirectionOfMotion.LONG,
                 lambert.DirectionOfEnergy.LOW,
                 1,
-                [113],
-                [0.6411191590247107, -5.957501826310465, 0.0],
-                [3.338282703564938, -4.975814587420603, 0.0],
+                113,
+                [0.6411191590247107, -5.957501826310465, 0],
+                [3.338282703564938, -4.975814587420603, 0],
             ),
             (
                 lambert.DirectionOfMotion.SHORT,
                 lambert.DirectionOfEnergy.HIGH,
                 1,
-                [113],
-                [-0.8696153799562063, 6.335154583804734, 0.0],
-                [-3.40599496310541, 5.411987920515576, 0.0],
+                113,
+                [-0.8696153799562063, 6.335154583804734, 0],
+                [-3.40599496310541, 5.411987920515576, 0],
             ),
             (
                 lambert.DirectionOfMotion.SHORT,
                 lambert.DirectionOfEnergy.LOW,
                 1,
-                [57],  # does not converge with 113
-                [5.8325227187105835, 1.4319944886088742, 0.0],
-                [-5.388439980710266, -2.6521018993831795, 0.0],
+                57,  # does not converge with 113
+                [5.8325227187105835, 1.4319944886088742, 0],
+                [-5.388439980710266, -2.6521018993831795, 0],
             ),
             (
                 lambert.DirectionOfMotion.LONG,
                 lambert.DirectionOfEnergy.HIGH,
                 0,  # test when nrev is 0
-                [113],
-                [0.8790611303752992, -6.351161592594172, 0.0],
-                [3.409048205683391, -5.43032161186189, 0.0],
+                113,
+                [0.8790611303752992, -6.351161592594172, 0],
+                [3.409048205683391, -5.43032161186189, 0],
             ),
         ],
     )
     def test_universal(
-        self, lambert_inputs, dm, de, nrev, psi_vec, v1dv_exp, v2dv_exp, caplog
+        self, lambert_inputs, dm, de, nrev, kbi, v1dv_exp, v2dv_exp, caplog
     ):
         # Unpack inputs
         r1, r2, v1, _, dtsec = lambert_inputs
 
         # Compute universal variable Lambert problem
-        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
+        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, kbi)
 
         # Check results
         assert np.allclose(v1dv, v1dv_exp, rtol=DEFAULT_TOL)
@@ -345,10 +345,10 @@ class TestLambertUniversal:
         assert not caplog.records
 
     @pytest.mark.parametrize(
-        "dtsec, psi_vec",
-        [(4560, [113]), (92854.234, [20])],  # dtsec is too small  # psi is too small
+        "dtsec, kbi",
+        [(4560, 113), (92854.234, 20)],  # dtsec is too small  # kbi is too small
     )
-    def test_universal_bad_inputs(self, lambert_inputs, dtsec, psi_vec, caplog):
+    def test_universal_bad_inputs(self, lambert_inputs, dtsec, kbi, caplog):
         # Unpack inputs
         r1, r2, v1, nrev, _ = lambert_inputs
 
@@ -357,7 +357,7 @@ class TestLambertUniversal:
         de = lambert.DirectionOfEnergy.HIGH
 
         # Compute universal variable Lambert problem
-        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
+        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, kbi)
 
         # Check results
         assert np.allclose(v1dv, np.zeros(3), rtol=DEFAULT_TOL)
@@ -380,10 +380,10 @@ class TestLambertUniversal:
         # Define other inputs
         dm = lambert.DirectionOfMotion.LONG
         de = lambert.DirectionOfEnergy.HIGH
-        psi_vec = [113]
+        kbi = 113
 
         # Compute universal variable Lambert problem
-        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, psi_vec)
+        v1dv, v2dv = lambert.universal(r1, v1, r2, dtsec, dm, de, nrev, kbi)
 
         # Check results
         v1dv_exp = np.array([0, 2823.473599000267, 0])
