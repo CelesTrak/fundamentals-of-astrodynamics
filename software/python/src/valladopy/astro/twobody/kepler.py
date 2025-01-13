@@ -298,7 +298,7 @@ def findfandg(
         q = (magv1**2 - u * magr1**2) / (magr1**2)
 
         p2, p4, p6 = p**2, p**4, p**6
-        u2, u3, = u**2, u**3
+        u2, u3 = u**2, u**3
         q2, q3 = q**2, q**3
         dt2, dt3, dt4, dt5, dt6, dt7, dt8 = [dtsec**i for i in range(2, 9)]
 
