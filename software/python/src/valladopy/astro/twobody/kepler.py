@@ -7,18 +7,25 @@
 # --------------------------------------------------------------------------------------
 
 import logging
+from enum import Enum
+from typing import Tuple
 
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Tuple
 
 from ...constants import SMALL, RE, J2, MU, TWOPI
-from .frame_conversions import rv2coe, coe2rv
+from .frame_conversions import rv2coe, coe2rv, rv2pqw
 from .newton import newtonm
 from .utils import is_equatorial, findc2c3
 
 
 logger = logging.getLogger(__name__)
+
+
+class FGMethod(Enum):
+    PQW = "pqw"
+    SERIES = "series"
+    C2C3 = "c2c3"
 
 
 def kepler(
@@ -230,3 +237,142 @@ def pkepler(
     r, v = coe2rv(p, ecc, incl, raan, nu, arglat, truelon, lonper)
 
     return r, v
+
+
+def findfandg(
+    r1: ArrayLike,
+    v1: ArrayLike,
+    r2: ArrayLike,
+    v2: ArrayLike,
+    dtsec: float,
+    x: float,
+    z: float,
+    c2: float,
+    c3: float,
+    method: FGMethod,
+) -> Tuple[float, float, float, float]:
+    """Calculates the f and g functions for use in various applications.
+
+    References:
+        Vallado: 2022, p. 83-88
+
+    Args:
+        r1 (array_like): First position vector in km
+        v1 (array_like): First velocity vector in km/s
+        r2 (array_like): Second position vector in km
+        v2 (array_like): Second velocity vector in km/s
+        dtsec (float): Step size in seconds
+        x (float): Universal variable x
+        z (float): Universal variable z
+        c2 (float): c2 function value
+        c3 (float): c3 function value
+        method (FGMethod): Method to use for calculating f and g values
+
+    Returns:
+        tuple: (f, g, fdot, gdot)
+            f (float): f function value
+            g (float): g function value
+            fdot (float): fdot function value
+            gdot (float): gdot function value
+
+    Notes:
+        - The step size `dtsec` should be small (on the order of 60-120 seconds)
+    """
+    f = g = fdot = gdot = 0
+    magr1, magv1 = np.linalg.norm(r1), np.linalg.norm(v1)
+
+    if method == FGMethod.PQW:
+        hbar = np.cross(r1, v1)
+        h = np.linalg.norm(hbar)
+        rpqw1, vpqw1 = rv2pqw(r1, v1)
+        rpqw2, vpqw2 = rv2pqw(r2, v2)
+
+        f = (rpqw2[0] * vpqw1[1] - vpqw2[0] * rpqw1[1]) / h
+        g = (rpqw1[0] * rpqw2[1] - rpqw2[0] * rpqw1[1]) / h
+        gdot = (rpqw1[0] * vpqw2[1] - vpqw2[0] * rpqw1[1]) / h
+        fdot = (vpqw2[0] * vpqw1[1] - vpqw2[1] * vpqw1[0]) / h
+
+    elif method == FGMethod.SERIES:
+        u = MU / (magr1**3)
+        p = np.dot(r1, v1) / (magr1**2)
+        q = (magv1**2 - u * magr1**2) / (magr1**2)
+
+        p2, p4, p6 = p**2, p**4, p**6
+        u2, u3, = u**2, u**3
+        q2, q3 = q**2, q**3
+        dt2, dt3, dt4, dt5, dt6, dt7, dt8 = [dtsec**i for i in range(2, 9)]
+
+        # fmt: off
+        f = (
+            1 - 0.5 * u * dt2 + 0.5 * u * p * dt3
+            + u / 24 * (-15 * p2 + 3 * q + u) * dt4
+            + p * u / 8 * (7 * p2 - 3 * q - u) * dt5
+            + u / 720
+            * (-945 * p4 + 630 * p2 * q + 210 * u * p2 - 45 * q2 - 24 * u * q - u2)
+            * dt6
+            + p * u / 80
+            * (165 * p4 - 150 * p2 * q - 50 * u * p2 + 25 * q2 + 14 * u * q + u2) * dt7
+            + u / 40320
+            * (
+                -135135 * p6
+                + 155925 * p4 * q
+                + 51975 * u * p4
+                - 42525 * p2 * q2
+                - 24570 * u * p2 * q
+                - 2205 * u2 * p2
+                + 1575 * q3
+                + 1107 * u * q2
+                + 117 * u2 * q
+                + u3
+            )
+            * dt8
+        )
+
+        g = (
+            dtsec - 1 / 6 * u * dt3 + 0.25 * u * p * dt4
+            + u / 120 * (-45 * p2 + 9 * q + u) * dt5
+            + p * u / 24 * (14 * p2 - 6 * q - u) * dt6
+            + u / 5040
+            * (-4725 * p4 + 3150 * p2 * q + 630 * u * p2 - 225 * q2 - 54 * u * q - u2)
+            * dt7
+            + p * u / 320
+            * (495 * p4 - 450 * p2 * q - 100 * u * p2 + 75 * q2 + 24.0 * u * q + u2)
+            * dt8
+        )
+
+        fdot = (
+            -u * dtsec + 1.5 * u * p * dt2
+            + u / 6 * (-15 * p2 + 3 * q + u) * dt3
+            + 5 * p * u / 8 * (7 * p2 - 3 * q - u) * dt4
+            + u / 120
+            * (-945 * p4 + 630 * p2 * q + 210 * u * p2 - 45 * q2 - 24 * u * q - u2)
+            * dt5
+            + 7 * p * u / 80
+            * (165 * p4 - 150 * p2 * q - 50 * u * p2 + 25 * q2 + 14 * u * q + u2) * dt6
+            + u / 5040
+            * (-135135 * p6 + 155925 * p4 * q + 51975 * u * p4 - 42525 * p2 * q2
+               - 24570 * u * p2 * q - 2205 * u2 * p2 + 1575 * q3 + 1107 * u * q2
+               + 117 * u2 * q + u3) * dt7
+        )
+
+        gdot = (
+            1 - 0.5 * u * dt2 + u * p * dt3
+            + u / 24 * (-45 * p2 + 9 * q + u) * dt4
+            + p * u / 4 * (14 * p2 - 6 * q - u) * dt5
+            + u / 720
+            * (-4725 * p4 + 3150 * p2 * q + 630 * u * p2 - 225 * q2 - 54 * u * q - u2)
+            * dt6
+            + p * u / 40
+            * (495 * p4 - 450 * p2 * q - 100 * u * p2 + 75 * q2 + 24 * u * q + u2) * dt7
+        )
+        # fmt: on
+
+    elif method == FGMethod.C2C3:
+        xsqrd = x**2
+        magr2 = np.linalg.norm(r2)
+        f = 1 - (xsqrd * c2 / magr1)
+        g = dtsec - xsqrd * x * c3 / np.sqrt(MU)
+        gdot = 1 - (xsqrd * c2 / magr2)
+        fdot = (np.sqrt(MU) * x / (magr1 * magr2)) * (z * c3 - 1)
+
+    return f, g, fdot, gdot

@@ -3,7 +3,7 @@ import pytest
 
 import src.valladopy.astro.twobody.kepler as kepler
 
-from ...conftest import DEFAULT_TOL
+from ...conftest import DEFAULT_TOL, custom_isclose
 
 
 @pytest.mark.parametrize(
@@ -74,3 +74,48 @@ def test_pkepler_bad_inputs(caplog):
     assert np.allclose(v, [0, 0, 0], rtol=DEFAULT_TOL)
     assert caplog.records[0].levelname == "ERROR"
     assert caplog.records[0].message == "Negative semi-major axis encountered"
+
+
+@pytest.mark.parametrize(
+    "method, f_expected, g_expected, fdot_expected, gdot_expected",
+    [
+        (
+            kepler.FGMethod.PQW,
+            0.9977990947097023,
+            59.95591110155602,
+            -7.344342475157822e-05,
+            0.9977958834883551,
+        ),
+        (
+            kepler.FGMethod.SERIES,
+            0.9977958909411967,
+            59.955911263407685,
+            -7.344342494983264e-05,
+            0.9977958834764249,
+        ),
+        (
+            kepler.FGMethod.C2C3,
+            0.9999993072243452,
+            59.99999974349895,
+            -1.210288978296214e-06,
+            0.9999993072219989,
+        ),
+    ],
+)
+def test_findfandg(method, f_expected, g_expected, fdot_expected, gdot_expected):
+    # Input values
+    r1 = [4938.49830042171, -1922.24810472241, 4384.68293292613]
+    v1 = [0.738204644165659, 7.20989453238397, 2.32877392066299]
+    r2 = [4971.8730437207, -1485.73546345938, 4514.6423760934]
+    v2 = [0.373877325819783, 7.33517956912611, 2.00161489967163]
+    x, z, c2, c3 = 0.1, 0.57483, 0.47650299902524496, 0.16194145738041812
+    dtsec = 60
+
+    # Compute f and g values
+    f, g, fdot, gdot = kepler.findfandg(r1, v1, r2, v2, dtsec, x, z, c2, c3, method)
+
+    # Expected values
+    assert custom_isclose(f, f_expected)
+    assert custom_isclose(g, g_expected)
+    assert custom_isclose(fdot, fdot_expected)
+    assert custom_isclose(gdot, gdot_expected)
