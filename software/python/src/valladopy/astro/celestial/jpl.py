@@ -194,7 +194,7 @@ def find_jplde_param(
     return rsun, rmoon
 
 
-def sunmoonjpl(
+def sunmoon(
     jdtdb: float,
     jdtdb_f: float,
     jpldearr: dict[str, Any],

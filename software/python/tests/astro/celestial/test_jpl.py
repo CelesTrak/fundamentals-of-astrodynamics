@@ -155,7 +155,7 @@ def test_find_jplde_param(
     assert np.allclose(rmoon_out, rmoon_exp, rtol=DEFAULT_TOL)
 
 
-def test_sunmoonjpl(monkeypatch):
+def test_sunmoon(monkeypatch):
     def mock_find_jplde_param(*args):
         return rsun_exp, rmoon_exp
 
@@ -165,7 +165,7 @@ def test_sunmoonjpl(monkeypatch):
     monkeypatch.setattr(jpl, "find_jplde_param", mock_find_jplde_param)
 
     # Call the function with dummy input values (all used in patched function)
-    rsun, rtascs, decls, rmoon, rtascm, declm = jpl.sunmoonjpl(0, 0, {})
+    rsun, rtascs, decls, rmoon, rtascm, declm = jpl.sunmoon(0, 0, {})
 
     # Check the outputs
     assert np.allclose(rsun, rsun_exp, rtol=DEFAULT_TOL)
