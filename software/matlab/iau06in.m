@@ -123,6 +123,7 @@ function [iau06arr] = iau06in(infilename)
         iau06arr.aapn0(i,3)= iau06arr.aapn0(i,3) * convrtm;
         iau06arr.aapn0(i,4)= iau06arr.aapn0(i,4) * convrtm;
         iau06arr.aapn0(i,5)= iau06arr.aapn0(i,5) * convrtm;
+        iau06arr.aapn0(i,6)= iau06arr.aapn0(i,6) * convrtm;
     end
 
     % nutation values old approach iau2003
