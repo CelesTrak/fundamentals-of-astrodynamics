@@ -38,7 +38,7 @@ def sunmooneph_filepath_12hr(data_dir):
             0.5,
             (1956, 2098),
             [26583662.5476, -132737262.3623, -57563602.5894],
-            35838,
+            35838.5,
         ),
     ],
 )
@@ -93,30 +93,59 @@ def test_read_jplde(
 
 
 @pytest.mark.parametrize(
-    "interp, rsun_exp, rmoon_exp",
+    "include_hr, interp, rsun_exp, rmoon_exp",
     [
         (
+            False,
             None,
-            [98498799.3378, 105065115.0082, 45546069.1442],
-            [-311173.3387, -246845.7203, -71047.7913],
+            [96576094.2145, 106598001.2476, 46210616.7776],
+            [-252296.5509, -302841.7334, -93212.772],
         ),
         (
+            False,
             jpl.JPLInterp.LINEAR,
-            [98189413.7028805, 105311774.2471488, 45653002.59384974],
-            [-301699.37820820103, -255856.13060991265, -74614.39469838185],
+            [96262266.54879406, 106839759.58852758, 46315422.3039953],
+            [-241011.64921426764, -309676.4021824469, -96114.65287251282],
         ),
         (
+            False,
             jpl.JPLInterp.SPLINE,
-            [98191299.56964143, 105313814.22568269, 45653888.30512573],
-            [-302576.59863313846, -256669.07629020023, -74853.18748977917],
+            [96264116.08394983, 106841825.88313565, 46316319.46430736],
+            [-241686.85556172315, -310637.0152811595, -96414.10549215478],
+        ),
+        (
+            True,
+            None,
+            [96576094.2145, 106598001.2476, 46210616.7776],
+            [-252296.5509, -302841.7334, -93212.772],
+        ),
+        (
+            True,
+            jpl.JPLInterp.LINEAR,
+            [96419730.22037412, 106719496.94497885, 46263287.23218732],
+            [-246849.20349792443, -306551.71943246725, -94755.44468661583],
+        ),
+        (
+            True,
+            jpl.JPLInterp.SPLINE,
+            [96264116.11254415, 106841825.90246898, 46316319.48198082],
+            [-241690.58697019098, -310643.5099432287, -96416.15534852046],
         ),
     ],
 )
-def test_find_jplde_param(sunmooneph_filepath, interp, rsun_exp, rmoon_exp):
-    jd, jd_frac = 2457884.5, 0.1609116400462963
+def test_find_jplde_param(
+    sunmooneph_filepath,
+    sunmooneph_filepath_12hr,
+    include_hr,
+    interp,
+    rsun_exp,
+    rmoon_exp,
+):
+    jd, jd_frac = 2457884.5, 0.1609116400462963  # (2017, 5, 11, 3, 51, 42.7657)
 
     # Get the data
-    jpldearr, jdjpldestart, _ = jpl.read_jplde(sunmooneph_filepath, include_hr=False)
+    filepath = sunmooneph_filepath_12hr if include_hr else sunmooneph_filepath
+    jpldearr, *_ = jpl.read_jplde(filepath, include_hr=include_hr)
 
     # Call the function
     rsun_out, rmoon_out = jpl.find_jplde_param(jd, jd_frac, jpldearr, interp)

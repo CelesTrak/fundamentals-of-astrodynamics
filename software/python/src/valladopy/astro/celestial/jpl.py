@@ -63,7 +63,7 @@ def read_jplde(
         "rmoon1": file_data[:, 8 + offset],
         "rmoon2": file_data[:, 9 + offset],
         "rmoon3": file_data[:, 10 + offset],
-        "mjd": np.zeros_like(year),
+        "mjd": np.zeros(len(year)),
     }
 
     # Calculate Modified Julian Date (MJD)
@@ -108,6 +108,9 @@ def find_jplde_param(
         tuple: (rsun, rmoon)
             rsun (np.ndarray): ECI sun position vector in km
             rmoon (np.ndarray): ECI moon position vector in km
+
+    TODO:
+        - Fix for the 1/2 day offset case
     """
     # Compute whole-day Julian date and minutes from midnight
     jdb = np.floor(jdtdb + jdtdb_f) + 0.5
@@ -119,7 +122,15 @@ def find_jplde_param(
     jdjpldestarto = np.floor(
         jdtdb + jdtdb_f - jpldearr["mjd"][0] - const.JD_TO_MJD_OFFSET
     )
-    recnum = int(jdjpldestarto) - 1
+    if np.any(jpldearr["hour"]):
+        # TODO: this works better when the date is closer to the hour, but not so great
+        #       when it is close to the 1/2 day; Matlab and C# use an offset of 2
+        #       instead of 1 but this doesn't seem quite right either
+        recnum = int(jdjpldestarto) * 2 + 1  # 12-hr data
+        if mfme > 720:
+            mfme -= 720
+    else:
+        recnum = int(jdjpldestarto)  # 1-day data
 
     # Default values if out of bounds
     if not (0 <= recnum <= len(jpldearr["rsun1"]) - 1):
