@@ -153,3 +153,24 @@ def test_find_jplde_param(
     # Check the outputs
     assert np.allclose(rsun_out, rsun_exp, rtol=DEFAULT_TOL)
     assert np.allclose(rmoon_out, rmoon_exp, rtol=DEFAULT_TOL)
+
+
+def test_sunmoonjpl(monkeypatch):
+    def mock_find_jplde_param(*args):
+        return rsun_exp, rmoon_exp
+
+    # Patch the main dependent function
+    rsun_exp = [95604355.9737, 107353047.2919, 46537942.1006]
+    rmoon_exp = [-218443.5158, -325897.7785, -102799.8515]
+    monkeypatch.setattr(jpl, "find_jplde_param", mock_find_jplde_param)
+
+    # Call the function with dummy input values (all used in patched function)
+    rsun, rtascs, decls, rmoon, rtascm, declm = jpl.sunmoonjpl(0, 0, {})
+
+    # Check the outputs
+    assert np.allclose(rsun, rsun_exp, rtol=DEFAULT_TOL)
+    assert np.isclose(rtascs, 0.8432211071356744, rtol=DEFAULT_TOL)
+    assert np.isclose(decls, 0.3130881243121989, rtol=DEFAULT_TOL)
+    assert np.allclose(rmoon, rmoon_exp, rtol=DEFAULT_TOL)
+    assert np.isclose(rtascm, -2.1612978926663886, rtol=DEFAULT_TOL)
+    assert np.isclose(declm, -0.25625963750585706, rtol=DEFAULT_TOL)
