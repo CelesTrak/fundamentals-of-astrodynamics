@@ -124,8 +124,8 @@ def find_jplde_param(
     )
     if np.any(jpldearr["hour"]):
         # TODO: this works better when the date is closer to the hour, but not so great
-        #       when it is close to the 1/2 day; Matlab and C# use an offset of 2
-        #       instead of 1 but this doesn't seem quite right either
+        #       when it is close to the 1/2 day; Matlab and C# use a +1 additional
+        #       offset (i.e. +2 instead of +1) but this doesn't seem quite right either
         recnum = int(jdjpldestarto) * 2 + 1  # 12-hr data
         if mfme > 720:
             mfme -= 720
