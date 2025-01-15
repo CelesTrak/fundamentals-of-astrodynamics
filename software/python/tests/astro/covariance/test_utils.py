@@ -1,16 +1,20 @@
 import numpy as np
+import pytest
 
 import src.valladopy.astro.covariance.utils as utils
 
 from ...conftest import custom_allclose
 
 
-def test_posvelcov2pts():
-    # Test inputs
+@pytest.fixture
+def reci():
+    return [-30762454.8061775, -28804817.6521682, -991451.166480117]  # m
+
+
+@pytest.fixture
+def cov():
     # fmt: off
-    reci = [-30762454.8061775, -28804817.6521682, -991451.166480117]  # m
-    veci = [2102.69117282211, -2239.85220168736, -140.227078892292]  # m/s
-    cov = [
+    return [
         [12559.93762571587, 12101.56371305036, -440.3145384949657,
          -0.8507401236198346, 0.9383675791981778, -0.0318596430999798],
         [12101.56371305036, 12017.77368889201, 270.3798093532698,
@@ -25,10 +29,35 @@ def test_posvelcov2pts():
          1.079960679599204e-6, 1.03146660433274e-6, 1.870413627417302e-5],
     ]  # m and m/s
 
+
+def test_poscov2pts(reci, cov):
+    # Calculate sigma points
+    sigmapts = utils.poscov2pts(reci, cov)
+
+    # Expected results
+    # fmt: off
+    sigmapts_expected = np.array([
+        [-30762260.693290558, -30762648.919064444, -30762454.8061775,
+         -30762454.8061775, -30762454.8061775, -30762454.8061775],
+        [-28804630.62341544, -28805004.68092096, -28804784.886840362,
+         -28804850.417496037, -28804817.6521682, -28804817.6521682],
+        [-991457.9715080381, -991444.3614521959, -991387.5664660144,
+         -991514.7664942197, -991349.3688391703, -991552.9641210637]
+    ])
+    # fmt: on
+
+    assert custom_allclose(sigmapts, sigmapts_expected)
+
+
+def test_posvelcov2pts(reci, cov):
+    # Test inputs
+    veci = [2102.69117282211, -2239.85220168736, -140.227078892292]  # m/s
+
     # Calculate sigma points
     sigmapts = utils.posvelcov2pts(reci, veci, cov)
 
     # Expected results
+    # fmt: off
     sigmapts_expected = np.array([
         [-30762180.289100155, -30762729.323254846, -30762454.8061775, -30762454.8061775,
          -30762454.8061775, -30762454.8061775, -30762454.8061775, -30762454.8061775,
@@ -53,4 +82,5 @@ def test_posvelcov2pts():
          -140.2283671402008, -140.22226268062258, -140.23189510396145]
     ])
     # fmt: on
+
     assert custom_allclose(sigmapts, sigmapts_expected)
