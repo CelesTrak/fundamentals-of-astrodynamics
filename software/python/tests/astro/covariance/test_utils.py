@@ -30,35 +30,10 @@ def cov():
     ]  # m and m/s
 
 
-def test_poscov2pts(reci, cov):
-    # Calculate sigma points
-    sigmapts = utils.poscov2pts(reci, cov)
-
-    # Expected results
+@pytest.fixture
+def sigmapts_posvel():
     # fmt: off
-    sigmapts_expected = np.array([
-        [-30762260.693290558, -30762648.919064444, -30762454.8061775,
-         -30762454.8061775, -30762454.8061775, -30762454.8061775],
-        [-28804630.62341544, -28805004.68092096, -28804784.886840362,
-         -28804850.417496037, -28804817.6521682, -28804817.6521682],
-        [-991457.9715080381, -991444.3614521959, -991387.5664660144,
-         -991514.7664942197, -991349.3688391703, -991552.9641210637]
-    ])
-    # fmt: on
-
-    assert custom_allclose(sigmapts, sigmapts_expected)
-
-
-def test_posvelcov2pts(reci, cov):
-    # Test inputs
-    veci = [2102.69117282211, -2239.85220168736, -140.227078892292]  # m/s
-
-    # Calculate sigma points
-    sigmapts = utils.posvelcov2pts(reci, veci, cov)
-
-    # Expected results
-    # fmt: off
-    sigmapts_expected = np.array([
+    return np.array([
         [-30762180.289100155, -30762729.323254846, -30762454.8061775, -30762454.8061775,
          -30762454.8061775, -30762454.8061775, -30762454.8061775, -30762454.8061775,
          -30762454.8061775, -30762454.8061775, -30762454.8061775, -30762454.8061775],
@@ -80,7 +55,52 @@ def test_posvelcov2pts(reci, cov):
          -140.23088183500838, -140.22125956276346, -140.23289822182056,
          -140.23328835909945, -140.22086942548458, -140.22579064438324,
          -140.2283671402008, -140.22226268062258, -140.23189510396145]
+    ])  # m and m/s
+
+
+def test_poscov2pts(reci, cov):
+    # Calculate sigma points
+    sigmapts = utils.poscov2pts(reci, cov)
+
+    # Expected results
+    # fmt: off
+    sigmapts_expected = np.array([
+        [-30762260.693290558, -30762648.919064444, -30762454.8061775,
+         -30762454.8061775, -30762454.8061775, -30762454.8061775],
+        [-28804630.62341544, -28805004.68092096, -28804784.886840362,
+         -28804850.417496037, -28804817.6521682, -28804817.6521682],
+        [-991457.9715080381, -991444.3614521959, -991387.5664660144,
+         -991514.7664942197, -991349.3688391703, -991552.9641210637]
     ])
     # fmt: on
 
+    # Compare results
     assert custom_allclose(sigmapts, sigmapts_expected)
+
+
+def test_posvelcov2pts(reci, cov, sigmapts_posvel):
+    # Test inputs
+    veci = [2102.69117282211, -2239.85220168736, -140.227078892292]  # m/s
+
+    # Calculate sigma points
+    sigmapts = utils.posvelcov2pts(reci, veci, cov)
+
+    # Compare results
+    assert custom_allclose(sigmapts, sigmapts_posvel)
+
+
+def test_remakecovpv(cov, sigmapts_posvel):
+    # Find mean and covariance from sigma points
+    yu, cov_out = utils.remakecovpv(sigmapts_posvel)
+
+    # Expected results
+    # fmt: off
+    yu_expected = np.array(
+        [[-30762454.8061775, -28804817.652168203, -991451.1664801169,
+          2102.69117282211, -2239.8522016873603, -140.22707889229204]]
+    ).T
+    # fmt: on
+
+    # Compare results
+    assert custom_allclose(yu, yu_expected)
+    assert custom_allclose(cov_out, cov, rtol=1e-9)

@@ -6,6 +6,8 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
+from typing import Tuple
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -78,3 +80,30 @@ def posvelcov2pts(reci: ArrayLike, veci: ArrayLike, cov: ArrayLike) -> np.ndarra
         sigmapts[3:, jj + 1] = np.array(veci) - offset[3:]
 
     return sigmapts
+
+
+def remakecovpv(sigmapts: ArrayLike) -> Tuple[np.ndarray, np.ndarray]:
+    """Calculates the mean vector and covariance matrix from propagated sigma points.
+
+    Args:
+        sigmapts (array_like): n_dim x n_pts matrix of propagated points from the
+        square root algorithm
+
+    Returns:
+        tuple: (yu, cov)
+            yu (np.ndarray): n_dim x 1 mean vector
+            cov (np.ndarray): n_dim x n_dim covariance matrix
+    """
+    sigmapts = np.array(sigmapts)
+    n_dim, n_pts = sigmapts.shape
+
+    # Compute the mean vector
+    yu = np.mean(sigmapts, axis=1, keepdims=True)
+
+    # Compute the deviation matrix
+    y = sigmapts - yu
+
+    # Compute the covariance matrix
+    cov = (y @ y.T) / n_pts
+
+    return yu, cov
