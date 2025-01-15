@@ -12,11 +12,11 @@ from typing import Tuple
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ..time.data import IAU80Array
-from ..twobody import frame_conversions as fc
-from ..twobody.newton import newtonnu
-from ...constants import KM2M, MUM, SMALL, TWOPI
-from ...mathtime.vector import unit
+from ...time.data import IAU80Array
+from .. import frame_conversions as fc
+from ..newton import newtonnu
+from ....constants import KM2M, MUM, SMALL, TWOPI
+from ....mathtime.vector import unit
 
 
 class AnomalyType(Enum):

@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-import src.valladopy.astro.covariance.utils as utils
+import src.valladopy.astro.twobody.covariance.utils as utils
 
-from ...conftest import custom_allclose
+from ....conftest import custom_allclose
 
 
 @pytest.fixture

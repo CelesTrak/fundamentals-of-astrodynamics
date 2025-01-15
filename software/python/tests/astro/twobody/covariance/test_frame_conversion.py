@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-import src.valladopy.astro.covariance.frame_conversions as fc
+import src.valladopy.astro.twobody.covariance.frame_conversions as fc
 from src.valladopy.astro.time.data import iau80in
 
-from ...conftest import custom_allclose
+from ....conftest import custom_allclose
 
 
 def cartcov():
