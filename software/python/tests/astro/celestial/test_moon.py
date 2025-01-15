@@ -63,7 +63,7 @@ def test_rise_set(lon, moonrise_expected, moonset_expected, moonphaseang_expecte
         (np.radians(100), 0.11663785663534358),
         (np.radians(15), 0.016132194140321483),
         (np.radians(3), 0.0024392692225373856),
-        (np.radians(-1), 0.0),
+        (np.radians(-1), 0),
     ],
 )
 def test_illumination(elev, illum_expected):

@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 
-DEFAULT_TOL = 1e-12  # Default tolerance
+DEFAULT_TOL = 1e-12  # default tolerance
 
 
 def custom_isclose(

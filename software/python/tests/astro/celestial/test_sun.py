@@ -69,7 +69,7 @@ def test_invalid_event_type():
 )
 def test_in_light(earth_model, in_light, tmin, caplog):
     # Vallado 2022, Example 5-6
-    r = [0.0, -4464.696, -5102.509]
+    r = [0, -4464.696, -5102.509]
     jd = 2449763.5
 
     # Call function with logging

@@ -45,7 +45,7 @@ def t():
 )
 def test_in_sight(r2, earth_model, los, tmin, caplog):
     # Vallado 2022, Example 5-6
-    r1 = [0.0, -4464.696, -5102.509]
+    r1 = [0, -4464.696, -5102.509]
 
     # Call function with logging
     with caplog.at_level(logging.DEBUG):

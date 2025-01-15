@@ -28,20 +28,20 @@ logger = logging.getLogger(__name__)
 class FundArgs:
     # fmt: off
     """Data class for Delaunay fundamental arguments."""
-    l: float = 0         # delaunay element in radians
-    l1: float = 0        # delaunay element in radians
-    f: float = 0         # delaunay element in radians
-    d: float = 0         # delaunay element in radians
-    omega: float = 0     # delaunay element in radians
-    lonmer: float = 0    # longitude of Mercury in radians
-    lonven: float = 0    # longitude of Venus in radians
-    lonear: float = 0    # longitude of Earth in radians
-    lonmar: float = 0    # longitude of Mars in radians
-    lonjup: float = 0    # longitude of Jupiter in radians
-    lonsat: float = 0    # longitude of Saturn in radians
-    lonurn: float = 0    # longitude of Uranus in radians
-    lonnep: float = 0    # longitude of Neptune in radians
-    precrate: float = 0  # precession rate in radians per Julian century
+    l: float = 0.0         # delaunay element in radians
+    l1: float = 0.0        # delaunay element in radians
+    f: float = 0.0         # delaunay element in radians
+    d: float = 0.0         # delaunay element in radians
+    omega: float = 0.0     # delaunay element in radians
+    lonmer: float = 0.0    # longitude of Mercury in radians
+    lonven: float = 0.0    # longitude of Venus in radians
+    lonear: float = 0.0    # longitude of Earth in radians
+    lonmar: float = 0.0    # longitude of Mars in radians
+    lonjup: float = 0.0    # longitude of Jupiter in radians
+    lonsat: float = 0.0    # longitude of Saturn in radians
+    lonurn: float = 0.0    # longitude of Uranus in radians
+    lonnep: float = 0.0    # longitude of Neptune in radians
+    precrate: float = 0.0  # precession rate in radians per Julian century
 
 
 def fundarg(ttt: float, opt: str) -> FundArgs:

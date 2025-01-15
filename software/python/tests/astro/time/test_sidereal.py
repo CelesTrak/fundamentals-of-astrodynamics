@@ -9,12 +9,7 @@ from ...conftest import custom_isclose, custom_allclose
     "jdut1, lon, gstime_exp, lstime_exp",
     [
         # J2000 epoch
-        (
-            2451545.0,
-            np.radians(5),
-            np.radians(280.460618375),
-            np.radians(285.460618375),
-        ),
+        (2451545, np.radians(5), np.radians(280.460618375), np.radians(285.460618375)),
         # Vallado, Example 3-5 (2013)
         (
             2448855.009722,

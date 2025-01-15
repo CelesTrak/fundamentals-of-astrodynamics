@@ -8,15 +8,15 @@ from ...conftest import DEFAULT_TOL
 @pytest.mark.parametrize(
     "ecc, incl, expected_orbit_type",
     [
-        (0.0, 0.0, utils.OrbitType.CIR_EQUATORIAL),  # Circular equatorial
-        (0.0, np.pi, utils.OrbitType.CIR_EQUATORIAL),  # Circular equatorial
-        (0.0, 0.1, utils.OrbitType.CIR_INCLINED),  # Circular inclined
-        (0.1, 0.0, utils.OrbitType.EPH_EQUATORIAL),  # Elliptical equatorial
-        (0.1, np.pi, utils.OrbitType.EPH_EQUATORIAL),  # Elliptical equatorial
-        (0.1, 0.1, utils.OrbitType.EPH_INCLINED),  # Elliptical inclined
-        (1.1, 0.0, utils.OrbitType.EPH_EQUATORIAL),  # Hyperbolic equatorial
-        (1.1, np.pi, utils.OrbitType.EPH_EQUATORIAL),  # Hyperbolic equatorial
-        (1.1, 0.1, utils.OrbitType.EPH_INCLINED),  # Hyperbolic inclined
+        (0, 0, utils.OrbitType.CIR_EQUATORIAL),  # circular equatorial
+        (0, np.pi, utils.OrbitType.CIR_EQUATORIAL),  # circular equatorial
+        (0, 0.1, utils.OrbitType.CIR_INCLINED),  # circular inclined
+        (0.1, 0, utils.OrbitType.EPH_EQUATORIAL),  # elliptical equatorial
+        (0.1, np.pi, utils.OrbitType.EPH_EQUATORIAL),  # elliptical equatorial
+        (0.1, 0.1, utils.OrbitType.EPH_INCLINED),  # elliptical inclined
+        (1.1, 0, utils.OrbitType.EPH_EQUATORIAL),  # hyperbolic equatorial
+        (1.1, np.pi, utils.OrbitType.EPH_EQUATORIAL),  # hyperbolic equatorial
+        (1.1, 0.1, utils.OrbitType.EPH_INCLINED),  # hyperbolic inclined
     ],
 )
 def test_determine_orbit_type(ecc, incl, expected_orbit_type):
@@ -52,7 +52,7 @@ def test_is_equatorial(inc, expected):
 def test_site(latgd, lon, alt, rsecef_exp):
     rsecef, vsecef = utils.site(latgd, lon, alt)
     assert np.allclose(rsecef, rsecef_exp, rtol=DEFAULT_TOL)
-    assert np.allclose(vsecef, [0.0, 0.0, 0.0], rtol=DEFAULT_TOL)
+    assert np.allclose(vsecef, [0, 0, 0], rtol=DEFAULT_TOL)
 
 
 @pytest.mark.parametrize(
@@ -97,10 +97,10 @@ def test_gd2gc():
         # Case 1: Impact at initial/final position
         (
             100,
-            [6378.0, 0, 0],
+            [6378, 0, 0],
             [0, 7.8, 0],
             [7000, 0, 0],
-            [0, 7.0, 0],
+            [0, 7, 0],
             0,
             True,
             "Impact at initial/final radii",
@@ -109,7 +109,7 @@ def test_gd2gc():
         (
             100,
             [7000, 0, 0],
-            [0, 7.0, 0],
+            [0, 7, 0],
             [8000, 0, 0],
             [0, 6.5, 0],
             1,
@@ -120,7 +120,7 @@ def test_gd2gc():
         (
             100,
             [8000, 0, 0],
-            [0, 7.0, 0],
+            [0, 7, 0],
             [9000, 0, 0],
             [0, 6.5, 0],
             0,

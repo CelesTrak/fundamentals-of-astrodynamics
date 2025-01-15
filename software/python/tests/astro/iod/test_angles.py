@@ -43,7 +43,7 @@ def range_data():
 
 @pytest.fixture
 def time_intervals():
-    tau12, tau13, tau32 = -480.0, -720.0, 240.0
+    tau12, tau13, tau32 = -480, -720, 240
     return tau12, tau13, tau32
 
 

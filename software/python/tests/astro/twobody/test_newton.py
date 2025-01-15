@@ -42,7 +42,7 @@ def test_newtonnu():
         # Test hyperbolic orbit (ecc > 1)
         (1.5, np.pi / 2, 1.449742150875263, 1.8916928725677562),
         # Test parabolic orbit (ecc = 1)
-        (1.0, np.pi / 4, 0.6804016596037228, 1.1949025292471007),
+        (1, np.pi / 4, 0.6804016596037228, 1.1949025292471007),
         # Test circular orbit (ecc = 0)
         (0, np.pi / 3, np.pi / 3, np.pi / 3),  # e0 and nu should equal m
         # Test edge cases

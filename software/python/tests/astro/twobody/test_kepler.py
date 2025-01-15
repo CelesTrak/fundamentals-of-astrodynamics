@@ -47,7 +47,7 @@ def test_pkepler():
     # Input values
     ro = [-6518.1083, -2403.8479, -22.1722]
     vo = [2.604057, -7.105717, -0.263218]
-    dtsec = 12345.0
+    dtsec = 12345
     ndot, nddot = 5e-10, 1e-15
 
     # Expected values
