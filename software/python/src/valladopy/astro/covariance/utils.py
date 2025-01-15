@@ -82,7 +82,7 @@ def posvelcov2pts(reci: ArrayLike, veci: ArrayLike, cov: ArrayLike) -> np.ndarra
     return sigmapts
 
 
-def remakecovpv(sigmapts: ArrayLike) -> Tuple[np.ndarray, np.ndarray]:
+def remakecov(sigmapts: ArrayLike) -> Tuple[np.ndarray, np.ndarray]:
     """Calculates the mean vector and covariance matrix from propagated sigma points.
 
     Args:
