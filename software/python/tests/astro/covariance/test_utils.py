@@ -12,6 +12,11 @@ def reci():
 
 
 @pytest.fixture
+def veci():
+    return [2102.69117282211, -2239.85220168736, -140.227078892292]  # m/s
+
+
+@pytest.fixture
 def cov():
     # fmt: off
     return [
@@ -78,10 +83,7 @@ def test_poscov2pts(reci, cov):
     assert custom_allclose(sigmapts, sigmapts_expected)
 
 
-def test_posvelcov2pts(reci, cov, sigmapts_posvel):
-    # Test inputs
-    veci = [2102.69117282211, -2239.85220168736, -140.227078892292]  # m/s
-
+def test_posvelcov2pts(reci, veci, cov, sigmapts_posvel):
     # Calculate sigma points
     sigmapts = utils.posvelcov2pts(reci, veci, cov)
 
@@ -89,18 +91,10 @@ def test_posvelcov2pts(reci, cov, sigmapts_posvel):
     assert custom_allclose(sigmapts, sigmapts_posvel)
 
 
-def test_remakecovpv(cov, sigmapts_posvel):
+def test_remakecovpv(reci, veci, cov, sigmapts_posvel):
     # Find mean and covariance from sigma points
     yu, cov_out = utils.remakecovpv(sigmapts_posvel)
 
-    # Expected results
-    # fmt: off
-    yu_expected = np.array(
-        [[-30762454.8061775, -28804817.652168203, -991451.1664801169,
-          2102.69117282211, -2239.8522016873603, -140.22707889229204]]
-    ).T
-    # fmt: on
-
     # Compare results
-    assert custom_allclose(yu, yu_expected)
+    assert custom_allclose(yu, np.array([[*reci, *veci]]).T)
     assert custom_allclose(cov_out, cov, rtol=1e-9)
