@@ -1,6 +1,6 @@
 # --------------------------------------------------------------------------------------
 # Authors: Sal Alfano, David Vallado
-# Date: 21 June 2002
+# Date: 31 March 2011
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
