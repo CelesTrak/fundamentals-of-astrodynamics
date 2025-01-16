@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 
 import numpy as np
+import scipy
 from numpy.typing import ArrayLike
 
 
@@ -53,6 +54,39 @@ def custom_allclose(
         scale_factors = np.where(b != 0, 10 ** np.floor(np.log10(np.abs(b))), 1)
     scaled_atol = atol * scale_factors
     return np.all(np.isclose(a, b, rtol=rtol, atol=scaled_atol))
+
+
+def load_matlab_data(file_path: str, keys: list) -> dict:
+    """Load MATLAB .mat file data and handle structures.
+
+    Args:
+        file_path (str): Path to the .mat file
+        keys (list): List of variable names to grab
+
+    Returns:
+        result dict[str, Any]: Dictionary of the input keys and their values
+    """
+
+    def unpack_structure(struct):
+        """Recursively unpack MATLAB structure arrays into dictionaries."""
+        if isinstance(struct, np.ndarray) and struct.dtype.names:
+            return {name: struct[name] for name in struct.dtype.names}
+        return struct
+
+    # Load the .mat file
+    data = scipy.io.loadmat(file_path, struct_as_record=False, squeeze_me=True)
+
+    # Process keys and unpack structures
+    result = {}
+    for key in keys:
+        if key in data:
+            value = data[key]
+            if isinstance(value, np.ndarray) and value.dtype.names:
+                # If the key is a structure, unpack its fields
+                result[key] = unpack_structure(value)
+            else:
+                result[key] = value
+    return result
 
 
 @pytest.fixture

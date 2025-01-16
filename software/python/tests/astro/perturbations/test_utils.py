@@ -6,7 +6,14 @@ import pytest
 import src.valladopy.astro.perturbations.utils as utils
 import src.valladopy.astro.time.data as data
 
-from ...conftest import DEFAULT_TOL
+from ...conftest import DEFAULT_TOL, load_matlab_data, custom_allclose
+
+
+@pytest.fixture()
+def gravarr_norm(test_data_dir):
+    struct_name = "gravarr_norm"
+    file_path = os.path.join(test_data_dir, "gravarr_norm.mat")
+    return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 
 @pytest.mark.parametrize(
@@ -35,10 +42,12 @@ def test_leg_poly(x, expected_result):
     assert np.allclose(result, expected_result, rtol=DEFAULT_TOL)
 
 
-def test_read_gravity_field():
+def test_read_gravity_field(gravarr_norm):
     # Read gravity field data
     filepath = os.path.join(data.DATA_DIR, "EGM-08norm100.txt")
-    gravity_field_data = utils.read_gravity_field(filepath, normalized=False)
+    gravity_field_data = utils.read_gravity_field(filepath, normalized=True)
 
     # Check results
-    assert True
+    assert custom_allclose(gravarr_norm.cNor, gravity_field_data.c)
+    assert custom_allclose(gravarr_norm.sNor, gravity_field_data.s)
+    assert gravity_field_data.normalized
