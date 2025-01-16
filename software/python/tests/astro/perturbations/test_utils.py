@@ -1,7 +1,10 @@
+import os
+
 import numpy as np
 import pytest
 
 import src.valladopy.astro.perturbations.utils as utils
+import src.valladopy.astro.time.data as data
 
 from ...conftest import DEFAULT_TOL
 
@@ -30,3 +33,12 @@ def test_leg_poly(x, expected_result):
 
     # Check results
     assert np.allclose(result, expected_result, rtol=DEFAULT_TOL)
+
+
+def test_read_gravity_field():
+    # Read gravity field data
+    filepath = os.path.join(data.DATA_DIR, "EGM-08norm100.txt")
+    gravity_field_data = utils.read_gravity_field(filepath, normalized=False)
+
+    # Check results
+    assert True

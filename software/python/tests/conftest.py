@@ -63,3 +63,8 @@ def data_dir() -> Path:
         Path: The path to the `datalib` directory
     """
     return Path(__file__).resolve().parents[3] / "datalib"
+
+
+@pytest.fixture
+def test_data_dir():
+    return Path(__file__).resolve().parent / "data"

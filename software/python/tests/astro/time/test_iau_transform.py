@@ -44,9 +44,9 @@ def jdtt_jdttf():
 
 
 @pytest.fixture()
-def xys_test_data(data_dir):
+def xys_test_data(test_data_dir):
     # Load the data from the file
-    file_path = os.path.join(data_dir, "xys_data.dat")
+    file_path = os.path.join(test_data_dir, "xys_data.dat")
     data = np.genfromtxt(
         file_path, skip_header=1, names=["ttt", "jdtt", "jdftt", "x", "y", "s"]
     )
