@@ -14,6 +14,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from ... import constants as const
+from ...mathtime.vector import angle
 
 
 # Set up logging
@@ -73,6 +74,77 @@ def in_sight(
     else:
         distsqrd = ((1 - tmin) * asqrd + adotb * tmin) / const.RE**2
         return True if distsqrd > 1 else False
+
+
+def in_shadow_simple(r_sat: ArrayLike, r_sun: ArrayLike) -> bool:
+    """Check if the satellite is in Earth's shadow.
+
+    References:
+        Curtis, H.D.: Orbit Mechanics for Engineering Students, 2014, Algorithm 12.3
+
+    Args:
+        r_sat (array_like): Satellite position vector in km
+        r_sun (array_like): Sun position vector in km
+
+    Returns:
+        bool: Whether satellite is in attracting body's shadow
+    """
+    # Calculate angles
+    sun_sat_angle = angle(r_sun, r_sat)
+    angle1 = np.arccos(const.RE / np.linalg.norm(r_sat))
+    angle2 = np.arccos(const.RE / np.linalg.norm(r_sun))
+
+    # Check line of sight (no LOS = eclipse)
+    if (angle1 + angle2) <= sun_sat_angle:
+        return True
+
+    return False
+
+
+def in_shadow(r_eci: ArrayLike, r_sun: ArrayLike):
+    """Check if in Earth's shadow (umbra and penumbra).
+
+    References:
+        Vallado: 2022, p. 305-308, Algorithm 34
+
+    Args:
+        r_eci (array_like): ECI position vector in km or AU
+        r_sun (array_like): Sun position vector in km
+
+    Returns:
+        dict: Dictionary containing the computed angles, horizon, vertical components,
+              penumbra and umbra status, and distance parameters.
+    """
+    # Umbra/penumbra angles
+    angumb = np.arctan((const.SUNRADIUS - const.RE) / const.AU2KM)
+    angpen = np.arctan((const.SUNRADIUS + const.RE) / const.AU2KM)
+
+    # Check if in umbra/penumbra
+    in_umbra, in_penumbra = False, False
+
+    if np.dot(r_eci, r_sun) < 0:
+        # Get satellite's vertical and horizontal distances
+        sun_sat_angle = angle(-np.array(r_sun), np.array(r_eci))
+        sathoriz = np.linalg.norm(r_eci) * np.cos(sun_sat_angle)
+        satvert = np.linalg.norm(r_eci) * np.sin(sun_sat_angle)
+
+        # Calculte penumbra vertical distance
+        x = const.RE / np.sin(angpen)
+        penvert = np.tan(angpen) * (x + sathoriz)
+
+        # Check if in penumbra
+        if satvert <= penvert:
+            in_penumbra = True
+            y = const.RE / np.sin(angumb)
+
+            # Calculate umbra vertical distance
+            umbvert = np.tan(angumb) * (y - sathoriz)
+
+            # Check if in umbra
+            if satvert <= umbvert:
+                in_umbra = True
+
+    return in_umbra, in_penumbra
 
 
 def sun_ecliptic_parameters(t: float) -> Tuple[float, float, float]:

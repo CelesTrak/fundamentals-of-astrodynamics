@@ -18,13 +18,13 @@ def t():
     "r2, earth_model, los, tmin",
     [
         (
-            [0.0, 5740.323, 3189.068],
+            [0, 5740.323, 3189.068],
             utils.EarthModel.ELLIPSOIDAL,
             False,
             0.5082248650848982,
         ),
         (
-            [0.0, 5740.323, 3189.068],
+            [0, 5740.323, 3189.068],
             utils.EarthModel.SPHERICAL,
             False,
             0.5082352992389487,
@@ -51,6 +51,21 @@ def test_in_sight(r2, earth_model, los, tmin, caplog):
     with caplog.at_level(logging.DEBUG):
         assert utils.in_sight(r1, r2, earth_model) == los
         assert f"Minimum parametric value (tmin): {tmin}" in caplog.messages[0]
+
+
+def test_in_shadow_simple():
+    # Test against values from Example 12.8 in Curtis
+    r_sat = [2817.899, -14110.473, -7502.672]
+    r_sun = [-11747041, 139486985, 60472278]
+    assert utils.in_shadow_simple(r_sat, r_sun)
+
+
+def test_in_shadow():
+    r_eci = [-41260.1818237031, 8684.15782134066, 0]
+    r_sun = [148470363.19330865, -9449738.11151353, -4096753.810182002]
+    in_umbra, in_penumbra = utils.in_shadow(r_eci, r_sun)
+    assert in_umbra
+    assert in_penumbra
 
 
 def test_sun_ecliptic_parameters(t):
