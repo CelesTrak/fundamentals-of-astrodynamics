@@ -395,7 +395,7 @@ def eclipse_entry_exit(
     adjust: bool = False,
     tol: float = 1e-6,
 ) -> Tuple[float, float]:
-    """Eclipse entry and exit using cylindrical shadow model
+    """Calculate eclipse entry and exit angles using the cylindrical shadow model.
 
     References:
         Vallado: 2022, p. 309-311
