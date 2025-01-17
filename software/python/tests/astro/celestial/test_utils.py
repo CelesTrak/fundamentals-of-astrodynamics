@@ -4,7 +4,6 @@ import pytest
 import numpy as np
 
 import src.valladopy.astro.celestial.utils as utils
-import src.valladopy.constants as const
 
 from ...conftest import DEFAULT_TOL
 
@@ -13,18 +12,6 @@ from ...conftest import DEFAULT_TOL
 def t():
     # Julian centuries from J2000
     return -0.013641341546885694
-
-
-@pytest.fixture
-def coe_shadow():
-    # Test case given in Vallado/Neta shadow paper
-    # Neta, B., and Vallado, D. (1998) On Satellite Umbra/Penumbra Entry and Exit
-    # Positions, Journal of the Astronautical Sciences, 46, No. 1, 91–104.
-    e = 0.002
-    a = (1.029 * const.RE) / (1 - e**2)
-    raan, w = 0, 0
-    i = np.radians(63.4)
-    return [a, e, i, raan, w]
 
 
 @pytest.mark.parametrize(
@@ -64,42 +51,6 @@ def test_in_sight(r2, earth_model, los, tmin, caplog):
     with caplog.at_level(logging.DEBUG):
         assert utils.in_sight(r1, r2, earth_model) == los
         assert f"Minimum parametric value (tmin): {tmin}" in caplog.messages[0]
-
-
-def test_in_shadow_simple():
-    # Test against values from Example 12.8 in Curtis
-    r_sat = [2817.899, -14110.473, -7502.672]
-    r_sun = [-11747041, 139486985, 60472278]
-    assert utils.in_shadow_simple(r_sat, r_sun)
-
-
-def test_in_shadow():
-    r_eci = [-41260.1818237031, 8684.15782134066, 0]
-    r_sun = [148470363.19330865, -9449738.11151353, -4096753.810182002]
-    in_umbra, in_penumbra = utils.in_shadow(r_eci, r_sun)
-    assert in_umbra
-    assert in_penumbra
-
-
-def test_cylindrical_shadow_roots(coe_shadow):
-    # Test against paper values (use given temp params)
-    a, e, *_ = coe_shadow
-    beta_1 = 0.459588
-    beta_2 = -0.6807135
-
-    # Expected roots
-    roots_expected = [
-        0.9515384802192421,
-        0.6383876664195322,
-        -0.9573391650706946,
-        -0.6284006781641529,
-    ]
-
-    # Call function
-    roots = utils.cylindrical_shadow_roots(a, e, beta_1, beta_2)
-
-    # Check results
-    assert np.allclose(roots, roots_expected, rtol=DEFAULT_TOL)
 
 
 def test_sun_ecliptic_parameters(t):

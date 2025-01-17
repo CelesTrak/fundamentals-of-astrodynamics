@@ -4,8 +4,21 @@ import pytest
 
 import src.valladopy.astro.celestial.sun as sun
 from src.valladopy.astro.celestial.utils import EarthModel
+import src.valladopy.constants as const
 
 from ...conftest import DEFAULT_TOL, custom_isclose
+
+
+@pytest.fixture
+def coe_shadow():
+    # Test case given in Vallado/Neta shadow paper
+    # Neta, B., and Vallado, D. (1998) On Satellite Umbra/Penumbra Entry and Exit
+    # Positions, Journal of the Astronautical Sciences, 46, No. 1, 91–104.
+    e = 0.002
+    a = (1.029 * const.RE) / (1 - e**2)
+    raan, w = 0, 0
+    i = np.radians(63.4)
+    return [a, e, i, raan, w]
 
 
 def test_position():
@@ -84,3 +97,54 @@ def test_illumination():
     lat = np.radians(45)
     lon = np.radians(-75)
     assert custom_isclose(sun.illumination(jd, lat, lon), 0.0009451889253123211)
+
+
+def test_in_shadow_simple():
+    # Test against values from Example 12.8 in Curtis
+    r_sat = [2817.899, -14110.473, -7502.672]
+    r_sun = [-11747041, 139486985, 60472278]
+    assert sun.in_shadow_simple(r_sat, r_sun)
+
+
+def test_in_shadow():
+    r_eci = [-41260.1818237031, 8684.15782134066, 0]
+    r_sun = [148470363.19330865, -9449738.11151353, -4096753.810182002]
+    in_umbra, in_penumbra = sun.in_shadow(r_eci, r_sun)
+    assert in_umbra
+    assert in_penumbra
+
+
+def test_cylindrical_shadow_roots(coe_shadow):
+    # Test against paper values (use given temp params)
+    a, e, *_ = coe_shadow
+    beta_1 = 0.459588
+    beta_2 = -0.6807135
+
+    # Expected roots
+    roots_expected = [
+        0.9515384802192421,
+        0.6383876664195322,
+        -0.9573391650706946,
+        -0.6284006781641529,
+    ]
+
+    # Call function
+    roots = sun.cylindrical_shadow_roots(a, e, beta_1, beta_2)
+
+    # Check results
+    assert np.allclose(roots, roots_expected, rtol=DEFAULT_TOL)
+
+
+def test_eclipse_entry_exit(coe_shadow):
+    # From STK (Epoch = 18 Jan 2020 00:00:00.000 UTCG)
+    r_sun = [67029379.328701, -120206236.987781, -52109013.709624]
+
+    # Expected values in degrees
+    # STK penumbra start and stop true anomalies: 50.061 and 196.692 deg
+    # STK umbra start and stop true anomalies: 50.747 and 196.025 deg
+    theta_en_exp = 50.043417929102404
+    theta_ex_exp = -163.5273086027108  # 196.4726913972892 deg
+
+    theta_en, theta_ex = sun.eclipse_entry_exit(r_sun, *coe_shadow)
+    assert custom_isclose(float(np.degrees(theta_en)), theta_en_exp)
+    assert custom_isclose(float(np.degrees(theta_ex)), theta_ex_exp)

@@ -14,8 +14,10 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from ... import constants as const
+from ...mathtime.vector import angle
 from ..time.sidereal import lstime
-from .utils import EarthModel, in_sight, sun_ecliptic_parameters, obliquity_ecliptic
+from ..twobody.frame_conversions import perifocal_transform
+from . import utils as utils
 
 
 # Set up logging
@@ -56,10 +58,10 @@ def position(jd: float) -> Tuple[np.ndarray, float, float]:
     tut1 = (jd - const.J2000) / const.CENT2DAY
 
     # Mean anomaly and ecliptic longitude of the sun in radians
-    _, meananomaly, eclplong = sun_ecliptic_parameters(tut1)
+    _, meananomaly, eclplong = utils.sun_ecliptic_parameters(tut1)
 
     # Obliquity of the ecliptic in radians
-    obliquity = obliquity_ecliptic(tut1)
+    obliquity = utils.obliquity_ecliptic(tut1)
 
     # Magnitude of the Sun vector in AU
     magr = (
@@ -146,10 +148,10 @@ def rise_set(
         tut1 = (jdtemp - const.J2000) / const.CENT2DAY
 
         # Ecliptic longitude of the Sun in radians
-        *_, lonecliptic = sun_ecliptic_parameters(tut1)
+        *_, lonecliptic = utils.sun_ecliptic_parameters(tut1)
 
         # Obliquity of the ecliptic in radians
-        obliquity = obliquity_ecliptic(tut1)
+        obliquity = utils.obliquity_ecliptic(tut1)
 
         # Right ascension and declination in radians
         ra = np.arctan(np.cos(obliquity) * np.tan(lonecliptic))
@@ -185,7 +187,9 @@ def rise_set(
 
 
 def in_light(
-    r: ArrayLike, jd: float, earth_model: EarthModel = EarthModel.ELLIPSOIDAL
+    r: ArrayLike,
+    jd: float,
+    earth_model: utils.EarthModel = utils.EarthModel.ELLIPSOIDAL,
 ) -> bool:
     """Determines if a spacecraft is in sunlight at a given time.
 
@@ -204,7 +208,7 @@ def in_light(
     rsun, *_ = position(jd)
 
     # Determine if the spacecraft is in sunlight
-    return in_sight(rsun, r, earth_model)
+    return utils.in_sight(rsun, r, earth_model)
 
 
 def illumination(jd: float, lat: float, lon: float) -> float:
@@ -269,3 +273,222 @@ def illumination(jd: float, lat: float, lon: float) -> float:
             sunillum = 0
 
     return sunillum
+
+
+def in_shadow_simple(r_sat: ArrayLike, r_sun: ArrayLike) -> bool:
+    """Check if the satellite is in Earth's shadow.
+
+    References:
+        Curtis, H.D.: Orbit Mechanics for Engineering Students, 2014, Algorithm 12.3
+
+    Args:
+        r_sat (array_like): Satellite position vector in km
+        r_sun (array_like): Sun position vector in km
+
+    Returns:
+        bool: Whether satellite is in attracting body's shadow
+    """
+    # Calculate angles
+    sun_sat_angle = angle(r_sun, r_sat)
+    angle1 = np.arccos(const.RE / np.linalg.norm(r_sat))
+    angle2 = np.arccos(const.RE / np.linalg.norm(r_sun))
+
+    # Check line of sight (no LOS = eclipse)
+    if (angle1 + angle2) <= sun_sat_angle:
+        return True
+
+    return False
+
+
+def in_shadow(r_eci: ArrayLike, r_sun: ArrayLike):
+    """Check if in Earth's shadow (umbra and penumbra).
+
+    References:
+        Vallado: 2022, p. 305-308, Algorithm 34
+
+    Args:
+        r_eci (array_like): ECI position vector in km or AU
+        r_sun (array_like): Sun position vector in km
+
+    Returns:
+        dict: Dictionary containing the computed angles, horizon, vertical components,
+              penumbra and umbra status, and distance parameters.
+    """
+    # Umbra/penumbra angles
+    angumb = np.arctan((const.SUNRADIUS - const.RE) / const.AU2KM)
+    angpen = np.arctan((const.SUNRADIUS + const.RE) / const.AU2KM)
+
+    # Check if in umbra/penumbra
+    in_umbra, in_penumbra = False, False
+
+    if np.dot(r_eci, r_sun) < 0:
+        # Get satellite's vertical and horizontal distances
+        sun_sat_angle = angle(-np.array(r_sun), np.array(r_eci))
+        sathoriz = np.linalg.norm(r_eci) * np.cos(sun_sat_angle)
+        satvert = np.linalg.norm(r_eci) * np.sin(sun_sat_angle)
+
+        # Calculte penumbra vertical distance
+        x = const.RE / np.sin(angpen)
+        penvert = np.tan(angpen) * (x + sathoriz)
+
+        # Check if in penumbra
+        if satvert <= penvert:
+            in_penumbra = True
+            y = const.RE / np.sin(angumb)
+
+            # Calculate umbra vertical distance
+            umbvert = np.tan(angumb) * (y - sathoriz)
+
+            # Check if in umbra
+            if satvert <= umbvert:
+                in_umbra = True
+
+    return in_umbra, in_penumbra
+
+
+def cylindrical_shadow_roots(
+    a: float, e: float, beta_1: float, beta_2: float
+) -> np.ndarray:
+    """Calculate roots of cylindrical shadow quartic equation.
+
+    References:
+        Vallado: 2022, p. 310, Equation 5-6
+
+    Args:
+        a (float): Semimajor axis in km
+        e (float): Eccentricity
+        beta_1 (float): First temporary parameter
+        beta_2 (float): Second temporary parameter
+
+    Returns:
+        np.ndarray: Roots of cylindrical shadow model
+    """
+    alpha = const.RE / (a * (1 - e**2))
+
+    # Shadow coefficients
+    a0 = (
+        alpha**4 * e**4
+        - 2 * alpha**2 * (beta_2**2 - beta_1**2) * e**2
+        + (beta_1**2 + beta_2**2) ** 2
+    )
+    a1 = 4 * alpha**4 * e**3 - 4 * alpha**2 * (beta_2**2 - beta_1**2) * e
+    a2 = (
+        6 * alpha**4 * e**2
+        - 2 * alpha**2 * (beta_2**2 - beta_1**2)
+        - 2 * alpha**2 * (1 - beta_2**2) * e**2
+        + 2 * (beta_2**2 - beta_1**2) * (1 - beta_2**2)
+        - 4 * beta_1**2 * beta_2**2
+    )
+    a3 = 4 * alpha**4 * e - 4 * alpha**2 * (1 - beta_2**2) * e
+    a4 = alpha**4 - 2 * alpha**2 * (1 - beta_2**2) + (1 - beta_2**2) ** 2
+
+    return np.roots([a0, a1, a2, a3, a4])
+
+
+def eclipse_entry_exit(
+    r_sun: ArrayLike,
+    a: float,
+    e: float,
+    i: float,
+    raan: float,
+    w: float,
+    adjust: bool = False,
+    tol: float = 1e-6,
+) -> Tuple[float, float]:
+    """Eclipse entry and exit using cylindrical shadow model
+
+    References:
+        Vallado: 2022, p. 309-311
+        Falck, R., and Dankanich, J.: Optimization of Low-Thrust Spiral Trajectories
+            by Collocation, AIAA 2012-4423
+
+    Args:
+        r_sun (array_like): Sun position vector in km
+        a (float): Semimajor axis in km
+        e (float): Eccentricity
+        i (float): Inclination in radians
+        raan (float): Right ascension of ascending node in radians
+        w (float): Argument of periapsis in radians
+        adjust (bool, optional): Whether to adjust angles so that entry > exit
+                                 (default is False)
+        tol (float, optional): Tolerance for root finding (default is 1e-6)
+
+    Returns:
+        tuple: (theta_en, theta_ex)
+            theta_en (float): True anomaly of shadow entry in radians
+            theta_ex (float): True anomaly of shadow exit in radians
+    """
+    # Initialize entry/exit angles
+    theta_en, theta_ex = np.pi, -np.pi
+
+    # PQW transformation vectors (just P & Q used here)
+    p_, q_, _ = perifocal_transform(i, raan, w)
+
+    # Semiparameter and alpha
+    p = a * (1 - e**2)
+    alpha = p**2 / const.RE**2
+
+    # Temp parameters
+    beta_1 = np.dot(r_sun, p_) / np.linalg.norm(r_sun)
+    beta_2 = np.dot(r_sun, q_) / np.linalg.norm(r_sun)
+
+    # Solve quartic equation roots
+    roots = cylindrical_shadow_roots(a, e, beta_1, beta_2)
+
+    # Check for complex roots and return zeros if encountered
+    if any(isinstance(r, complex) for r in roots):
+        logger.debug(
+            f"Roots are complex for OE: \n"
+            f"a = {a} km, e = {e}, i = {np.degrees(i)} deg, "
+            f"raan = {np.degrees(raan)} deg, w = {np.degrees(w)} deg"
+        )
+        return theta_en, theta_ex
+
+    # Check for validity of all roots to remove any false positives
+    # There are 8 potential solutions from the roots (Falck and Dankanich)
+    thetas_good = []
+    for theta in np.arccos(roots):
+        # Iterate over possible sine values to get other 4 roots
+        for y in [np.sin(theta), -np.sin(theta)]:
+            # Pass the roots through the shadow function
+            # A valid root will return ~0 (there should be 4 of these total)
+            sol = np.arctan2(y, np.cos(theta))
+            s = (
+                (1 + e * np.cos(sol)) ** 2
+                + alpha * (beta_1 * np.cos(sol) + beta_2 * np.sin(sol)) ** 2
+                - alpha
+            )
+
+            # Then check that the sun angular separation is >= 90 deg
+            # i.e. the cosine of the separation angle is <= ~0
+            check = beta_1 * np.cos(sol) + beta_2 * np.sin(sol)
+
+            # Check both conditions
+            if abs(s) < tol and check <= tol:
+                thetas_good.append(sol)
+
+    # Check if true anomaly is shadow entry or exit
+    for theta in thetas_good:
+        # Calculate shadow derivative
+        ds_dtheta = 2 * (p**2 / const.RE**2) * (
+            beta_1 * np.cos(theta) + beta_2 * np.sin(theta)
+        ) * (-beta_1 * np.sin(theta) + beta_2 * np.cos(theta)) - 2 * e * np.sin(
+            theta
+        ) * (
+            1 + e * np.cos(theta)
+        )
+        if ds_dtheta > 0:
+            theta_en = theta
+        elif ds_dtheta < 0:
+            theta_ex = theta
+        else:  # pragma: no cover
+            logger.warning(
+                f"Unable to determine shadow entry/exit for true anomaly of "
+                f"{np.degrees(theta): .2f} deg"
+            )
+
+    # Adjust angles if exit angle > entry angle (for integration)
+    if adjust and theta_ex > theta_en:
+        theta_en += 2 * np.pi
+
+    return theta_en, theta_ex
