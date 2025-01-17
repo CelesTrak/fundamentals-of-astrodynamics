@@ -1465,3 +1465,48 @@ def ecef2llb(r: ArrayLike) -> Tuple[float, float, float, float]:
     latgc = np.arcsin(r[2] / magr)
 
     return latgc, latgd, lon, hellp
+
+
+########################################################################################
+# Miscellaneous
+########################################################################################
+
+
+def perifocal_transform(
+    i: float, raan: float, w: float
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transform from equatorial (ECI) frame to perifocal frame.
+
+    References:
+        Vallado: 2022, p. 171, Equation 3-31
+
+    Args:
+        i (float): Inclination in radians
+        raan (float): Right ascension of the ascending node in radians
+        w (float): Argument of periapsis in radians
+
+    Returns:
+        tuple: (p_, q_, w_)
+            p_ (np.ndarray): P vector in perifocal frame
+            q_ (np.ndarray): Q vector in perifocal frame
+            w_ (np.ndarray): W vector in perifocal frame
+    """
+    p_ = np.array(
+        [
+            np.cos(w) * np.cos(raan) - np.sin(w) * np.sin(raan) * np.cos(i),
+            np.cos(w) * np.sin(raan) + np.sin(w) * np.cos(raan) * np.cos(i),
+            np.sin(w) * np.sin(i),
+        ]
+    )
+
+    q_ = np.array(
+        [
+            -np.sin(w) * np.cos(raan) - np.cos(w) * np.sin(raan) * np.cos(i),
+            -np.sin(w) * np.sin(raan) + np.cos(w) * np.cos(raan) * np.cos(i),
+            np.cos(w) * np.sin(i),
+        ]
+    )
+
+    w_ = np.array([np.sin(raan) * np.sin(i), -np.cos(raan) * np.sin(i), np.cos(i)])
+
+    return p_, q_, w_

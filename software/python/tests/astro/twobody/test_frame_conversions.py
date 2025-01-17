@@ -524,3 +524,24 @@ class TestGeodetic:
         assert np.isclose(latgd, 0.5995641464669065, rtol=DEFAULT_TOL)
         assert np.isclose(lon, 0.8106428999047803, rtol=DEFAULT_TOL)
         assert np.isclose(hellp, 5085.2194303451715, rtol=DEFAULT_TOL)
+
+
+def test_perifocal_transform():
+    # From Vallado Example 2-6, 2022
+    i = np.radians(87.87)
+    raan = np.radians(227.89)
+    w = np.radians(53.38)
+
+    # Call the function with test inputs
+    p_, q_, w_ = fc.perifocal_transform(i, raan, w)
+
+    # Check if the output is close to the expected values
+    assert custom_allclose(
+        p_, [-0.37786007180211706, -0.46252560096516104, 0.8020547578498088]
+    )
+    assert custom_allclose(
+        q_, [0.5546417852962037, 0.580556376955298, 0.596092931664164]
+    )
+    assert custom_allclose(
+        w_, [-0.7413462457860962, 0.6700928007584878, 0.03716695078301055]
+    )
