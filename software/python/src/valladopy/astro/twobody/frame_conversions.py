@@ -1475,7 +1475,7 @@ def ecef2llb(r: ArrayLike) -> Tuple[float, float, float, float]:
 def perifocal_transform(
     i: float, raan: float, w: float
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transform from equatorial (ECI) frame to perifocal frame.
+    """Transform classical elements from equatorial (ECI) frame to perifocal frame.
 
     References:
         Vallado: 2022, p. 171, Equation 3-31
