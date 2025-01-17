@@ -145,6 +145,9 @@ def test_eclipse_entry_exit(coe_shadow):
     theta_en_exp = 50.043417929102404
     theta_ex_exp = -163.5273086027108  # 196.4726913972892 deg
 
+    # Call function
     theta_en, theta_ex = sun.eclipse_entry_exit(r_sun, *coe_shadow)
+
+    # Check results
     assert custom_isclose(float(np.degrees(theta_en)), theta_en_exp)
     assert custom_isclose(float(np.degrees(theta_ex)), theta_ex_exp)
