@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import src.valladopy.astro.twobody.lambert as lambert
+import src.valladopy.astro.iod.lambert as lambert
 import src.valladopy.constants as const
 from ...conftest import DEFAULT_TOL, custom_allclose
 

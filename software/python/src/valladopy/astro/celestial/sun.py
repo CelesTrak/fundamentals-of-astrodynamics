@@ -489,6 +489,6 @@ def eclipse_entry_exit(
 
     # Adjust angles if exit angle > entry angle (for integration)
     if adjust and theta_ex > theta_en:
-        theta_en += 2 * np.pi
+        theta_en += const.TWOPI
 
     return theta_en, theta_ex

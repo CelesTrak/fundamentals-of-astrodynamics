@@ -14,7 +14,7 @@ from numpy.typing import ArrayLike
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, Tuple
 
-from .utils import findc2c3
+from ..twobody.utils import findc2c3
 from ...constants import MU, SMALL, TWOPI
 from ...mathtime.utils import safe_sqrt
 from ...mathtime.vector import unit
@@ -74,9 +74,6 @@ def calculate_mag_and_angle(r1: ArrayLike, r2: ArrayLike) -> Tuple[float, float,
             magr1 (float): Magnitude of the initial position vector
             magr2 (float): Magnitude of the final position vector
             cosdeltanu (float): Cosine of the angle between the two position
-
-    TODO:
-        - Move to mathtime utils?
     """
     magr1 = float(np.linalg.norm(r1))
     magr2 = float(np.linalg.norm(r2))
@@ -434,8 +431,7 @@ def hodograph(
             )
 
         # Normal vector
-        # Depending on the cross product, this will be normal, in plane, or
-        # even a fan
+        # Depending on the cross product, this will be normal, in plane, or even a fan
         nvec = cross_product_r1_r2 / norm_cross_r1_r2
         if dnu % TWOPI > np.pi:
             nvec = -nvec
