@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 
 import src.valladopy.astro.celestial.utils as utils
+import src.valladopy.constants as const
 
 from ...conftest import DEFAULT_TOL
 
@@ -12,6 +13,18 @@ from ...conftest import DEFAULT_TOL
 def t():
     # Julian centuries from J2000
     return -0.013641341546885694
+
+
+@pytest.fixture
+def coe_shadow():
+    # Test case given in Vallado/Neta shadow paper
+    # Neta, B., and Vallado, D. (1998) On Satellite Umbra/Penumbra Entry and Exit
+    # Positions, Journal of the Astronautical Sciences, 46, No. 1, 91–104.
+    e = 0.002
+    a = (1.029 * const.RE) / (1 - e**2)
+    raan, w = 0, 0
+    i = np.radians(63.4)
+    return [a, e, i, raan, w]
 
 
 @pytest.mark.parametrize(
@@ -66,6 +79,27 @@ def test_in_shadow():
     in_umbra, in_penumbra = utils.in_shadow(r_eci, r_sun)
     assert in_umbra
     assert in_penumbra
+
+
+def test_cylindrical_shadow_roots(coe_shadow):
+    # Test against paper values (use given temp params)
+    a, e, *_ = coe_shadow
+    beta_1 = 0.459588
+    beta_2 = -0.6807135
+
+    # Expected roots
+    roots_expected = [
+        0.9515384802192421,
+        0.6383876664195322,
+        -0.9573391650706946,
+        -0.6284006781641529,
+    ]
+
+    # Call function
+    roots = utils.cylindrical_shadow_roots(a, e, beta_1, beta_2)
+
+    # Check results
+    assert np.allclose(roots, roots_expected, rtol=DEFAULT_TOL)
 
 
 def test_sun_ecliptic_parameters(t):

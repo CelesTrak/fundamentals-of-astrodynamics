@@ -147,6 +147,45 @@ def in_shadow(r_eci: ArrayLike, r_sun: ArrayLike):
     return in_umbra, in_penumbra
 
 
+def cylindrical_shadow_roots(
+    a: float, e: float, beta_1: float, beta_2: float
+) -> np.ndarray:
+    """Calculate roots of cylindrical shadow quartic equation.
+
+    References:
+        Vallado: 2022, p. 310, Equation 5-6
+
+    Args:
+        a (float): Semimajor axis in km
+        e (float): Eccentricity
+        beta_1 (float): First temporary parameter
+        beta_2 (float): Second temporary parameter
+
+    Returns:
+        np.ndarray: Roots of cylindrical shadow model
+    """
+    alpha = const.RE / (a * (1 - e**2))
+
+    # Shadow coefficients
+    a0 = (
+        alpha**4 * e**4
+        - 2 * alpha**2 * (beta_2**2 - beta_1**2) * e**2
+        + (beta_1**2 + beta_2**2) ** 2
+    )
+    a1 = 4 * alpha**4 * e**3 - 4 * alpha**2 * (beta_2**2 - beta_1**2) * e
+    a2 = (
+        6 * alpha**4 * e**2
+        - 2 * alpha**2 * (beta_2**2 - beta_1**2)
+        - 2 * alpha**2 * (1 - beta_2**2) * e**2
+        + 2 * (beta_2**2 - beta_1**2) * (1 - beta_2**2)
+        - 4 * beta_1**2 * beta_2**2
+    )
+    a3 = 4 * alpha**4 * e - 4 * alpha**2 * (1 - beta_2**2) * e
+    a4 = alpha**4 - 2 * alpha**2 * (1 - beta_2**2) + (1 - beta_2**2) ** 2
+
+    return np.roots([a0, a1, a2, a3, a4])
+
+
 def sun_ecliptic_parameters(t: float) -> Tuple[float, float, float]:
     """Compute the mean longitude, mean anomaly, and ecliptic longitude of the Sun.
 
