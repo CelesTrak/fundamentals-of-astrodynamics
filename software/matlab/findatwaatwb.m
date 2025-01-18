@@ -82,7 +82,7 @@
     %    vallado       2013, 753-765
     % --------------------------------------------------------------------------- */
 
-    function [atwa, atwb, atw, b, drng2, daz2, del2 ] = findatwaatwb(firstobs, lastobs, obsrecarr,  statesize, percentchg, deltaamtchg, xnom);
+    function [atwa, atwb, atw, b, drng2, daz2, del2 ] = findatwaatwb(iau80arr, firstobs, lastobs, obsrecarr,  statesize, percentchg, deltaamtchg, xnom);
 
     % --------------------- initialize parameters ------------------
     if obsrecarr(1).obstype == 0
@@ -136,12 +136,15 @@
         vnom(3) = xnom(6,1);
         [reci1, veci1] =  kepler ( rnom, vnom, dtsec );
         %[reci1, veci1] =  pkepler ( rnom, vnom, dtsec, 0.0, 0.0 );
+        aeci = [0;0;0];
+        [recef1, vecef1, aecef1] = eci2ecef(reci', veci', aeci, iau80arr, currobsrec.ttt,currobsrec.jdut1,0.0,currobsrec.xp,currobsrec.yp,2,0.0,0.0 );
 
         % ------------------------- find b matrix ----------------------------
         if currobsrec.obstype ~= 3
-            [rngnom,aznom,elnom,drngnom,daznom,delnom] = rv2razel ( reci1',veci1', currobsrec.latgd,currobsrec.lon,currobsrec.alt,currobsrec.ttt,currobsrec.jdut1,0.0,currobsrec.xp,currobsrec.yp,2,0.0,0.0 );
+            [rngnom,aznom,elnom,drngnom,daznom,delnom] = rv2razel ( recef1,vecef1, currobsrec.latgd,currobsrec.lon,currobsrec.alt);
         else
-            [rngnom,trtascnom,tdeclnom,drngnom,dtrtascnom,dtdeclnom] = rv2tradc ( reci1',veci1', currobsrec.latgd,currobsrec.lon,currobsrec.alt,currobsrec.ttt,currobsrec.jdut1,0.0,currobsrec.xp,currobsrec.yp,2,0.0,0.0 );
+            [rsecef,vsecef] = site ( currobsrec.latgd,currobsrec.lon,currobsrec.alt);
+            [rngnom,trtascnom,tdeclnom,drngnom,dtrtascnom,dtdeclnom] = rv2tradec(recef1, vecef1, rsecef, vsecef)
         end
 
         switch (currobsrec.obstype)

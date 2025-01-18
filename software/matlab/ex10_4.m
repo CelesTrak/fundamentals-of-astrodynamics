@@ -96,17 +96,21 @@
 
     % -------  form nominal vector in eci
     % simply average each vector moved back to the nominal time
-    reci = [0 0 0];
-    veci = [0 0 0];
+    reci = [0 0 0]';
+    veci = [0 0 0]';
+    aef = [0 0 0]';
     for obsktr = firstobs+1: lastobs-1
         currobsrec = obsrecarr(obsktr-1);
-        [re1,ve1] = razel2rv ( currobsrec.rng,currobsrec.az,currobsrec.el,0.0,0.0,0.0,currobsrec.latgd,currobsrec.lon,currobsrec.alt,currobsrec.ttt,currobsrec.jdut1,0.0,currobsrec.xp,currobsrec.yp,2,0.0,0.0 );
+        [ref1,vef1] = razel2rv ( currobsrec.latgd,currobsrec.lon,currobsrec.alt, currobsrec.rng, currobsrec.az,currobsrec.el, 0.0, 0.0, 0.0)
+        [re1, ve1, ae1] = ecef2eci(ref1, vef1, aef, iau80arr, currobsrec.ttt,currobsrec.jdut1, 0.0, currobsrec.xp, currobsrec.yp, 2, 0.0, 0.0);
 
         currobsrec = obsrecarr(obsktr);
-        [re2,ve2] = razel2rv ( currobsrec.rng,currobsrec.az,currobsrec.el,0.0,0.0,0.0,currobsrec.latgd,currobsrec.lon,currobsrec.alt,currobsrec.ttt,currobsrec.jdut1,0.0,currobsrec.xp,currobsrec.yp,2,0.0,0.0 );
+        [ref2,vef2] = razel2rv ( currobsrec.latgd,currobsrec.lon,currobsrec.alt, currobsrec.rng, currobsrec.az,currobsrec.el, 0.0, 0.0, 0.0)
+        [re2, ve2, ae2] = ecef2eci(ref2, vef2, aef, iau80arr, currobsrec.ttt,currobsrec.jdut1, 0.0, currobsrec.xp, currobsrec.yp, 2, 0.0, 0.0);
 
         currobsrec = obsrecarr(obsktr+1);
-        [re3,ve3] = razel2rv ( currobsrec.rng,currobsrec.az,currobsrec.el,0.0,0.0,0.0,currobsrec.latgd,currobsrec.lon,currobsrec.alt,currobsrec.ttt,currobsrec.jdut1,0.0,currobsrec.xp,currobsrec.yp,2,0.0,0.0 );
+        [re3,ve3] = razel2rv ( currobsrec.latgd,currobsrec.lon,currobsrec.alt, currobsrec.rng, currobsrec.az,currobsrec.el, 0.0, 0.0, 0.0)
+        [re3, ve3, ae3] = ecef2eci(re3, ve3, aef, iau80arr, currobsrec.ttt,currobsrec.jdut1, 0.0, currobsrec.xp, currobsrec.yp, 2, 0.0, 0.0);
         % far apart vectors
         % [ve2, theta,theta1,copa, error] = gibbs( re1,re2,re3);
         % closely spaced vectors
@@ -152,7 +156,7 @@
     for j = 1:5  % 5 iterations for now
 
         % ---- accumulate obs and assemble matrices
-        [atwa, atwb, atw, b, drng2, daz2, del2] = findatwaatwb(firstobs, lastobs, obsrecarr, 6, percentchg, deltaamtchg, xnom);
+        [atwa, atwb, atw, b, drng2, daz2, del2] = findatwaatwb(iau80arr, firstobs, lastobs, obsrecarr, 6, percentchg, deltaamtchg, xnom);
 
         if j == 1
             fprintf(1,'atwa = \n' );

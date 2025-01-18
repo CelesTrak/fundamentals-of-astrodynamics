@@ -1,6 +1,6 @@
 # --------------------------------------------------------------------------------------
 # Author: David Vallado
-# Date: 1 March 2001
+# Date: 15 Jan 2008
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
