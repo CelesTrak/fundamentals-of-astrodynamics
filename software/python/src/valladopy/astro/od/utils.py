@@ -6,16 +6,17 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
-import numpy as np
-
 from typing import Tuple
+
+import numpy as np
+from numpy.typing import ArrayLike
 
 
 def finite_diff(
     pertelem: int,
     percentchg: float,
     deltaamtchg: float,
-    xnom: np.ndarray,
+    xnom: ArrayLike,
     growth_factor: float = 1.4,
 ) -> Tuple[float, np.ndarray]:
     """Perturbs the components of the state vector for finite differencing.
