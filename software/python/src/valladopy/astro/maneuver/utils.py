@@ -81,3 +81,44 @@ def semimajor_axis(r: float, e: float, nu: float) -> float:
         float: Semi-major axis in km
     """
     return (r * (1 + e * np.cos(nu))) / (1 - e**2)
+
+
+def lowuz(z: float) -> float:
+    """Computes the control parameter u using Chebyshev polynomial approximation.
+
+    References:
+        Alfano: "Optimal Many-Revolution Orbit Transfer", Journal of Guidance, Vol 8,
+                 No. 1, 1985, pp. 155-157.
+
+    Args:
+        z (float): Input parameter
+
+    Returns:
+        u (float): Computed control parameter (bounded between 0.000001 and 0.999999)
+    """
+    # Assign coefficients and starting values
+    # fmt: off
+    alpha = np.array([
+        2.467410607, -1.907470562, 35.892442177, -214.672979624, 947.773273608,
+        -2114.861134906, 2271.240058672, -1127.457440108, 192.953875268, 8.577733773
+    ])
+
+    beta = np.array([
+        0.4609698838, 13.7756315324, -69.1245316678, 279.0671832500, -397.6628952136,
+        -70.0139935047, 528.0334266841, -324.9303836520, 20.5838245170, 18.8165370778
+    ])
+    # fmt: on
+
+    # Compute u using Chebyshev polynomial approximation
+    alphasum, betasum, zterm = 0, 1, 1
+    for i in range(10):
+        zterm *= z
+        alphasum += zterm * alpha[i]
+        betasum += zterm * beta[i]
+
+    u = abs(alphasum / betasum)
+
+    # Clamp the value of u to be within the range [0.000001, 0.999999]
+    u = max(0.000001, min(u, 0.999999))
+
+    return u
