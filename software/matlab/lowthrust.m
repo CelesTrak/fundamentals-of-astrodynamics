@@ -170,7 +170,7 @@ nodevec = unit(r1);
         r1 = r1n;
 %        magr = mag(r1);
         v1 = v1n;
-        period = 2.0*pi * sqrt(a1^3/mu)/steps;  % in sec
+        period = 2.0*pi * sqrt(a1^3/mu);  % in sec
         dtsec = period / steps;
 
         % alt sals approach, is the same.

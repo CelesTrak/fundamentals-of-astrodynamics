@@ -11,7 +11,9 @@ from typing import Tuple
 import numpy as np
 
 from ... import constants as const
-
+from ...mathtime.vector import unit
+from ..twobody.frame_conversions import rv2ntw
+from ..twobody.kepler import kepler
 from . import utils as utils
 
 
@@ -666,3 +668,94 @@ def rendezvous_noncoplanar(
     dvtrans2 = utils.deltav(vtgt, vtrans2, deltai)
 
     return ttrans, tphase, dvphase, dvtrans1, dvtrans2, aphase
+
+
+########################################################################################
+# Low Thrust
+########################################################################################
+
+
+def low_thrust(
+    ainit: float,
+    afinal: float,
+    incl1: float,
+    mdot: float,
+    accelinit: float,
+    lambda_: float,
+    steps: int = 360,
+) -> Tuple[float, float]:
+    """Computes the delta-v and time of flight for low-thrust orbital maneuvers.
+
+    Args:
+        ainit: Initial semimajor axis (km)
+        afinal: Final semimajor axis (km)
+        incl1: Initial inclination (rad)
+        mdot: Specific mass flow rate (1/s)
+        accelinit: Initial acceleration (km/s^2)
+        lambda_: Control parameter for optimization
+        steps: Number of steps per orbit (default 360)
+
+    Returns:
+        deltav: Total change in velocity (km/s)
+        tof: Time of flight in seconds
+    """
+    # Calculate ratio and transition SMA
+    ratio = afinal / ainit
+    atrans = (afinal + ainit) * 0.5  # km
+
+    # Set up canonical units
+    du = ainit
+    duptu = np.sqrt(const.MU / ainit)
+    atrans /= du  # DU
+
+    # Initial state vector (assuming circular orbit)
+    r1 = np.array([ainit, 0, 0])
+    magr = np.linalg.norm(r1)
+    v = np.sqrt(const.MU / magr)
+    v1 = np.array([0, v * np.cos(incl1), v * np.sin(incl1)])
+
+    # Get step size
+    dtsec = utils.period(magr) / steps  # steps per orbit
+
+    # Initialize variables
+    # cosf is the angle from the node (perigee) - start at 0
+    a1 = 1  # normalized to initial radius DU
+    tof = rev = cosfold = 0
+    nodevec = unit(r1)
+
+    while a1 < (afinal / ainit):
+        # Calculate steering angle and acceleration
+        cv = 1 / (4 * lambda_**2 * a1**2 + 1)
+        cosf = utils.lowuz(cv)
+        steering = np.arctan(cosf / np.sqrt(1 / (1 / cv - 1)))
+        accel = accelinit / (1 + mdot * tof)  # km/s^2
+
+        # Calculate acceleration vector
+        avec = accel * np.array([0, np.cos(steering), np.sin(steering)])
+
+        # Convert to NTW frame
+        rntw1, vntw1, tmntw = rv2ntw(r1, v1)
+        acc1 = np.dot(tmntw.T, avec)  # NTW to ECI
+        vtot = v1 + acc1 * dtsec
+
+        # Propagate orbit to next step
+        r1n, v1n = kepler(r1, vtot, dtsec)
+
+        # Calculate the new node angle
+        magr, magv = np.linalg.norm(r1n), np.linalg.norm(v1n)
+        a1 = utils.specific_mech_energy((magv**2 * 0.5) - (const.MU / magr))
+        cosf = np.dot(r1n, nodevec) / magr
+        if cosf * cosfold < 0:
+            rev += 0.5
+
+        # Update variables
+        tof += dtsec
+        r1, v1 = r1n, v1n
+        dtsec = utils.period(a1) / steps
+        cosfold = cosf
+        a1 /= du
+
+    # Calculate delta-V
+    deltav = (1 - np.sqrt(1 / ratio)) * duptu  # km/s
+
+    return deltav, tof

@@ -83,6 +83,18 @@ def semimajor_axis(r: float, e: float, nu: float) -> float:
     return (r * (1 + e * np.cos(nu))) / (1 - e**2)
 
 
+def period(a: float) -> float:
+    """Computes the period of an orbit given the semi-major axis.
+
+    Args:
+        a (float): Semi-major axis of the orbit in km
+
+    Returns:
+        float: Period of the orbit in seconds
+    """
+    return const.TWOPI * np.sqrt(a**3 / const.MU)
+
+
 def lowuz(z: float) -> float:
     """Computes the control parameter u using Chebyshev polynomial approximation.
 

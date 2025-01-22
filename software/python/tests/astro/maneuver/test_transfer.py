@@ -416,3 +416,32 @@ def test_rendezvous_noncoplanar():
     assert custom_isclose(dvtrans1, 0.2226079943473298)
     assert custom_isclose(dvtrans2, 1.8024492966461878)
     assert custom_isclose(aphase, 19473.30414898291)
+
+
+@pytest.mark.parametrize(
+    "alt_init, iinit, mdot, accel_init, lambda_, deltav_exp, tof_exp",
+    [
+        # Vallado 2020, Example 6-12
+        (318.9, 0, -2.48e-7, 4e-6, 0.001, 4.640020203126722, 11.666037030201334),
+        # Vallado 2020, Example 6-13
+        # NOTE: This is consistent with MATLAB outputs but not the textbook answers!
+        (200, 28.5, -2e-7, 1e-5, -0.54, 4.709431035248551, 6.264662605789706),
+    ],
+)
+def test_low_thrust(alt_init, iinit, mdot, accel_init, lambda_, deltav_exp, tof_exp):
+    # Input values
+    alt_final = 35781.343
+
+    # Calculate low-thrust transfer
+    deltav, tof = transfer.low_thrust(
+        const.RE + alt_init,
+        const.RE + alt_final,
+        np.radians(iinit),  # iinit is in degrees here
+        mdot,
+        accel_init,
+        lambda_,
+    )
+
+    # Expected results (expected TOF is in days)
+    assert custom_isclose(deltav, deltav_exp)
+    assert custom_isclose(tof / const.DAY2SEC, tof_exp)
