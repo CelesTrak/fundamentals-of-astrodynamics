@@ -678,26 +678,30 @@ def rendezvous_noncoplanar(
 def low_thrust(
     ainit: float,
     afinal: float,
-    incl1: float,
+    iinit: float,
     mdot: float,
     accelinit: float,
     lambda_: float,
     steps: int = 360,
 ) -> Tuple[float, float]:
-    """Computes the delta-v and time of flight for low-thrust orbital maneuvers.
+    """Calculate the delta-V and time of flight for a low-thrust, circular transfer.
+
+    References:
+        Vallado 2022, p. 382-392, Algorithm 47
 
     Args:
-        ainit: Initial semimajor axis (km)
-        afinal: Final semimajor axis (km)
-        incl1: Initial inclination (rad)
-        mdot: Specific mass flow rate (1/s)
-        accelinit: Initial acceleration (km/s^2)
-        lambda_: Control parameter for optimization
-        steps: Number of steps per orbit (default 360)
+        ainit (float): Initial semi-major axis in km
+        afinal (float): Final semi-major axis in km
+        iinit (float): Initial inclination in radians
+        mdot (float): Mass flow rate in kg/s
+        accelinit (float): Initial acceleration in km/s^2
+        lambda_ (float): Control parameter for optimization
+        steps (int, optional): Number of steps per orbit (defaults to 360)
 
     Returns:
-        deltav: Total change in velocity (km/s)
-        tof: Time of flight in seconds
+        tuple: (deltav, tof)
+            deltav (float): Total change in velocity in km/s
+            tof (float): Time of flight in seconds
     """
     # Calculate ratio and transition SMA
     ratio = afinal / ainit
@@ -712,7 +716,7 @@ def low_thrust(
     r1 = np.array([ainit, 0, 0])
     magr = np.linalg.norm(r1)
     v = np.sqrt(const.MU / magr)
-    v1 = np.array([0, v * np.cos(incl1), v * np.sin(incl1)])
+    v1 = np.array([0, v * np.cos(iinit), v * np.sin(iinit)])
 
     # Get step size
     dtsec = utils.period(magr) / steps  # steps per orbit
