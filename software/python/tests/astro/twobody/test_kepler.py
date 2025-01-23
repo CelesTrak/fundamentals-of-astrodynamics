@@ -6,6 +6,16 @@ import src.valladopy.astro.twobody.kepler as kepler
 from ...conftest import DEFAULT_TOL, custom_isclose
 
 
+@pytest.fixture()
+def pkepler_inputs():
+    # TODO: test other orbit types
+    ro = [-6518.1083, -2403.8479, -22.1722]
+    vo = [2.604057, -7.105717, -0.263218]
+    dtsec = 12345
+    ndot, nddot = 5e-10, 1e-15
+    return ro, vo, dtsec, ndot, nddot
+
+
 @pytest.mark.parametrize(
     # TODO: find test case where np.abs(alpha) < SMALL
     "ro, vo, dtsec, r_expected, v_expected",
@@ -42,39 +52,25 @@ def test_kepler(ro, vo, dtsec, r_expected, v_expected):
     assert np.allclose(v, v_expected, rtol=DEFAULT_TOL)
 
 
-def test_pkepler():
-    # TODO: test other orbit types
-    # Input values
-    ro = [-6518.1083, -2403.8479, -22.1722]
-    vo = [2.604057, -7.105717, -0.263218]
-    dtsec = 12345
-    ndot, nddot = 5e-10, 1e-15
-
+def test_pkepler(pkepler_inputs):
     # Expected values
     r_expected = [-2002.7028502587195, -6611.869542065641, -207.23731516887918]
     v_expected = [7.268024973220791, -2.2076187006403685, -0.1359759379127431]
 
     # Compute the position and velocity vectors
-    r, v = kepler.pkepler(ro, vo, dtsec, ndot, nddot)
+    r, v = kepler.pkepler(*pkepler_inputs)
 
     assert np.allclose(r, r_expected, rtol=DEFAULT_TOL)
     assert np.allclose(v, v_expected, rtol=DEFAULT_TOL)
 
 
-def test_pkeplerj4():
-    # TODO: test other orbit types
-    # Input values
-    ro = [-6518.1083, -2403.8479, -22.1722]
-    vo = [2.604057, -7.105717, -0.263218]
-    dtsec = 12345
-    ndot, nddot = 5e-10, 1e-15
-
+def test_pkeplerj4(pkepler_inputs):
     # Expected values
     r_expected = [-6572.0008215804, -2287.2303999429923, -22.20855339792547]
     v_expected = [2.4856477984610907, -7.1348653128460615, -0.26273020219802795]
 
     # Compute the position and velocity vectors
-    r, v = kepler.pkeplerj4(ro, vo, dtsec, ndot, nddot)
+    r, v = kepler.pkeplerj4(*pkepler_inputs)
 
     assert np.allclose(r, r_expected, rtol=DEFAULT_TOL)
     assert np.allclose(v, v_expected, rtol=DEFAULT_TOL)
