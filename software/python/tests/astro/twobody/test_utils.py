@@ -70,7 +70,7 @@ def test_findc2c3(znew, c2new_exp, c3new_exp):
     assert np.isclose(c3new, c3new_exp, rtol=DEFAULT_TOL)
 
 
-def test_lon_nu():
+def test_lon_nu_conv():
     # Inputs
     jdut1 = 2456864.5
     incl = np.radians(0.070273056)
