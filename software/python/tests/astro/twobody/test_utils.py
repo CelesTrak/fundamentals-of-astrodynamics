@@ -70,14 +70,24 @@ def test_findc2c3(znew, c2new_exp, c3new_exp):
     assert np.isclose(c3new, c3new_exp, rtol=DEFAULT_TOL)
 
 
-def test_lon2nu():
+def test_lon_nu():
+    # Inputs
     jdut1 = 2456864.5
-    lon = np.radians(7.020438698)
     incl = np.radians(0.070273056)
     raan = np.radians(19.90450011)
     argp = np.radians(352.5056022)
-    nu = utils.lon2nu(jdut1, lon, incl, raan, argp)
-    assert np.isclose(nu, 5.204957786050412, rtol=DEFAULT_TOL)
+    lon = np.radians(7.020438698)
+    nu = np.radians(298.2221136844455)
+
+    # Convert lon to nu
+    nu_out = utils.lon2nu(jdut1, lon, incl, raan, argp)
+
+    # Convert nu to lon
+    lon_out = utils.nu2lon(jdut1, nu, incl, raan, argp)
+
+    # Check that the original and output values are the same
+    assert np.isclose(nu_out, nu, rtol=DEFAULT_TOL)
+    assert np.isclose(lon_out, lon, rtol=DEFAULT_TOL)
 
 
 def test_gc2gd():

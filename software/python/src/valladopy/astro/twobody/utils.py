@@ -166,6 +166,55 @@ def lon2nu(jdut1: float, lon: float, incl: float, raan: float, argp: float) -> f
     return np.mod(arglat - argp, TWOPI)
 
 
+def nu2lon(jdut1: float, nu: float, incl: float, raan: float, argp: float) -> float:
+    """Convert orbital elements and find longitude.
+
+    Args:
+        jdut1: Julian date (UT1)
+        nu: True anomaly (radians)
+        incl: Inclination (radians)
+        raan: Right ascension of ascending node (radians)
+        argp: Argument of perigee (radians)
+
+    Returns:
+        lon: Longitude (radians)
+    """
+    twopi = 2.0 * np.pi
+    deg2rad = np.pi / 180.0
+
+    # Calculate elapsed days from J2000 epoch (January 1, 2000, 12:00 TT)
+    ed = jdut1 - 2451544.5
+
+    # Compute GMST (Greenwich Mean Sidereal Time) in radians
+    gmst = (99.96779469 + 360.9856473662860 * ed + 0.29079e-12 * ed * ed) * deg2rad
+    gmst = np.remainder(gmst, twopi)
+
+    # Ensure GMST is within the range [0, 2π]
+    if gmst < 0.0:
+        gmst += twopi
+
+    # Compute argument of latitude
+    arglat = nu + argp
+
+    # Ensure arglat is within the range [0, 2π]
+    arglat = np.remainder(arglat, twopi)
+
+    # Calculate λu (lambdau)
+    lambdau = np.arctan(np.tan(arglat) * np.cos(incl))
+
+    # Adjust lambdau based on quadrant
+    if 0.5 * np.pi <= arglat < 1.5 * np.pi:
+        lambdau += np.pi
+
+    # Compute longitude
+    temp = lambdau - gmst + raan
+
+    # Ensure longitude is within the range [0, 2π]
+    lon = np.remainder(temp, twopi)
+
+    return lon
+
+
 def gc2gd(latgc: float) -> float:
     """Converts geocentric latitude to geodetic latitude for positions on the surface of
     the Earth.
