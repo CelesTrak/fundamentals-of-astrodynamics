@@ -57,7 +57,7 @@
     
     re = 6378.1363;         % km
     mu = 398600.4415;      % km3/s2
-    j2 = 0.001826267;
+    j2 = 0.00108262617;
     constmath;
     
     [p,a,ecc,incl,raan,argp,nu,m,arglat,truelon,lonper ] = rv2coe (ro,vo);

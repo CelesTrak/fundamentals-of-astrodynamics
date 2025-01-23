@@ -13,7 +13,7 @@ from typing import Tuple
 import numpy as np
 from numpy.typing import ArrayLike
 
-from ...constants import SMALL, RE, J2, MU, TWOPI
+from ...constants import SMALL, RE, J2, J4, MU, TWOPI
 from .frame_conversions import rv2coe, coe2rv, rv2pqw
 from .newton import newtonm
 from .utils import is_equatorial, findc2c3
@@ -152,6 +152,75 @@ def kepler(
     return r, v
 
 
+def _process_coe(ro, vo):
+    # Convert position and velocity to orbital elements
+    output = rv2coe(ro, vo)
+    processed_output = tuple(
+        0 if isinstance(x, float) and np.isnan(x) else x for x in output
+    )
+    p, a, ecc, incl, raan, _, nu, m, arglat, truelon, lonper, _ = processed_output
+
+    # Check for negative semi-major axis and set mean motion
+    if a < 0:
+        logger.error("Negative semi-major axis encountered")
+        n = None
+    else:
+        n = np.sqrt(MU / (a**3))
+
+    return p, a, ecc, incl, raan, nu, m, arglat, truelon, lonper, n
+
+
+def _calc_rv_from_coe(
+    incl,
+    truelon,
+    raandot,
+    argpdot,
+    mdot,
+    ndot,
+    nddot,
+    ecc,
+    p,
+    m,
+    dtsec,
+    raan,
+    arglat,
+    lonper,
+    nu,
+):
+    # Update orbital elements
+    if ecc < SMALL:
+        # Circular orbit
+        if is_equatorial(incl):
+            # Circular equatorial
+            truelon += (raandot + argpdot + mdot) * dtsec
+            truelon = np.mod(truelon, TWOPI)
+        else:
+            # Circular inclined
+            raan += raandot * dtsec
+            raan = np.mod(raan, TWOPI)
+            arglat += (argpdot + mdot) * dtsec
+            arglat = np.mod(arglat, TWOPI)
+    else:
+        # Elliptical orbit
+        if is_equatorial(incl):
+            # Elliptical equatorial
+            lonper += (raandot + argpdot) * dtsec
+            lonper = np.mod(lonper, TWOPI)
+        else:
+            # Elliptical inclined
+            raan += raandot * dtsec
+            raan = np.mod(raan, TWOPI)
+
+        m += mdot * dtsec + ndot * dtsec**2 + nddot * dtsec**3
+        m = np.mod(m, TWOPI)
+        e0, nu = newtonm(ecc, m)
+
+    # Convert updated orbital elements back to position and velocity vectors
+    r, v = coe2rv(p, ecc, incl, raan, nu, arglat, truelon, lonper)
+
+    return r, v
+
+
 def pkepler(
     ro: ArrayLike, vo: ArrayLike, dtsec: float, ndot: float, nddot: float
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -177,19 +246,11 @@ def pkepler(
         - Move to perturbations?
     """
     # Convert position and velocity to orbital elements
-    output = rv2coe(ro, vo)
-    processed_output = tuple(
-        0 if isinstance(x, float) and np.isnan(x) else x for x in output
-    )
-    p, a, ecc, incl, raan, _, nu, m, arglat, truelon, lonper, _ = processed_output
+    p, a, ecc, incl, raan, nu, m, arglat, truelon, lonper, n = _process_coe(ro, vo)
 
     # Check for negative semi-major axis
-    if a < 0:
-        logger.error("Negative semi-major axis encountered")
+    if n is None:
         return np.zeros(3), np.zeros(3)
-
-    # Mean motion
-    n = np.sqrt(MU / (a**3))
 
     # J2 perturbation effects
     j2op2 = (n * 1.5 * RE**2 * J2) / (p**2)
@@ -202,41 +263,156 @@ def pkepler(
     ecc -= 2 * (1 - ecc) * ndot * dtsec / (3 * n)
     p = a * (1 - ecc**2)
 
-    # Update orbital elements
-    if ecc < SMALL:
-        # Circular orbit
-        if is_equatorial(incl):
-            # Circular equatorial
-            truelondot = raandot + argpdot + mdot
-            truelon = truelon + truelondot * dtsec
-            truelon = np.mod(truelon, TWOPI)
-        else:
-            # Circular inclined
-            raan = raan + raandot * dtsec
-            raan = np.mod(raan, TWOPI)
-            arglatdot = argpdot + mdot
-            arglat = arglat + arglatdot * dtsec
-            arglat = np.mod(arglat, TWOPI)
-    else:
-        # Elliptical orbit
-        if is_equatorial(incl):
-            # Elliptical equatorial
-            lonperdot = raandot + argpdot
-            lonper = lonper + lonperdot * dtsec
-            lonper = np.mod(lonper, TWOPI)
-        else:
-            # Elliptical inclined
-            raan = raan + raandot * dtsec
-            raan = np.mod(raan, TWOPI)
+    # Calculate position and velocity vectors
+    return _calc_rv_from_coe(
+        incl,
+        truelon,
+        raandot,
+        argpdot,
+        mdot,
+        ndot,
+        nddot,
+        ecc,
+        p,
+        m,
+        dtsec,
+        raan,
+        arglat,
+        lonper,
+        nu,
+    )
 
-        m = m + mdot * dtsec + ndot * dtsec**2 + nddot * dtsec**3
-        m = np.mod(m, TWOPI)
-        e0, nu = newtonm(ecc, m)
 
-    # Convert updated orbital elements back to position and velocity
-    r, v = coe2rv(p, ecc, incl, raan, nu, arglat, truelon, lonper)
+def pkeplerj4(
+    ro: ArrayLike, vo: ArrayLike, dtsec: float, ndot: float, nddot: float
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Propagates a satellite's position and velocity vector over a given time period
+    accounting for J2, J2^2, and J4 perturbation effects.
 
-    return r, v
+    References:
+        Vallado: 2022, p. 715-717
+
+    Args:
+        ro (array_like): Initial ECI position vector in km
+        vo (array_like): Initial ECI velocity vector in km/s
+        dtsec (float): Time interval to propagate in seconds
+        ndot (float): First time derivative of mean motion in rad/s²
+        nddot (float): Second time derivative of mean motion in rad/s³
+
+    Returns:
+        tuple: (r, v)
+            r (np.ndarray): Propagated ECI position vector in km
+            v (np.ndarray): Propagated ECI velocity vector in km/s
+
+    TODO:
+        - Move to perturbations?
+    """
+    # Convert position and velocity to orbital elements
+    p, a, ecc, incl, raan, nu, m, arglat, truelon, lonper, n = _process_coe(ro, vo)
+
+    # Check for negative semi-major axis
+    if n is None:
+        return np.zeros(3), np.zeros(3)
+
+    # Intermediate calculations
+    cosi, sini = np.cos(incl), np.sin(incl)
+    beta2 = 1 - ecc**2
+    sqrtbeta = np.sqrt(beta2)
+
+    # J2 perturbations calculations
+    nbar = n * (
+        1.5 * J2 * (RE / p) ** 2 * sqrtbeta * (1 - 1.5 * sini**2)
+        + 3
+        / 128
+        * J2**2
+        * (RE / p) ** 4
+        * sqrtbeta
+        * (
+            16 * sqrtbeta
+            + 25 * beta2
+            - 15
+            + (30 - 96 * sqrtbeta - 90 * beta2) * cosi**2
+            + (105 + 144 * sqrtbeta + 25 * beta2) * cosi**4
+        )
+        - 45
+        / 128
+        * J4
+        * ecc**2
+        * (RE / p) ** 4
+        * sqrtbeta
+        * (3 - 30 * cosi**2 + 35 * cosi**4)
+    )
+
+    mdot = n + nbar
+
+    # RAAN and argument of perigee perturbation rates
+    raandot = (
+        -1.5 * J2 * (RE / p) ** 2 * mdot * cosi
+        - (9 / 96)
+        * J2**2
+        * (RE / p) ** 4
+        * mdot
+        * cosi
+        * (
+            36
+            + 4 * ecc**2
+            - 48 * sqrtbeta
+            - (40 - 5 * ecc**2 - 72 * sqrtbeta) * sini * sini
+        )
+        - (35 / 112)
+        * J4
+        * (RE / p) ** 4
+        * n
+        * cosi
+        * (1 + 1.5 * ecc**2)
+        * (12 - 21 * sini**2)
+    )
+
+    # Argument of perigee rate calculations
+    argpdot = (
+        0.75 * J2 * (RE / p) ** 2 * mdot * (4 - 5 * sini**2)
+        + (9 / 192)
+        * J2**2
+        * (RE / p) ** 4
+        * mdot
+        * (2 - 2.5 * sini**2)
+        * (
+            96
+            + 24 * ecc**2
+            - 96 * sqrtbeta
+            - (86 - ecc**2 - 144 * sqrtbeta) * sini * sini
+        )
+        - (45 / 36) * J2**2 * (RE / p) ** 4 * ecc**2 * n * cosi**4
+        - (35 / 896)
+        * J4
+        * (RE / p) ** 4
+        * n
+        * (
+            192
+            - 744 * sini**2
+            + 588 * sini**4
+            + ecc**2 * (216 - 756 * sini**2 + 567 * sini**4)
+        )
+    )
+
+    # Calculate position and velocity vectors
+    return _calc_rv_from_coe(
+        incl,
+        truelon,
+        raandot,
+        argpdot,
+        mdot,
+        ndot,
+        nddot,
+        ecc,
+        p,
+        m,
+        dtsec,
+        raan,
+        arglat,
+        lonper,
+        nu,
+    )
 
 
 def findfandg(

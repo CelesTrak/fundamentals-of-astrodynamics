@@ -51,11 +51,30 @@ def test_pkepler():
     ndot, nddot = 5e-10, 1e-15
 
     # Expected values
-    r_expected = [-1918.8942755619782, -6636.821817502705, -210.30326936057827]
-    v_expected = [7.295164512561593, -2.115661226327176, -0.13016935223789428]
+    r_expected = [-2002.7028502587195, -6611.869542065641, -207.23731516887918]
+    v_expected = [7.268024973220791, -2.2076187006403685, -0.1359759379127431]
 
     # Compute the position and velocity vectors
     r, v = kepler.pkepler(ro, vo, dtsec, ndot, nddot)
+
+    assert np.allclose(r, r_expected, rtol=DEFAULT_TOL)
+    assert np.allclose(v, v_expected, rtol=DEFAULT_TOL)
+
+
+def test_pkeplerj4():
+    # TODO: test other orbit types
+    # Input values
+    ro = [-6518.1083, -2403.8479, -22.1722]
+    vo = [2.604057, -7.105717, -0.263218]
+    dtsec = 12345
+    ndot, nddot = 5e-10, 1e-15
+
+    # Expected values
+    r_expected = [-6572.0008215804, -2287.2303999429923, -22.20855339792547]
+    v_expected = [2.4856477984610907, -7.1348653128460615, -0.26273020219802795]
+
+    # Compute the position and velocity vectors
+    r, v = kepler.pkeplerj4(ro, vo, dtsec, ndot, nddot)
 
     assert np.allclose(r, r_expected, rtol=DEFAULT_TOL)
     assert np.allclose(v, v_expected, rtol=DEFAULT_TOL)
