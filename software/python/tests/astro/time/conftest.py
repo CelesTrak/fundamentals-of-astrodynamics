@@ -1,11 +1,6 @@
-import os
 import pytest
 
 import src.valladopy.astro.time.data as data
-
-
-def filepath(filename):
-    return os.path.join(data.DATA_DIR, filename)
 
 
 @pytest.fixture()
@@ -33,12 +28,12 @@ def iau06xysarr():
 
 
 @pytest.fixture()
-def eoparr():
+def eoparr(test_data_dir):
     """Load the Earth Orientation Parameters"""
-    return data.readeop(filepath("EOP-All-v1.1_2023-01-01.txt"))
+    return data.readeop(test_data_dir / "EOP-All-v1.1_2023-01-01.txt")
 
 
 @pytest.fixture()
-def spwarr():
+def spwarr(test_data_dir):
     """Load the Space Weather data"""
-    return data.readspw(filepath("SpaceWeather-All-v1.2_2025-01-10.txt"))
+    return data.readspw(test_data_dir / "SpaceWeather-All-v1.2_2025-01-10.txt")
