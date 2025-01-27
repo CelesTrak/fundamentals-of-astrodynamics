@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import src.valladopy.astro.twobody.utils as utils
-from ...conftest import DEFAULT_TOL
+from ...conftest import DEFAULT_TOL, custom_isclose, custom_allclose
 
 
 @pytest.mark.parametrize(
@@ -29,6 +29,29 @@ def test_determine_orbit_type(ecc, incl, expected_orbit_type):
 )
 def test_is_equatorial(inc, expected):
     assert utils.is_equatorial(inc) == expected
+
+
+def test_elliptic12():
+    # Inputs
+    u = 1.45388206137796e-06
+    m = 6.66133814775094e-16**2  # target ecc
+
+    # Expected
+    f_exp = 1.4538820613779603e-06
+    e_exp = 1.45388206137796e-06
+    z_exp = 0
+
+    # Test scalar inputs
+    f, e, z = utils.elliptic12(u, m)
+    assert custom_isclose(f, f_exp)
+    assert custom_isclose(e, e_exp)
+    assert custom_isclose(z, z_exp)
+
+    # Test vector inputs
+    f, e, z = utils.elliptic12([u, 0.1], [m, 0.01])
+    assert custom_allclose(f, [f_exp, 0.1000016634111543])
+    assert custom_allclose(e, [e_exp, 0.09999833663861171])
+    assert custom_allclose(z, [z_exp, 0.0004973097001265137])
 
 
 @pytest.mark.parametrize(

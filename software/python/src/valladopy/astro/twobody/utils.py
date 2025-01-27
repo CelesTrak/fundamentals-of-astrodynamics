@@ -11,6 +11,7 @@ from typing import Tuple
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.special import ellipk, ellipe, ellipkinc, ellipeinc
 
 from ...constants import RE, MU, ECCEARTHSQRD, SMALL, TWOPI, J2000_UTC
 
@@ -23,7 +24,7 @@ class OrbitType(Enum):
 
 
 def determine_orbit_type(ecc: float, incl: float, tol: float = SMALL) -> OrbitType:
-    """Determine the type of orbit based on eccentricity and inclination
+    """Determine the type of orbit based on eccentricity and inclination.
 
     Args:
         ecc (float): The eccentricity of the orbit
@@ -58,6 +59,40 @@ def is_equatorial(inc: float) -> bool:
         (bool): True if the inclination is equatorial
     """
     return inc < SMALL or abs(inc - np.pi) < SMALL
+
+
+def elliptic12(
+    u: float | ArrayLike, m: float | ArrayLike
+) -> Tuple[float | np.ndarray, float | np.ndarray, float | np.ndarray]:
+    """Computes the incomplete elliptic integrals of the first and second kind as well
+    as the Jacobi Zeta function.
+
+    Args:
+        u (float or array_like): Phase in radians
+        m (float or array_like): Modulus (0 <= m <= 1)
+
+    Returns:
+        tuple: (f, e, z)
+            f (float or np.ndarray): Incomplete elliptic integral of the first kind
+            e (float or np.ndarray): Incomplete elliptic integral of the second kind
+            z (float or np.ndarray): Jacobi Zeta function
+
+    Notes:
+        - The MATLAB version sets a maximum value for the modulus m to avoid numerical
+          issues, which is not needed/implemented here.
+    """
+    # Compute incomplete elliptic integrals for the phase u and modulus m
+    f = ellipkinc(u, m)  # incomplete elliptic integral of the first kind
+    e = ellipeinc(u, m)  # incomplete elliptic integral of the second kind
+
+    # Compute complete elliptic integrals for the modulus m
+    k_m = ellipk(m)
+    e_m = ellipe(m)
+
+    # Jacobi Zeta function
+    z = e - (e_m / k_m) * f
+
+    return f, e, z
 
 
 def site(latgd: float, lon: float, alt: float) -> Tuple[np.ndarray, np.ndarray]:
