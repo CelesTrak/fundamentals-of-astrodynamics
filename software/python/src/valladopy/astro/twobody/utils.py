@@ -95,6 +95,45 @@ def elliptic12(
     return f, e, z
 
 
+def arclength_ellipse(
+    a: float, b: float, theta0: float = 0, theta1: float = TWOPI
+) -> float:
+    """Calculates the arclength of an ellipse using the elliptic integral of the second
+    kind.
+
+    References:
+        Elliptic Project 2011
+        http://mathworld.wolfram.com/Ellipse.html
+        See `arclength_ellipse.m` in `matlab` directory for full references.
+
+    Args:
+        a (float): Semi-major axis length
+        b (float): Semi-minor axis length
+        theta0 (float): Start angle in radians (defaults to 0)
+        theta1 (float): End angle in radians (defaults to 2pi)
+
+    Returns:
+        float: Arclength of the ellipse
+    """
+    # Circle case
+    if a == b:
+        return a * (theta1 - theta0)
+
+    # Ellipse with semi-minor axis along x-axis
+    if a < b:
+        m = 1 - (a / b) ** 2
+        e1 = ellipeinc(theta1, m)
+        e0 = ellipeinc(theta0, m)
+        return b * (e1 - e0)
+
+    # Ellipse with semi-major axis along x-axis
+    else:
+        m_prime = 1 - (b / a) ** 2
+        e1 = ellipeinc(np.pi / 2 - theta1, m_prime)
+        e0 = ellipeinc(np.pi / 2 - theta0, m_prime)
+        return a * (e0 - e1)
+
+
 def site(latgd: float, lon: float, alt: float) -> Tuple[np.ndarray, np.ndarray]:
     """Finds the position and velocity vectors for a site.
 

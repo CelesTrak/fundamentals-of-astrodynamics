@@ -55,6 +55,20 @@ def test_elliptic12():
 
 
 @pytest.mark.parametrize(
+    "a, b, theta0, theta1, s_exp",
+    [
+        (5, 5, 0, 2 * np.pi, 5 * 2 * np.pi),  # full circle
+        (5, 10, 0, 2 * np.pi, 48.44224110273838),  # full ellipse
+        (5, 10, np.pi / 10, np.pi / 2, 9.007389063529619),  # partial ellipse
+        (1, 0.5, np.pi * 0.002, np.pi * 0.001, -0.0015708505862375155),  # negative
+        (1, 2, np.pi * 0.001, np.pi * 0.002, 0.006283131046402917),  # partial, small
+    ],
+)
+def test_arclength_ellipse(a, b, theta0, theta1, s_exp):
+    assert custom_isclose(utils.arclength_ellipse(a, b, theta0, theta1), s_exp)
+
+
+@pytest.mark.parametrize(
     "latgd, lon, alt, rsecef_exp",
     [
         (0, 0, 0, np.array([6378.1363, 0, 0])),
