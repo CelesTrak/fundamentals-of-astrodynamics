@@ -32,26 +32,38 @@ def test_is_equatorial(inc, expected):
 
 
 def test_elliptic12():
+    """Test the elliptic integrals of the first and second kind and their inverses."""
     # Inputs
-    u = 1.45388206137796e-06
+    u = de = 1.45388206137796e-06
     m = 6.66133814775094e-16**2  # target ecc
 
     # Expected
     f_exp = 1.4538820613779603e-06
-    e_exp = 1.45388206137796e-06
+    e_exp = inv_e_exp = 1.45388206137796e-06
     z_exp = 0
 
     # Test scalar inputs
     f, e, z = utils.elliptic12(u, m)
+    inv_e = utils.inverse_elliptic2(de, m)
     assert custom_isclose(f, f_exp)
     assert custom_isclose(e, e_exp)
     assert custom_isclose(z, z_exp)
+    assert custom_isclose(inv_e, inv_e_exp)
 
     # Test vector inputs
     f, e, z = utils.elliptic12([u, 0.1], [m, 0.01])
+    inv_e = utils.inverse_elliptic2([de, 0.1], [m, 0.01])
     assert custom_allclose(f, [f_exp, 0.1000016634111543])
     assert custom_allclose(e, [e_exp, 0.09999833663861171])
     assert custom_allclose(z, [z_exp, 0.0004973097001265137])
+    assert custom_allclose(inv_e, [inv_e_exp, 0.10000166344428708])
+
+    # Check bad inputs
+    for m in [-0.01, 1.01]:
+        with pytest.raises(ValueError):
+            utils.elliptic12(u, m)
+        with pytest.raises(ValueError):
+            utils.inverse_elliptic2(de, m)
 
 
 @pytest.mark.parametrize(

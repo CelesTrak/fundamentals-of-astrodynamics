@@ -81,6 +81,10 @@ def elliptic12(
         - The MATLAB version sets a maximum value for the modulus m to avoid numerical
           issues, which is not needed/implemented here.
     """
+    # Check modulus range
+    if np.any(np.array(m) < 0) or np.any(np.array(m) > 1):
+        raise ValueError("Modulus m must be in the range 0 <= m <= 1.")
+
     # Compute incomplete elliptic integrals for the phase u and modulus m
     f = ellipkinc(u, m)  # incomplete elliptic integral of the first kind
     e = ellipeinc(u, m)  # incomplete elliptic integral of the second kind
@@ -95,6 +99,64 @@ def elliptic12(
     return f, e, z
 
 
+def inverse_elliptic2(
+    e: float | ArrayLike, m: float | ArrayLike, n_iter: int = 4
+) -> np.ndarray:
+    """Evaluates the inverse incomplete elliptic integral of the second kind.
+
+    This function is adapted from the MATLAB script `inverselliptic2.m` and uses an
+    empirical initialization followed by Newton-Raphson refinement to compute the
+    inverse elliptic integral.
+
+    References:
+        Elliptic Project, 2011
+
+    Attribution:
+        This function is translated and adapted from the MATLAB script
+        `inverselliptic2.m` located in the `matlab` directory of this repository. The
+        original script contains additional references and details.
+
+    Args:
+        e (float or array_like): Value of the integral to be inverted
+        m (float or array_like): Modulus (0 <= m <= 1)
+        n_iter (int, optional): Number of iterations for Newton-Raphson refinement
+                                (defaults to 4)
+
+    Returns:
+        np.ndarray: The inverse of the incomplete elliptic integral of the second kind
+    """
+    # Handle scalar broadcasting
+    if np.isscalar(m):
+        m = np.full_like(e, m)
+    if np.isscalar(e):
+        e = np.full_like(m, e)
+
+    # Check modulus range
+    if np.any(np.array(m) < 0) or np.any(np.array(m) > 1):
+        raise ValueError("Modulus m must be in the range 0 <= m <= 1.")
+
+    # Broadcast m and e to the same shape
+    e, m = np.broadcast_arrays(e, m)
+
+    # Complete integral initialization
+    e1 = ellipk(m)  # only the complete second kind is needed
+
+    # Calculate empirical initialization
+    zeta = 1 - e / e1
+    mu = 1 - m
+    r = np.sqrt(zeta**2 + mu**2)
+    theta = np.arctan2(mu, e + np.finfo(float).eps)
+    inv_e = np.pi / 2 + np.sqrt(r) * (theta - np.pi / 2)
+
+    # Newton-Raphson refinement
+    for _ in range(n_iter):
+        e_calculated = ellipeinc(inv_e, m)
+        inv_e -= (e_calculated - e) / np.sqrt(1 - m * np.sin(inv_e) ** 2)
+
+    # Return scalar if inputs were scalar
+    return inv_e if inv_e.size > 1 else inv_e.item()
+
+
 def arclength_ellipse(
     a: float, b: float, theta0: float = 0, theta1: float = TWOPI
 ) -> float:
@@ -102,9 +164,13 @@ def arclength_ellipse(
     kind.
 
     References:
-        Elliptic Project 2011
+        Elliptic Project, 2011
         http://mathworld.wolfram.com/Ellipse.html
-        See `arclength_ellipse.m` in `matlab` directory for full references.
+
+    Attribution:
+        This function is translated and adapted from the MATLAB script
+        `arclength_ellipse.m` located in the `matlab` directory of this repository.
+        The original MATLAB script includes full references to its sources.
 
     Args:
         a (float): Semi-major axis length
@@ -345,7 +411,7 @@ def checkhitearth(
     ainv = 2 / magr1 - np.linalg.norm(v1) ** 2 / MU
     a = 1 / ainv
 
-    # Find ecos(E)
+    # Find ecos(e)
     ecosea1, ecosea2 = 1 - magr1 * ainv, 1 - magr2 * ainv
 
     # Determine the radius of perigee for nrev > 0
