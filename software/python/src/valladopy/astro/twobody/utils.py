@@ -170,7 +170,7 @@ def arclength_ellipse(
     Attribution:
         This function is translated and adapted from the MATLAB script
         `arclength_ellipse.m` located in the `matlab` directory of this repository.
-        The original MATLAB script includes full references to its sources.
+        The original MATLAB script contains additional references and details.
 
     Args:
         a (float): Semi-major axis length
