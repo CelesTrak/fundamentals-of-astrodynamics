@@ -526,6 +526,24 @@ class TestGeodetic:
         assert np.isclose(hellp, 5085.2194303451715, rtol=DEFAULT_TOL)
 
 
+class TestEQCM:
+    def test_eci_to_eqcm_rtn(self):
+        # Inputs
+        r_tgt_eci = [6878.137, 0, 0]
+        v_tgt_eci = [0, 7.61260816919965, 0.000132865077230243]
+        r_int_eci = [6878.14699998546, 0.00999984000410449, 0.0100001890704729]
+        v_int_eci = [-1.06787962819941e-06, 7.61262923687256, 0.000142865474009654]
+
+        # Call the function with test inputs
+        r_int_eqcm, v_int_eqcm = fc.eci_to_eqcm_rtn(
+            r_tgt_eci, v_tgt_eci, r_int_eci, v_int_eci
+        )
+
+        # Check if the output values are close to the expected values
+        assert np.allclose(r_int_eqcm, [0.01, 0.01, 0.01], rtol=DEFAULT_TOL)
+        assert np.allclose(v_int_eqcm, [1e-5, 1e-5, 1e-5], rtol=DEFAULT_TOL)
+
+
 def test_perifocal_transform():
     # From Vallado Example 2-6, 2022
     i = np.radians(87.87)

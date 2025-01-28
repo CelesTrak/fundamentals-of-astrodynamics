@@ -6,9 +6,11 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
+from typing import Tuple
+
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Tuple
+from scipy.special import ellipeinc
 
 from ... import constants as const
 from ...mathtime.vector import rot1, rot2, rot3, angle, unit
@@ -1465,6 +1467,120 @@ def ecef2llb(r: ArrayLike) -> Tuple[float, float, float, float]:
     latgc = np.arcsin(r[2] / magr)
 
     return latgc, latgd, lon, hellp
+
+
+########################################################################################
+# Modified Equidistant Cylindrical (EQCM)
+########################################################################################
+
+
+def eci_to_eqcm_rtn(
+    r_tgt_eci: ArrayLike,
+    v_tgt_eci: ArrayLike,
+    r_int_eci: ArrayLike,
+    v_int_eci: ArrayLike,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Finds the relative position and velocity vectors in the Modified Equidistant
+    Cylindrical (EQCM) frame given the ECI target and interceptor states with RTN (RSW)
+    ordered components.
+
+    References:
+        Alfano: 2012
+
+    Args:
+        r_tgt_eci (array_like): ECI position vector of the target in km
+        v_tgt_eci (array_like): ECI velocity vector of the target in km/s
+        r_int_eci (array_like): ECI position vector of the interceptor in km
+        v_int_eci (array_like): ECI velocity vector of the interceptor in km/s
+
+    Returns:
+        tuple: (r_int_eqcm, v_int_eqcm)
+            r_int_eqcm (np.ndarray): EQCM position vector in km
+            v_int_eqcm (np.ndarray): EQCM velocity vector in km/s
+    """
+    # Compute rotation matrix from ECI to RTN1 frame for target
+    r_tgt_rtn1, v_tgt_rtn1, rot_eci_to_rtn1 = rv2rsw(r_tgt_eci, v_tgt_eci)
+    r_int_rtn1 = rot_eci_to_rtn1 @ r_int_eci
+    v_int_rtn1 = rot_eci_to_rtn1 @ v_int_eci
+
+    # Compute magnitudes
+    mag_r_tgt = np.linalg.norm(r_tgt_rtn1)
+    mag_r_int = np.linalg.norm(r_int_rtn1)
+
+    # Compute lambda and phi rotation angles to go from target to interceptor
+    # (lambda_tgt will be 0)
+    sin_phi = r_int_rtn1[2] / mag_r_int
+    phi = np.arcsin(sin_phi)
+    cos_phi = np.cos(phi)
+    lambda_ = np.arctan2(r_int_rtn1[1], r_int_rtn1[0])
+    cos_lambda, sin_lambda = np.cos(lambda_), np.sin(lambda_)
+
+    # Orbital elements of the target at present (nu1) and future (nu2) locations
+    h_vec_tgt = np.cross(r_tgt_rtn1, v_tgt_rtn1)
+    p_tgt = np.dot(h_vec_tgt, h_vec_tgt) / const.MU
+    ecc_vec_tgt = np.cross(v_tgt_rtn1, h_vec_tgt) / const.MU - r_tgt_rtn1 / mag_r_tgt
+    ecc_tgt = np.linalg.norm(ecc_vec_tgt)
+
+    a_tgt = p_tgt / (1 - ecc_tgt**2)
+    perigee_unit = ecc_vec_tgt / ecc_tgt if ecc_tgt > 1e-7 else r_tgt_rtn1 / mag_r_tgt
+
+    lambda_perigee = np.arctan2(perigee_unit[1], perigee_unit[0])
+    nu1 = -lambda_perigee
+    nu2 = lambda_ - lambda_perigee
+
+    # Future position and velocity of target
+    r2_tgt = p_tgt / (1 + ecc_tgt * np.cos(nu2))
+    p_vec = perigee_unit
+    q_vec = np.cross([0, 0, 1], p_vec)
+
+    r2_vec_tgt = r2_tgt * (np.cos(nu2) * p_vec + np.sin(nu2) * q_vec)
+    v2_vec_tgt = np.sqrt(const.MU / p_tgt) * (
+        -np.sin(nu2) * p_vec + (ecc_tgt + np.cos(nu2)) * q_vec
+    )
+
+    # Rotate to future RTN2 frame
+    *_, rot_rtn1_to_rtn2 = rv2rsw(r2_vec_tgt, v2_vec_tgt)
+    r_tgt_rtn2 = rot_rtn1_to_rtn2 @ r2_vec_tgt
+    v_tgt_rtn2 = rot_rtn1_to_rtn2 @ v2_vec_tgt
+
+    # Convert interceptor components to SEZ frame
+    rot_to_sez = np.array(
+        [
+            [sin_phi * cos_lambda, sin_phi * sin_lambda, -cos_phi],
+            [-sin_lambda, cos_lambda, 0],
+            [cos_phi * cos_lambda, cos_phi * sin_lambda, sin_phi],
+        ]
+    )
+    r_int_sez = rot_to_sez @ r_int_rtn1
+    v_int_sez = rot_to_sez @ v_int_rtn1
+
+    # Position components in EQCM
+    r_int_eqcm = np.zeros((3, 1))
+    r_int_eqcm[0] = r_int_sez[2] - r_tgt_rtn2[0]
+
+    ea0, _ = newtonnu(ecc_tgt, nu1)
+    ea1, _ = newtonnu(ecc_tgt, nu2)
+
+    # Fix quadrants for special cases
+    if abs(ea1 - ea0) > np.pi:
+        ea0 = ea0 + const.TWOPI if ea0 < 0 else ea0 - const.TWOPI
+
+    # Calculate elliptic integrals of the second kind
+    e0 = ellipeinc(ea0, ecc_tgt**2)
+    e1 = ellipeinc(ea1, ecc_tgt**2)
+
+    fixit = np.pi if e1 - e0 < 0 else 0
+    r_int_eqcm[1] = a_tgt * (e1 - e0 + fixit)  # arclength value
+    r_int_eqcm[2] = phi * r2_tgt
+
+    # Velocity components in EQCM
+    v_int_eqcm = np.zeros((3, 1))
+    lambda_dot = v_int_sez[1] / (mag_r_int * cos_phi)
+    v_int_eqcm[0] = v_int_sez[2] - v_tgt_rtn2[0]
+    v_int_eqcm[1] = lambda_dot * r2_tgt - (v_tgt_rtn1[1] / mag_r_tgt) * mag_r_tgt
+    v_int_eqcm[2] = (-v_int_sez[0] / mag_r_int) * r2_tgt
+
+    return r_int_eqcm.ravel(), v_int_eqcm.ravel()
 
 
 ########################################################################################
