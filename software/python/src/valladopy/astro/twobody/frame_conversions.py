@@ -16,8 +16,8 @@ from ... import constants as const
 from ...mathtime.vector import rot1, rot2, rot3, angle, unit
 from ..time.data import IAU80Array
 from ..time.frame_conversions import ecef2eci, eci2ecef
-from .newton import newtonnu, newtonm
-from .utils import OrbitType, determine_orbit_type, is_equatorial, site
+from .newton import newtonnu, newtonm, newtone
+from . import utils
 
 
 ########################################################################################
@@ -169,7 +169,7 @@ def coe2rv(
     """
     # Handle special cases for orbit type
     if ecc < const.SMALL:
-        if is_equatorial(incl):
+        if utils.is_equatorial(incl):
             # Circular equatorial
             argp, raan = 0, 0
             nu = truelon
@@ -179,7 +179,7 @@ def coe2rv(
             nu = arglat
     else:
         # Elliptical equatorial
-        if is_equatorial(incl):
+        if utils.is_equatorial(incl):
             argp = lonper
             raan = 0
         else:
@@ -213,7 +213,7 @@ def rv2coe(
     float,
     float,
     float,
-    OrbitType | None,
+    utils.OrbitType | None,
 ]:
     """Converts position and velocity vectors into classical orbital elements.
 
@@ -283,7 +283,7 @@ def rv2coe(
     incl = np.arccos(h[2] / h_mag)
 
     # Determine orbit type
-    orbit_type = determine_orbit_type(ecc, incl, tol=const.SMALL)
+    orbit_type = utils.determine_orbit_type(ecc, incl, tol=const.SMALL)
 
     # Find right ascension of ascending node
     if n_mag > const.SMALL:
@@ -292,25 +292,25 @@ def rv2coe(
             raan = adjust_angle(raan)
 
     # Find argument of periapsis
-    if orbit_type is OrbitType.EPH_INCLINED:
+    if orbit_type is utils.OrbitType.EPH_INCLINED:
         argp = angle(n_vec, e_vec)
         if e_vec[2] < 0:
             argp = adjust_angle(argp)
 
     # Find true anomaly at epoch
-    if orbit_type in [OrbitType.EPH_INCLINED, OrbitType.EPH_EQUATORIAL]:
+    if orbit_type in [utils.OrbitType.EPH_INCLINED, utils.OrbitType.EPH_EQUATORIAL]:
         nu = angle(e_vec, r)
         if np.dot(r, v) < 0:
             nu = adjust_angle(nu)
 
     # Find argument of latitude (inclined cases)
-    if orbit_type in [OrbitType.CIR_INCLINED, OrbitType.EPH_INCLINED]:
+    if orbit_type in [utils.OrbitType.CIR_INCLINED, utils.OrbitType.EPH_INCLINED]:
         arglat = angle(n_vec, r)
         if r[2] < 0:
             arglat = adjust_angle(arglat)
 
     # Find longitude of periapsis
-    if ecc > const.SMALL and orbit_type is OrbitType.EPH_EQUATORIAL:
+    if ecc > const.SMALL and orbit_type is utils.OrbitType.EPH_EQUATORIAL:
         lonper = np.arccos(np.clip(e_vec[0] / ecc, -1, 1))
         if e_vec[1] < 0:
             lonper = adjust_angle(lonper)
@@ -318,7 +318,7 @@ def rv2coe(
             lonper = adjust_angle(lonper)
 
     # Find true longitude
-    if r_mag > const.SMALL and orbit_type is OrbitType.CIR_EQUATORIAL:
+    if r_mag > const.SMALL and orbit_type is utils.OrbitType.CIR_EQUATORIAL:
         truelon = np.arccos(np.clip(r[0] / r_mag, -1, 1))
         if r[1] < 0:
             truelon = adjust_angle(truelon)
@@ -326,7 +326,7 @@ def rv2coe(
             truelon = adjust_angle(truelon)
 
     # Find mean anomaly for eccentric orbits
-    if orbit_type in [OrbitType.EPH_INCLINED, OrbitType.EPH_EQUATORIAL]:
+    if orbit_type in [utils.OrbitType.EPH_INCLINED, utils.OrbitType.EPH_EQUATORIAL]:
         _, m = newtonnu(ecc, nu)
 
     return p, a, ecc, incl, raan, argp, nu, m, arglat, truelon, lonper, orbit_type
@@ -377,7 +377,7 @@ def eq2rv(
 
     if ecc < const.SMALL:
         # Circular orbits
-        if is_equatorial(incl):
+        if utils.is_equatorial(incl):
             # Circular equatorial
             truelon = omega
             omega = 0
@@ -386,7 +386,7 @@ def eq2rv(
             arglat = argp
     else:
         # Elliptical equatorial
-        if is_equatorial(incl):
+        if utils.is_equatorial(incl):
             lonper = argp
             omega = 0
 
@@ -399,7 +399,7 @@ def eq2rv(
 
     if ecc < const.SMALL:
         # Circular orbits
-        if is_equatorial(incl):
+        if utils.is_equatorial(incl):
             # Circular equatorial
             truelon = nu
         else:
@@ -443,7 +443,7 @@ def rv2eq(
 
     if ecc < const.SMALL:
         # Circular orbits
-        if is_equatorial(incl):
+        if utils.is_equatorial(incl):
             # Circular Equatorial
             argp, omega = 0, 0
             nu, m = truelon, truelon
@@ -453,7 +453,7 @@ def rv2eq(
             nu, m = arglat
     else:
         # Elliptical equatorial
-        if is_equatorial(incl):
+        if utils.is_equatorial(incl):
             argp = lonper
             omega = 0
 
@@ -1145,7 +1145,7 @@ def razel2rv(
     drhoecef = rot3(rot2(drhosez, latgd - const.HALFPI), -lon).T
 
     # Find ECEF range and velocity vectors
-    rs, vs = site(latgd, lon, alt)
+    rs, vs = utils.site(latgd, lon, alt)
     recef = rhoecef + rs
     vecef = drhoecef
 
@@ -1182,7 +1182,7 @@ def rv2razel(
             del_el (float): Elevation rate in rad/s
     """
     # Get site vector in ECEF
-    rsecef, _ = site(latgd, lon, alt)
+    rsecef, _ = utils.site(latgd, lon, alt)
 
     # Find ECEF range vector from site to satellite
     rhoecef = recef - rsecef
@@ -1474,11 +1474,62 @@ def ecef2llb(r: ArrayLike) -> Tuple[float, float, float, float]:
 ########################################################################################
 
 
+def _compute_oes(r_rtn: np.ndarray, v_rtn: np.ndarray, ecc_tol: float):
+    """Compute orbital elements"""
+    # Calculate eccentricity vector and magnitude
+    h_vec = np.cross(r_rtn, v_rtn)
+    p = np.dot(h_vec, h_vec) / const.MU
+    ecc_vec = np.cross(v_rtn, h_vec) / const.MU - r_rtn / np.linalg.norm(r_rtn)
+    ecc = np.linalg.norm(ecc_vec)
+
+    # Calculate semimajor axis and perigee unit vector
+    a = p / (1 - ecc**2)
+    perigee_unit = ecc_vec / ecc if ecc > ecc_tol else r_rtn / np.linalg.norm(r_rtn)
+    lambda_perigee = np.arctan2(perigee_unit[1], perigee_unit[0])
+
+    return p, ecc, a, perigee_unit, lambda_perigee
+
+
+def _compute_rv_target(ecc, a, nu2, perigee_unit):
+    """Compute the future position and velocity of the target in RTN2"""
+    # Computes the future position and velocity of the target
+    r2_tgt = a * (1 - ecc**2) / (1 + ecc * np.cos(nu2))
+    p_vec = perigee_unit
+    q_vec = np.cross([0, 0, 1], p_vec)
+
+    r2_vec_tgt = r2_tgt * (np.cos(nu2) * p_vec + np.sin(nu2) * q_vec)
+    v2_vec_tgt = np.sqrt(const.MU / (a * (1 - ecc**2))) * (
+        -np.sin(nu2) * p_vec + (ecc + np.cos(nu2)) * q_vec
+    )
+
+    # Convert to RTN2 frame
+    *_, rot_rtn1_to_rtn2 = rv2rsw(r2_vec_tgt, v2_vec_tgt)
+    r_tgt_rtn2 = rot_rtn1_to_rtn2 @ r2_vec_tgt
+    v_tgt_rtn2 = rot_rtn1_to_rtn2 @ v2_vec_tgt
+
+    return r_tgt_rtn2, v_tgt_rtn2, r2_tgt
+
+
+def _get_sez_rotation(phi, lambda_):
+    """Computes the transformation matrix from RTN to SEZ frame."""
+    sin_phi, cos_phi = np.sin(phi), np.cos(phi)
+    sin_lambda, cos_lambda = np.sin(lambda_), np.cos(lambda_)
+
+    return np.array(
+        [
+            [sin_phi * cos_lambda, sin_phi * sin_lambda, -cos_phi],
+            [-sin_lambda, cos_lambda, 0],
+            [cos_phi * cos_lambda, cos_phi * sin_lambda, sin_phi],
+        ]
+    )
+
+
 def eci_to_eqcm_rtn(
     r_tgt_eci: ArrayLike,
     v_tgt_eci: ArrayLike,
     r_int_eci: ArrayLike,
     v_int_eci: ArrayLike,
+    ecc_tol: float = 1e-7,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Finds the relative position and velocity vectors in the Modified Equidistant
     Cylindrical (EQCM) frame given the ECI target and interceptor states with RTN (RSW)
@@ -1492,65 +1543,40 @@ def eci_to_eqcm_rtn(
         v_tgt_eci (array_like): ECI velocity vector of the target in km/s
         r_int_eci (array_like): ECI position vector of the interceptor in km
         v_int_eci (array_like): ECI velocity vector of the interceptor in km/s
+        ecc_tol (float): Tolerance for eccentricity (defaults to 1e-7)
 
     Returns:
         tuple: (r_int_eqcm, v_int_eqcm)
-            r_int_eqcm (np.ndarray): EQCM position vector in km
-            v_int_eqcm (np.ndarray): EQCM velocity vector in km/s
+            r_int_eqcm (np.ndarray): EQCM position vector of the interceptor in km
+            v_int_eqcm (np.ndarray): EQCM velocity vector of the interceptor in km/s
     """
     # Compute rotation matrix from ECI to RTN1 frame for target
     r_tgt_rtn1, v_tgt_rtn1, rot_eci_to_rtn1 = rv2rsw(r_tgt_eci, v_tgt_eci)
-    r_int_rtn1 = rot_eci_to_rtn1 @ r_int_eci
-    v_int_rtn1 = rot_eci_to_rtn1 @ v_int_eci
+    r_int_rtn1, v_int_rtn1 = rot_eci_to_rtn1 @ r_int_eci, rot_eci_to_rtn1 @ v_int_eci
 
     # Compute magnitudes
-    mag_r_tgt = np.linalg.norm(r_tgt_rtn1)
-    mag_r_int = np.linalg.norm(r_int_rtn1)
+    mag_r_tgt, mag_r_int = np.linalg.norm(r_tgt_rtn1), np.linalg.norm(r_int_rtn1)
 
     # Compute lambda and phi rotation angles to go from target to interceptor
     # (lambda_tgt will be 0)
     sin_phi = r_int_rtn1[2] / mag_r_int
     phi = np.arcsin(sin_phi)
-    cos_phi = np.cos(phi)
     lambda_ = np.arctan2(r_int_rtn1[1], r_int_rtn1[0])
-    cos_lambda, sin_lambda = np.cos(lambda_), np.sin(lambda_)
 
     # Orbital elements of the target at present (nu1) and future (nu2) locations
-    h_vec_tgt = np.cross(r_tgt_rtn1, v_tgt_rtn1)
-    p_tgt = np.dot(h_vec_tgt, h_vec_tgt) / const.MU
-    ecc_vec_tgt = np.cross(v_tgt_rtn1, h_vec_tgt) / const.MU - r_tgt_rtn1 / mag_r_tgt
-    ecc_tgt = np.linalg.norm(ecc_vec_tgt)
-
-    a_tgt = p_tgt / (1 - ecc_tgt**2)
-    perigee_unit = ecc_vec_tgt / ecc_tgt if ecc_tgt > 1e-7 else r_tgt_rtn1 / mag_r_tgt
-
-    lambda_perigee = np.arctan2(perigee_unit[1], perigee_unit[0])
+    p_tgt, ecc_tgt, a_tgt, perigee_unit, lambda_perigee = _compute_oes(
+        r_tgt_rtn1, v_tgt_rtn1, ecc_tol
+    )
     nu1 = -lambda_perigee
     nu2 = lambda_ - lambda_perigee
 
     # Future position and velocity of target
-    r2_tgt = p_tgt / (1 + ecc_tgt * np.cos(nu2))
-    p_vec = perigee_unit
-    q_vec = np.cross([0, 0, 1], p_vec)
-
-    r2_vec_tgt = r2_tgt * (np.cos(nu2) * p_vec + np.sin(nu2) * q_vec)
-    v2_vec_tgt = np.sqrt(const.MU / p_tgt) * (
-        -np.sin(nu2) * p_vec + (ecc_tgt + np.cos(nu2)) * q_vec
+    r_tgt_rtn2, v_tgt_rtn2, r2_tgt = _compute_rv_target(
+        ecc_tgt, a_tgt, nu2, perigee_unit
     )
-
-    # Rotate to future RTN2 frame
-    *_, rot_rtn1_to_rtn2 = rv2rsw(r2_vec_tgt, v2_vec_tgt)
-    r_tgt_rtn2 = rot_rtn1_to_rtn2 @ r2_vec_tgt
-    v_tgt_rtn2 = rot_rtn1_to_rtn2 @ v2_vec_tgt
 
     # Convert interceptor components to SEZ frame
-    rot_to_sez = np.array(
-        [
-            [sin_phi * cos_lambda, sin_phi * sin_lambda, -cos_phi],
-            [-sin_lambda, cos_lambda, 0],
-            [cos_phi * cos_lambda, cos_phi * sin_lambda, sin_phi],
-        ]
-    )
+    rot_to_sez = _get_sez_rotation(phi, lambda_)
     r_int_sez = rot_to_sez @ r_int_rtn1
     v_int_sez = rot_to_sez @ v_int_rtn1
 
@@ -1575,12 +1601,118 @@ def eci_to_eqcm_rtn(
 
     # Velocity components in EQCM
     v_int_eqcm = np.zeros((3, 1))
-    lambda_dot = v_int_sez[1] / (mag_r_int * cos_phi)
+    lambda_dot = v_int_sez[1] / (mag_r_int * np.cos(phi))
     v_int_eqcm[0] = v_int_sez[2] - v_tgt_rtn2[0]
     v_int_eqcm[1] = lambda_dot * r2_tgt - (v_tgt_rtn1[1] / mag_r_tgt) * mag_r_tgt
     v_int_eqcm[2] = (-v_int_sez[0] / mag_r_int) * r2_tgt
 
     return r_int_eqcm.ravel(), v_int_eqcm.ravel()
+
+
+def eqcm_to_eci_rtn(
+    r_tgt_eci: ArrayLike,
+    v_tgt_eci: ArrayLike,
+    r_int_eqcm: ArrayLike,
+    v_int_eqcm: ArrayLike,
+    ecc_tol: float = 1e-7,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Finds the interceptor position and velocity vectors in the ECI (RTN) frame given
+    the target ECI state and interceptor Modified Equidistant Cylindrical (EQCM) state.
+
+    References:
+        Alfano: 2012
+
+    Args:
+        r_tgt_eci (array_like): ECI position vector of the target in km
+        v_tgt_eci (array_like): ECI velocity vector of the target in km/s
+        r_int_eqcm (array_like): EQCM position vector of the interceptor in km
+        v_int_eqcm (array_like): EQCM velocity vector of the interceptor in km/s
+        ecc_tol (float): Tolerance for eccentricity (defaults to 1e-7)
+
+    Returns:
+        tuple: (r_int_eci, v_int_eci)
+            r_int_eci (np.ndarray): ECI position vector of the interceptor in km
+            v_int_eci (np.ndarray): ECI velocity vector of the interceptor in km/s
+    """
+    # Convert target vectors to RTN1 frame
+    r_tgt_rtn1, v_tgt_rtn1, rot_eci_to_rtn1 = rv2rsw(r_tgt_eci, v_tgt_eci)
+    mag_r_tgt = np.linalg.norm(r_tgt_rtn1)
+
+    # Compute orbital elements of the target at nu1
+    p_tgt, ecc_tgt, a_tgt, perigee_unit, lambda_perigee = _compute_oes(
+        r_tgt_rtn1, v_tgt_rtn1, ecc_tol
+    )
+    nu1 = -lambda_perigee
+
+    # Compute nu2 and lambda from orbit arc
+    arclength = r_int_eqcm[1]
+    ea1, _ = newtonnu(ecc_tgt, nu1)
+
+    # Tolerance and iteration definitions
+    arclength_tol = 1e-3  # 1 m tolerance
+    n_ea_its = 10
+
+    # Compute eccentric anomaly correction
+    if abs(float(arclength)) > arclength_tol:
+        delta_ea = utils.inverse_elliptic2(arclength / a_tgt, ecc_tgt**2)
+        e1 = ellipeinc(ea1, ecc_tgt**2)
+        ea2 = ea1 + delta_ea
+
+        # Iteratively refine eccentric anomaly correction
+        for _ in range(n_ea_its):
+            e2 = ellipeinc(ea2, ecc_tgt**2)
+            arclength1 = a_tgt * (e2 - e1)
+            if abs(arclength1 - arclength) < arclength_tol:
+                break
+            correction = arclength / (ea2 - ea1)
+            ea2 -= (arclength1 - arclength) / correction
+
+        _, nu2 = newtone(ecc_tgt, ea2)
+    else:
+        nu2 = nu1
+
+    lambda_ = nu2 - nu1
+    sin_lambda, cos_lambda = np.sin(lambda_), np.cos(lambda_)
+
+    # Compute future target position and velocity at nu2
+    r_tgt_rtn2, v_tgt_rtn2, r2_tgt = _compute_rv_target(
+        ecc_tgt, a_tgt, nu2, perigee_unit
+    )
+
+    # Compute phi and interceptor position unit vector in RTN1
+    phi = r_int_eqcm[2] / r2_tgt
+    r_int_unit_rtn1 = np.array(
+        [cos_lambda * np.cos(phi), sin_lambda * np.cos(phi), np.sin(phi)]
+    )
+
+    # Convert to SEZ frame
+    rot_to_sez = _get_sez_rotation(phi, lambda_)
+    r_int_unit_sez = rot_to_sez @ r_int_unit_rtn1
+
+    # Compute proper scaling from Z component of interceptor
+    r_int_sez = np.zeros(3)
+    r_int_sez[2] = r_int_eqcm[0] + r_tgt_rtn2[0]
+    mag_r_int = r_int_sez[2] / r_int_unit_sez[2]
+    r_int_rtn1 = mag_r_int * r_int_unit_rtn1
+
+    # Compute velocity components in RTN1
+    lambda_dot = (v_int_eqcm[1] + (v_tgt_rtn1[1] / mag_r_tgt) * mag_r_tgt) / r2_tgt
+
+    v_int_sez = np.array(
+        [
+            (-v_int_eqcm[2] / r2_tgt) * mag_r_int,
+            lambda_dot * mag_r_int * np.cos(phi),
+            v_int_eqcm[0] + v_tgt_rtn2[0],
+        ]
+    )
+
+    v_int_rtn1 = rot_to_sez.T @ v_int_sez
+
+    # Convert all back to original ECI frame
+    r_int_eci = rot_eci_to_rtn1.T @ r_int_rtn1
+    v_int_eci = rot_eci_to_rtn1.T @ v_int_rtn1
+
+    return r_int_eci, v_int_eci
 
 
 ########################################################################################

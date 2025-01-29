@@ -368,7 +368,7 @@ class TestAzEl:
     def rvsez(self):
         rhosez = [-29.206599480225734, -4261.469869512799, -818.4151925779145]
         drhosez = [-0.24683193316601043, -4.345266040330323, 6.0829758219664605]
-        return np.array(rhosez), np.array(drhosez)
+        return rhosez, drhosez
 
     @pytest.fixture
     def lla(self):
@@ -527,21 +527,44 @@ class TestGeodetic:
 
 
 class TestEQCM:
-    def test_eci_to_eqcm_rtn(self):
-        # Inputs
+    @pytest.fixture
+    def rv_tgt_eci(self):
+        # ECI target position and velocity vector in km and km/s
         r_tgt_eci = [6878.137, 0, 0]
         v_tgt_eci = [0, 7.61260816919965, 0.000132865077230243]
+        return r_tgt_eci, v_tgt_eci
+
+    @pytest.fixture
+    def rv_int_eci(self):
+        # ECI interceptor position and velocity vector in km and km/s
         r_int_eci = [6878.14699998546, 0.00999984000410449, 0.0100001890704729]
         v_int_eci = [-1.06787962819941e-06, 7.61262923687256, 0.000142865474009654]
+        return r_int_eci, v_int_eci
 
+    @pytest.fixture
+    def rv_int_eqcm(self):
+        # EQCM interceptor position and velocity vector in km and km/s
+        r_int_eqcm = [0.01, 0.01, 0.01]
+        v_int_eqcm = [1e-5, 1e-5, 1e-5]
+        return r_int_eqcm, v_int_eqcm
+
+    def test_eci_to_eqcm_rtn(self, rv_tgt_eci, rv_int_eci, rv_int_eqcm):
         # Call the function with test inputs
-        r_int_eqcm, v_int_eqcm = fc.eci_to_eqcm_rtn(
-            r_tgt_eci, v_tgt_eci, r_int_eci, v_int_eci
-        )
+        r_int_eqcm, v_int_eqcm = fc.eci_to_eqcm_rtn(*rv_tgt_eci, *rv_int_eci)
 
         # Check if the output values are close to the expected values
-        assert np.allclose(r_int_eqcm, [0.01, 0.01, 0.01], rtol=DEFAULT_TOL)
-        assert np.allclose(v_int_eqcm, [1e-5, 1e-5, 1e-5], rtol=DEFAULT_TOL)
+        r_int_eqcm_exp, v_int_eqcm_exp = rv_int_eqcm
+        assert custom_allclose(r_int_eqcm, r_int_eqcm_exp, rtol=1e-10)
+        assert custom_allclose(v_int_eqcm, v_int_eqcm_exp, rtol=1e-9)
+
+    def test_eqcm_to_eci_rtn(self, rv_tgt_eci, rv_int_eci, rv_int_eqcm):
+        # Call the function with test inputs
+        r_int_eci, v_int_eci = fc.eqcm_to_eci_rtn(*rv_tgt_eci, *rv_int_eqcm)
+
+        # Check if the output values are close to the expected values
+        r_int_eci_exp, v_int_eci_exp = rv_int_eci
+        assert custom_allclose(r_int_eci, r_int_eci_exp)
+        assert custom_allclose(v_int_eci, v_int_eci_exp)
 
 
 def test_perifocal_transform():
