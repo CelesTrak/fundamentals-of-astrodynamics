@@ -61,7 +61,7 @@ Before making any changes, please **open an issue** to discuss your proposed con
    flake8 .
    ```
    
-4.   **Check Formatting (black):**
+4. **Check Formatting (black):**
    In the `software/python` directory, run:
    ```bash
    black --check --skip-magic-trailing-comma .
