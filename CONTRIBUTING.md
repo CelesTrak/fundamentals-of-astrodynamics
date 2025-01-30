@@ -89,14 +89,17 @@ In the `software/python` directory, run:
 ## Submitting Your Contribution
 
 1. **Open a Pull Request**  
-   - Navigate to the original repository and click on "New Pull Request."
+   - Navigate to the original repository and click **"New Pull Request."**
    - Choose your fork and branch as the source and the main repository as the target.
    - Provide a descriptive title and explain your changes in the description.
+   - Add appropriate labels*: `bug`, `documentation`, `enhancement`, etc. We also have labels for each programming language, so please tag the relevant language(s) you modified.  
+   - Assign yourself to the pull request.
+   - Add reviewers: Dave for now, and Samira for Python changes.
 
 
 2. **Participate in the Review Process**  
    - Respond to feedback and make changes as needed.
-   - Ensure all tests pass before resubmitting.
+   - Ensure all pipeline checks pass before resubmitting.
 
 ---
 
