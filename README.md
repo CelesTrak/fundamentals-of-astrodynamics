@@ -38,6 +38,11 @@ Some routines have known discrepancies between languages, which we are working o
 
 We have included C++, but a full update is planned in the coming months. We have heard concerns about C++ memory leaks making it vulnerable to exploitation, so its' long-term role in this project may have some uncertainties.
 
+
+## Contributing
+
+We appreciate interest in contributing to this project! However, as we are still figuring this process out, we ask contributors to submit an issue as their first step. For more details, see the [Contributing Guide](CONTRIBUTING.md).
+
 ---
 
 As always, let us know what you think, what you’d like to add, and any feedback you have. Looking forward to this new adventure with you all! 🚀
