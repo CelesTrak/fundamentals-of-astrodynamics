@@ -13,7 +13,7 @@ If you have ideas, feedback, or bug reports, we encourage you to **open an issue
 
 ## Getting Started
 
-Before making any changes, please **open an issue** to discuss your proposed contribution. This helps ensure alignment with ongoing development efforts.
+Before making any changes, please **open an issue** to discuss your proposed contribution. This will help ensure your work aligns with the project goals and prevent duplicate efforts.
 
 1. **Fork the Repository**  
    If you are new to the project, start by forking the repository to your GitHub account. You can do this by clicking the "Fork" button at the top right of the repository page.
