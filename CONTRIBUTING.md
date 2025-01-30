@@ -62,7 +62,7 @@ Before making any changes, please **open an issue** to discuss your proposed con
    ```
    
 4.   **Check Formatting (black):**
-In the `software/python` directory, run:
+   In the `software/python` directory, run:
    ```bash
    black --check --skip-magic-trailing-comma .
    ```
@@ -71,14 +71,14 @@ In the `software/python` directory, run:
    black --skip-magic-trailing-comma .
    ```
 
-4. **Commit Your Changes**  
+5. **Commit Your Changes**  
    Commit your changes with a clear and descriptive message:
    ```bash
    git add .
    git commit -m "Add feature: Description of your feature"
    ```
 
-5. **Push Your Branch**  
+6. **Push Your Branch**  
    Push your changes to your fork:
    ```bash
    git push origin feature/your-feature-name
