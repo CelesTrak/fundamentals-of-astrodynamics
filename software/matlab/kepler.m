@@ -6,20 +6,17 @@
 %    future geocentric equatorial (ijk) position and velocity vector.  the
 %    solution uses universal variables.
 %
-%  author        : david vallado                  719-573-2600   22 jun 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%    vallado     - fix some mistakes                             13 apr 2004
-%
-%  inputs          description                    range / units
-%    ro          - ijk position vector - initial  km
-%    vo          - ijk velocity vector - initial  km / s
-%    dtsec       - length of time to propagate    s
+%  inputs          description                              range / units
+%    r1          - ijk position vector - initial            km
+%    vo          - ijk velocity vector - initial            km / s
+%    dtsec       - length of time to propagate              s
 %
 %  outputs       :
-%    r           - ijk position vector            km
-%    v           - ijk velocity vector            km / s
-%    error       - error flag                     'ok', ...
+%    r           - ijk position vector                      km
+%    v           - ijk velocity vector                      km / s
+%    error       - error flag                               'ok',
 %
 %  locals        :
 %    f           - f expression
@@ -33,13 +30,13 @@
 %    znew        - new value of z
 %    c2new       - c2(psi) function
 %    c3new       - c3(psi) function
-%    dtsec       - change in time                 s
-%    timenew     - new time                       s
-%    rdotv       - result of ro dot vo
-%    a           - semi or axis                   km
+%    dtsec       - change in time                           s
+%    timenew     - new time                                 s
+%    rdotv       - result of r1 dot vo
+%    a           - semi or axis                             km
 %    alpha       - reciprocol  1/a
-%    sme         - specific mech energy           km2 / s2
-%    period      - time period for satellite      s
+%    sme         - specific mech energy                     km2 / s2
+%    period      - time period for satellite                s
 %    s           - variable for parabolic case
 %    w           - variable for parabolic case
 %    h           - angular momentum vector
@@ -51,9 +48,9 @@
 %    findc2c3    - find c2 and c3 functions
 %
 %  references    :
-%    vallado       2004, 95-103, alg 8, ex 2-4
+%    vallado       2022, 94, alg 8, ex 2-4
 %
-% [r, v] =  kepler(ro, vo, dtsec)
+% [r, v] =  kepler(ro, vo, dtseco);
 % ------------------------------------------------------------------------------
 
 function [r, v] =  kepler(ro, vo, dtseco)
@@ -220,7 +217,4 @@ function [r, v] =  kepler(ro, vo, dtseco)
         end
     end
 
-
-
-
-
+end

@@ -53,6 +53,9 @@
     order =  106;
     terms = 2;
 
+    fileLoc = 'D:\Codes\LIBRARY\DataLib\';
+    [iau80arr] = iau80in(fileLoc);
+
     % , tcg, jdtcg,jdtcgfrac, tcb, jdtcb,jdtcbfrac
     [ ut1, tut1, jdut1, jdut1frac, utc, tai, tt, ttt, jdtt, jdttfrac, ...
       tdb, ttdb, jdtdb, jdtdbfrac ] ...
@@ -97,6 +100,11 @@
         fprintf(1,'r    %14.7f%14.7f%14.7f',reci );
         fprintf(1,' v %14.9f%14.9f%14.9f\n',veci );
 
+        [recef, vecef, aecef] = eci2ecef(reci, veci, aeci, iau80arr, ttt, jdut1, lod, xp, yp, 2, ddpsi, ddeps );
+        fprintf(1,'ITRF rev      IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', ...
+            recef(1), recef(2), recef(3), vecef(1), vecef(2), vecef(3));
+
+
         [rr,rtasc,decl,drr,drtasc,ddecl] = rv2radec( reci,veci );
         fprintf(1,'            rho km       rtasc deg     decl deg      drho km/s      drtasc deg/s   ddecl deg/s \n' );
         if rtasc < 0.0
@@ -114,9 +122,9 @@
         [rsecef, vsecef] = site ( latgd, lon, alt );
         % -------------------- convert ecef to eci --------------------
         a = [0;0;0];
-        [rseci, vseci, aeci] = ecef2eci(rsecef, vsecef, a, ttt, jdut1, lod, xp, yp, 2, ddpsi, ddeps);
+        [rseci, vseci, aeci] = ecef2eci(rsecef, vsecef, a, iau80arr, ttt, jdut1, lod, xp, yp, 2, ddpsi, ddeps);
 
-        [trr, trtasc, tdecl, tdrr, tdrtasc, tddecl] = rv2tradec( reci, veci, rseci, vseci );
+        [trr, trtasc, tdecl, ddrr, tdrtasc, tddecl] = rv2tradec ( recef, vecef, rsecef, vsecef );
         fprintf(1,'           trho km      trtasc deg    tdecl deg     tdrho km/s     tdrtasc deg/s  tddecl deg/s \n' );
         if trtasc < 0.0
             trtasc = trtasc + twopi;
@@ -129,20 +137,21 @@
         fprintf(1,' v %14.9f%14.9f%14.9f \n',v1 );
 
         %horiz
-        [rho,az,el,drho,daz,del] = rv2razel ( reci,veci, latgd,lon,alt,ttt,jdut1,lod,xp,yp,terms,ddpsi,ddeps );
+        [rho, az, el, drho, daz, del] = rv2razel(recef, vecef, latgd, lon, alt );
         if az < 0.0
             az = az + twopi;
         end
         fprintf(1,'rvraz   %14.7f %14.7f %14.7f',rho,az*rad,el*rad );
         fprintf(1,' %14.7f %14.12f %14.12f\n',drho,daz*rad,del*rad );
 
-        [reci,veci] = razel2rv ( rho,az,el,drho,daz,del,latgd,lon,alt,ttt,jdut1,lod,xp,yp,terms,ddpsi,ddeps );
+        [recef, vecef] = razel2rv(latgd, lon, alt, rho, az, el, drho, daz, del);
+        [rseci, vseci, aeci] = ecef2eci(rsecef, vsecef, a, iau80arr, ttt, jdut1, lod, xp, yp, 2, ddpsi, ddeps);
         fprintf(1,'r    %14.7f %14.7f %14.7f',reci );
         fprintf(1,' v %14.9f %14.9f %14.9f\n',veci );
 
 
         % ecl lat lon
-        [rr,elon,elat,drr,delon,delat] = rv2ell( reci,veci );
+        [rr,elon,elat,drr,delon,delat] = rv2elatlon( reci,veci );
         fprintf(1,'            rho km        elon deg     elat deg      drho km/s       delon deg/s   delat deg/s \n' );
         if elon < 0.0
             elon = elon + twopi;
@@ -150,7 +159,7 @@
         fprintf(1,'ell      %14.7f %14.7f %14.7f',rr,elon*rad,elat*rad );
         fprintf(1,' %14.7f %14.12f %14.12f\n',drr,delon*rad,delat*rad );
 
-        [reci,veci] = ell2rv(rr,elon,elat,drr,delon,delat);
+        [reci,veci] = elatlon2rv(rr,elon,elat,drr,delon,delat);
         fprintf(1,'r    %14.7f %14.7f %14.7f',reci );
         fprintf(1,' v %14.9f %14.9f %14.9f\n',veci );
     end % for

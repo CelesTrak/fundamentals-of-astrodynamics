@@ -1,48 +1,50 @@
-    % ------------------------------------------------------------------------------
-    %
-    %                           function newtonm
-    %
-    %  this function performs the newton rhapson iteration to find the
-    %    eccentric anomaly given the mean anomaly.  the true anomaly is also
-    %    calculated.
-    %
-    %  author        : david vallado                  719-573-2600    9 jun 2002
-    %
-    %  revisions
-    %                -
-    %
-    %  inputs          description                    range / units
-    %    ecc         - eccentricity                   0.0  to
-    %    m           - mean anomaly                   -2pi to 2pi rad
-    %
-    %  outputs       :
-    %    e0          - eccentric anomaly              0.0  to 2pi rad
-    %    nu          - true anomaly                   0.0  to 2pi rad
-    %
-    %  locals        :
-    %    e1          - eccentric anomaly, next value  rad
-    %    sinv        - sine of nu
-    %    cosv        - cosine of nu
-    %    ktr         - index
-    %    r1r         - cubic roots - 1 to 3
-    %    r1i         - imaginary component
-    %    r2r         -
-    %    r2i         -
-    %    r3r         -
-    %    r3i         -
-    %    s           - variables for parabolic solution
-    %    w           - variables for parabolic solution
-    %
-    %  coupling      :
-    %    cubic       - solves a cubic polynomial
-    %
-    %  references    :
-    %    vallado       2001, 72-75, alg 2, ex 2-1
-    %
-    % [e0,nu] = newtonm ( ecc,m );
-    % ------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------
+%
+%                           procedure newtonm
+%
+%  this procedure performs the newton rhapson iteration to find the
+%    eccentric anomaly given the mean anomaly.  the true anomaly is also
+%    calculated.
+%
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
+%
+%  inputs          description                              range / units
+%    ecc         - eccentricity                             0.0 to
+%    m           - mean anomaly                             0.0 to 2pi rad
+%
+%  outputs       :
+%    eccanom     - eccentric anomaly                        0.0 to 2pi rad
+%    nu          - true anomaly                             0.0 to 2pi rad
+%
+%  locals        :
+%    e1          - eccentric anomaly, next value            rad
+%    sinv        - sine of nu
+%    cosv        - cosine of nu
+%    ktr         - index
+%    r1r         - cubic roots - 1 to 3
+%    r1i         - imaginary component
+%    r2r         -
+%    r2i         -
+%    r3r         -
+%    r3i         -
+%    s           - variables for parabolic solution
+%    w           - variables for parabolic solution
+%
+%  coupling      :
+%    atan2       - arc tangent function which also resloves quadrants
+%    cubic       - solves a cubic polynomial
+%    power       - raises a base number to an arbitrary power
+%    sinh        - hyperbolic sine
+%    cosh        - hyperbolic cosine
+%    sgn         - returns the sign of an argument
+%
+%  references    :
+%    vallado       2022, 66, alg 2, ex 2-1
+%
+% [e0,nu] = newtonm ( ecc,m );
+% ------------------------------------------------------------------------------
 
-    function [e0 ,nu] = newtonm ( ecc, m );
+function [e0 ,nu] = newtonm ( ecc, m )
 
     % -------------------------  implementation   -----------------
     numiter =    50;
@@ -118,3 +120,4 @@
         end
     end
 
+end

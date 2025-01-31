@@ -1,38 +1,40 @@
-% ------------------------------------------------------------------------------
+%  ------------------------------------------------------------------------------
 %
-%                           function anglesg
+%                           procedure anglesgauss
 %
-%  this function solves the problem of orbit determination using three
-%    optical sightings.  the solution function uses the gaussian technique.
-%    there are lots of debug statements in here to test various options.
+%  this procedure solves the problem of orbit determination using three
+%    optical sightings. the solution procedure uses the gaussian technique.
+%    the 8th order root is generally the big point of discussion. A Halley iteration
+%    permits a quick solution to find the correct root, with a starting guess of 20000 km.
+%    the general formulation yields polynomial coefficients that are very large, and can easily
+%    become overflow operations. Thus, canonical units are used only until the root is found,
+%    then regular units are resumed.
 %
-%  author        : david vallado                  719-573-2600    1 mar 2001
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  23 dec 2003
-%   8 oct 2007
-%
-%  inputs          description                                range / units
-%    decl1        - declination #1                                rad
-%    decl2        - declination #2                                rad
-%    decl3        - declination #3                                rad
-%    rtasc1       - right ascension #1                            rad
-%    rtasc2       - right ascension #2                            rad
-%    rtasc3       - right ascension #3                            rad
-%    jd1, jdf1    - julian date of 1st sighting                   days from 4713 bc
-%    jd2, jdf2    - julian date of 2nd sighting                   days from 4713 bc
-%    jd3, jdf3    - julian date of 3rd sighting                   days from 4713 bc
-%    rseci1       - eci site1 position vector                     km
-%    rseci2       - eci site2 position vector                     km
-%    rseci3       - eci site3 position vector                     km
+%  inputs          description                              range / units
+%    tdecl1       - declination #1                               rad
+%    tdecl2       - declination #2                               rad
+%    tdecl3       - declination #3                               rad
+%    trtasc1      - right ascension #1                           rad
+%    trtasc2      - right ascension #2                           rad
+%    trtasc3      - right ascension #3                           rad
+%    jd1, jdf1    - julian date of 1st sighting                  days from 4713 bc
+%    jd2, jdf2    - julian date of 2nd sighting                  days from 4713 bc
+%    jd3, jdf3    - julian date of 3rd sighting                  days from 4713 bc
+%    rs1          - eci site position vector #1                  km
+%    rs2          - eci site position vector #2                  km
+%    rs3          - eci site position vector #3                  km
 %
 %  outputs        :
-%    r            - eci position vector                           km
-%    v            - eci velocity vector                           km / s
+%    r2           -  position vector at t2                       km
+%    v2           -  velocity vector at t2                       km / s
+%    errstr       - output results for debugging
 %
 %  locals         :
-%    l1           - line of sight vector for 1st
-%    l2           - line of sight vector for 2nd
-%    l3           - line of sight vector for 3rd
+%    los1         - line of sight vector for 1st
+%    los2         - line of sight vector for 2nd
+%    los3         - line of sight vector for 3rd
 %    tau          - taylor expansion series about
 %                   tau ( t - to )
 %    tausqr       - tau squared
@@ -40,41 +42,29 @@
 %    t31t32       - (t3-t1) * (t3-t2)
 %    i            - index
 %    d            -
-%    rho          - range from site to sat at t2  km
+%    rho          - range from site to sat at t2                 km
 %    rhodot       -
 %    dmat         -
-%    rs1          - site vectors
-%    rs2          -
-%    rs3          -
 %    earthrate    - velocity of earth rotation
-%    p            -
-%    q            -
-%    oldr         -
-%    oldv         -
-%    f1           - f coefficient
-%    g1           -
-%    f3           -
-%    g3           -
-%    l2dotrs      -
 %
 %  coupling       :
 %    mag          - magnitude of a vector
-%    detrminant   - evaluate the determinant of a matrix
+%    determinant  - evaluate the determinant of a matrix
 %    factor       - find roots of a polynomial
 %    matmult      - multiply two matrices together
 %    gibbs        - gibbs method of orbit determination
 %    hgibbs       - herrick gibbs method of orbit determination
-%    angl         - angl between two vectors
+%    angle        - angle between two vectors
 %
 %  references     :
-%    vallado       2007, 429-439
+%    vallado       2022, 448, alg 52, ex 7-2
 %
 % [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
-%        rtasc3, jd1, jdf1, jd2, jdf2, jd3, jdf3, diffsites, rs1, rs2, rs3)
+%        rtasc3, jd1, jdf1, jd2, jdf2, jd3, jdf3, diffsites, rseci1, rseci2, rseci3, fid);
 % ------------------------------------------------------------------------------
 
 function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
-        rtasc3, jd1, jdf1, jd2, jdf2, jd3, jdf3, diffsites, rs1, rs2, rs3)
+        rtasc3, jd1, jdf1, jd2, jdf2, jd3, jdf3, diffsites, rseci1, rseci2, rseci3, fid)
     %show = 'y';
     show = 'n';
     constastro;
@@ -93,6 +83,18 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
     tau32 = (jd3 - jd2) * 86400.0 + (jdf3 - jdf2) * 86400.0;
     fprintf(1,'jd123 %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f  \n',jd1,jdf1, jd2,jdf2, jd3, jdf3);
     fprintf(1,'tau12 %14.6f tau13  %14.6f tau32  %14.6f \n',tau12,tau13, tau32);
+
+    % switch to cannonical for better accuracy in roots
+    tau12c = tau12 / tusec;
+    tau13c = tau13 / tusec;
+    tau32c = tau32 / tusec;
+
+    % switch to canonical
+    for i=1:3
+        rs1c(i) = rseci1(i) / re;
+        rs2c(i) = rseci2(i) / re;
+        rs3c(i) = rseci3(i) / re;
+    end
 
     % ----------------  find line of sight unit vectors  ---------------
     los1(1)= cos(decl1)*cos(rtasc1);
@@ -135,25 +137,28 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
     end
     vs = [0 0 0]';
     aecef = [0 0 0]';
-    %[l1eci,vs3,aeci] = ecef2eci(l1',vs,aecef,(jd1-2451545.0)/36525.0,jd1,0.0,0.0,0.0,0,ddpsi,ddeps);
-    %[l2eci,vs3,aeci] = ecef2eci(l2',vs,aecef,(jd2-2451545.0)/36525.0,jd2,0.0,0.0,0.0,0,ddpsi,ddeps);
-    %[l3eci,vs3,aeci] = ecef2eci(l3',vs,aecef,(jd3-2451545.0)/36525.0,jd3,0.0,0.0,0.0,0,ddpsi,ddeps);
+    %[los1,vs3,aeci] = ecef2eci(l1',vs,aecef,(jd1-2451545.0)/36525.0,jd1,0.0,0.0,0.0,0,ddpsi,ddeps);
+    %[los2,vs3,aeci] = ecef2eci(l2',vs,aecef,(jd2-2451545.0)/36525.0,jd2,0.0,0.0,0.0,0,ddpsi,ddeps);
+    %[los3,vs3,aeci] = ecef2eci(l3',vs,aecef,(jd3-2451545.0)/36525.0,jd3,0.0,0.0,0.0,0,ddpsi,ddeps);
 
-    l1eci = los1;
-    l2eci = los2;
-    l3eci = los3;
     % leave these as they come since the topoc radec are already eci
     if show == 'y'
-        l1eci
+        los1
     end
     % --------- called lmati since it is only used for determ -----
     for i= 1 : 3
-        lmat(i,1) = l1eci(i);
-        lmat(i,2) = l2eci(i);
-        lmat(i,3) = l3eci(i);
+        lmat(i,1) = los1(i);
+        lmat(i,2) = los2(i);
+        lmat(i,3) = los3(i);
+
         rsmat(i,1)  = rseci1(i);  % eci
         rsmat(i,2)  = rseci2(i);
         rsmat(i,3)  = rseci3(i);
+
+        rsmatc(i,1)  = rseci1(i)/re;  % eci
+        rsmatc(i,2)  = rseci2(i)/re;
+        rsmatc(i,3)  = rseci3(i)/re;
+        rs2c(i) = rseci2(i) / re;  % er for later
     end
     if show == 'y'
         lmat
@@ -168,28 +173,28 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
         li = inv(lmat)
     end
     % alt way of Curtis not seem to work ------------------
-    p1 = cross(los2, los3);
-    p2 = cross(los1, los3);
-    p3 = cross(los1, los2);
-    % both are the same
-    dx = dot(los1,p1);
-    %dx = dot(los3,p3);
-    lcmat(1,1) = dot(rseci1,p1);
-    lcmat(2,1) = dot(rseci2,p1);
-    lcmat(3,1) = dot(rseci3,p1);
-    lcmat(1,2) = dot(rseci1,p2);
-    lcmat(2,2) = dot(rseci2,p2);
-    lcmat(3,2) = dot(rseci3,p2);
-    lcmat(1,3) = dot(rseci1,p3);
-    lcmat(2,3) = dot(rseci2,p3);
-    lcmat(3,3) = dot(rseci3,p3);
-    tau31= (jd3-jd1)*86400.0;
-    if show == 'y'
-        lcmat
-    end
-    aa = 1/dx *(-lcmat(1,2)*tau32/tau31 + lcmat(2,2) + lcmat(3,2)*tau12/tau31)
-    bb = 1/(6.0*dx) *(lcmat(1,2)*(tau32*tau32 - tau31*tau31)*tau32/tau31  ...
-        + lcmat(3,2)*(tau31*tau31 - tau12*tau12) * tau12/tau31)
+    % p1 = cross(los2, los3);
+    % p2 = cross(los1, los3);
+    % p3 = cross(los1, los2);
+    % % both are the same
+    % dx = dot(los1,p1);
+    % %dx = dot(los3,p3);
+    % lcmat(1,1) = dot(rseci1,p1);
+    % lcmat(2,1) = dot(rseci2,p1);
+    % lcmat(3,1) = dot(rseci3,p1);
+    % lcmat(1,2) = dot(rseci1,p2);
+    % lcmat(2,2) = dot(rseci2,p2);
+    % lcmat(3,2) = dot(rseci3,p2);
+    % lcmat(1,3) = dot(rseci1,p3);
+    % lcmat(2,3) = dot(rseci2,p3);
+    % lcmat(3,3) = dot(rseci3,p3);
+    % tau31= (jd3-jd1)*86400.0;
+    % if show == 'y'
+    %     lcmat
+    % end
+    % aa = 1/dx *(-lcmat(1,2)*tau32/tau31 + lcmat(2,2) + lcmat(3,2)*tau12/tau31)
+    % bb = 1/(6.0*dx) *(lcmat(1,2)*(tau32*tau32 - tau31*tau31)*tau32/tau31  ...
+    %     + lcmat(3,2)*(tau31*tau31 - tau12*tau12) * tau12/tau31)
     % alt way of Curtis not seem to work ------------------
 
 
@@ -198,76 +203,113 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
         d
     end
     % ------------------ now assign the inverse -------------------
-    lmati(1,1) = ( l2eci(2)*l3eci(3)-l2eci(3)*l3eci(2)) / d;
-    lmati(2,1) = (-l1eci(2)*l3eci(3)+l1eci(3)*l3eci(2)) / d;
-    lmati(3,1) = ( l1eci(2)*l2eci(3)-l1eci(3)*l2eci(2)) / d;
-    lmati(1,2) = (-l2eci(1)*l3eci(3)+l2eci(3)*l3eci(1)) / d;
-    lmati(2,2) = ( l1eci(1)*l3eci(3)-l1eci(3)*l3eci(1)) / d;
-    lmati(3,2) = (-l1eci(1)*l2eci(3)+l1eci(3)*l2eci(1)) / d;
-    lmati(1,3) = ( l2eci(1)*l3eci(2)-l2eci(2)*l3eci(1)) / d;
-    lmati(2,3) = (-l1eci(1)*l3eci(2)+l1eci(2)*l3eci(1)) / d;
-    lmati(3,3) = ( l1eci(1)*l2eci(2)-l1eci(2)*l2eci(1)) / d;
+    lmati(1,1) = ( los2(2)*los3(3)-los2(3)*los3(2)) / d;
+    lmati(2,1) = (-los1(2)*los3(3)+los1(3)*los3(2)) / d;
+    lmati(3,1) = ( los1(2)*los2(3)-los1(3)*los2(2)) / d;
+    lmati(1,2) = (-los2(1)*los3(3)+los2(3)*los3(1)) / d;
+    lmati(2,2) = ( los1(1)*los3(3)-los1(3)*los3(1)) / d;
+    lmati(3,2) = (-los1(1)*los2(3)+los1(3)*los2(1)) / d;
+    lmati(1,3) = ( los2(1)*los3(2)-los2(2)*los3(1)) / d;
+    lmati(2,3) = (-los1(1)*los3(2)+los1(2)*los3(1)) / d;
+    lmati(3,3) = ( los1(1)*los2(2)-los1(2)*los2(1)) / d;
     if show == 'y'
         lmati
-
-        lir = lmati*rsmat
     end
+
+    lir = lmati*rsmatc;
 
     % ------------ find f and g series at 1st and 3rd obs ---------
     %   speed by assuming circ sat vel for udot here ??
     %   some similartities in 1/6t3t1 ...
     % --- keep separated this time ----
-    a1 =  tau32 / (tau32 - tau12);
-    a1u=  (tau32*((tau32-tau12)^2 - tau32*tau32 )) / (6.0*(tau32 - tau12));
-    a3 = -tau12 / (tau32 - tau12);
-    a3u= -(tau12*((tau32-tau12)^2 - tau12*tau12 )) / (6.0*(tau32 - tau12));
+    a1c =  tau32c / (tau32c - tau12c);
+    a1uc=  (tau32c*((tau32c-tau12c)^2 - tau32c*tau32c )) / (6.0*(tau32c - tau12c));
+    a3c = -tau12c / (tau32c - tau12c);
+    a3uc= -(tau12c*((tau32c-tau12c)^2 - tau12c*tau12c )) / (6.0*(tau32c - tau12c));
 
     if show == 'y'
-        fprintf(1,'a1/a3 %11.7f  %11.7f  %11.7f  %11.7f \n',a1,a1u,a3,a3u );
+        fprintf(1,'a1/a3 %11.7f  %11.7f  %11.7f  %11.7f \n',a1c,a1uc,a3c,a3uc );
     end
     % --- form initial guess of r2 ----
-    dl1=  lir(2,1)*a1 - lir(2,2) + lir(2,3)*a3;
-    dl2=  lir(2,1)*a1u + lir(2,3)*a3u;
+    d1c=  lir(2,1)*a1c - lir(2,2) + lir(2,3)*a3c;
+    d2c=  lir(2,1)*a1uc + lir(2,3)*a3uc;
     if show == 'y'
         dl1
         dl2
     end
 
     % ------- solve eighth order poly not same as laplace ---------
-    magrs2 = mag(rseci2);
-    l2dotrs= dot( los2,rseci2 );
+    % switch to canonical to prevent overflows in the poly
+    magrs2 = mag(rs2c);
+    l2dotrs= dot( los2,rs2c );
     if show == 'y'
         fprintf(1,'magrs2 %11.7f  %11.7f  \n',magrs2,l2dotrs );
     end
 
     poly( 1)=  1.0;  % r2^8th variable%%%%%%%%%%%%%%
     poly( 2)=  0.0;
-    poly( 3)=  -(dl1*dl1 + 2.0*dl1*l2dotrs + magrs2^2);
+    poly( 3)=  -(d1c*d1c + 2.0*d1c*l2dotrs + magrs2^2);
     poly( 4)=  0.0;
     poly( 5)=  0.0;
-    poly( 6)=  -2.0*mu*(l2dotrs*dl2 + dl1*dl2);
+    poly( 6)=  -2.0*(l2dotrs*d2c + d1c*d2c);
     poly( 7)=  0.0;
     poly( 8)=  0.0;
-    poly( 9)=  -mu*mu*dl2*dl2;
+    poly( 9)=  -d2c*d2c;
     fprintf(1,'%11.7f \n',poly);
 
     rootarr = roots( poly );
     if show == 'y'
-        rootarr
+        rootarr;
         %fprintf(1,'rootarr %11.7f \n',rootarr);
     end
 
-    % ------------------ select the correct root ------------------
-    bigr2= -99999990.0;
-    % change from 1
-    for j= 1 : 8
-        if ( rootarr(j) > bigr2 ) & ( isreal(rootarr(j)) )
-            bigr2= rootarr(j);
-        end  % if (
+    % % ------------------ select the correct root ------------------
+    % bigr2= -99999990.0;
+    % % change from 1
+    % for j= 1 : 8
+    %     if ( rootarr(j) > bigr2 ) & ( isreal(rootarr(j)) )
+    %         bigr2= rootarr(j);
+    %     end  % if (
+    % end
+    % if show == 'y'
+    %     bigr2
+    % end
+
+    bigr2 = 100.0;
+    % can do Newton iteration Curtis p 289 simple derivative of the poly
+    % makes sense since the values are so huge in the polynomial
+    % do as Halley iteration since derivatives are possible. tests at LEO, GPS, GEO,
+    % all seem to converge to the proper answer
+    kk = 1;
+    bigr2c = 20000.0 / re; % er guess ~GPS altitude
+    % bigr2nx = bigr2c;
+    while (abs(bigr2 - bigr2c) > 8.0e-5 && kk < 15)  % do in er, 0.5 km
+
+        bigr2 = bigr2c;
+        %    bigr2x = bigr2nx;
+        deriv = bigr2^8 + poly(3) * bigr2^6 + poly(6) * bigr2^3 + poly(9);
+        deriv1 = 8.0 * bigr2^7 + 6.0 * poly(3) * bigr2^5 + 3.0 * poly(6) *bigr2^2;
+        deriv2 = 56.0 * bigr2^6 + 30.0 * poly(3) * bigr2^4 + 6.0 * poly(6) * bigr2;
+        % just use Halley
+        %bigr2n = bigr2 - deriv * n2 / (deriv1 * (n2 - deriv * deriv2 * 0.5));
+        % Halley iteration
+        bigr2c = bigr2 - (2.0 * deriv * deriv1) / (2.0 * deriv1 * deriv1 - deriv * deriv2);
     end
-    if show == 'y'
-        bigr2
+
+    if (bigr2c < 0.0 || bigr2c * re > 50000.0)
+        bigr2c = 35000.0 / re;  % simply set this to about GEO, allowing for less than that too.
     end
+    % now back to normal units
+    bigr2 = bigr2c * re;  % km
+    %    bigr2nx = bigr2nx * gravConst.re;
+
+    a1 = tau32 / (tau32 - tau12);
+    a1u = (tau32 * ((tau32 - tau12) * (tau32 - tau12) - tau32 * tau32)) /...
+        (6.0 * (tau32 - tau12));
+    a3 = -tau12 / (tau32 - tau12);
+    a3u = -(tau12 * ((tau32 - tau12) * (tau32 - tau12) - tau12 * tau12)) /...
+        (6.0 * (tau32 - tau12));
+    lir = lmati * rsmat;
 
 
     % ------------ solve matrix with u2 better known --------------
@@ -294,16 +336,20 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
         %   fprintf(1,'rhoold %11.7f %11.7f %11.7f \n',rhoold1/re,rhoold2/re,rhoold3/re);
     end
 
+    % ---- now form the three position vectors -----
     for i= 1 : 3
-        r1(i)=  rhomat(1,1)*l1eci(i)/c1 + rseci1(i);
-        r2(i)=  rhomat(2,1)*l2eci(i)/c2 + rseci2(i);
-        r3(i)=  rhomat(3,1)*l3eci(i)/c3 + rseci3(i);
+        r1(i)=  rhomat(1,1)*los1(i)/c1 + rseci1(i);
+        r2(i)=  rhomat(2,1)*los2(i)/c2 + rseci2(i);
+        r3(i)=  rhomat(3,1)*los3(i)/c3 + rseci3(i);
     end
     if show == 'y'
         fprintf(1,'r1 %11.7f %11.7f %11.7f \n',r1);
         fprintf(1,'r2 %11.7f %11.7f %11.7f \n',r2);
         fprintf(1,'r3 %11.7f %11.7f %11.7f \n',r3);
     end
+
+    % now find the middle velocity vector with gibbs or hgibbs from end of formal Gauss
+    [v2, theta, theta1, copa, error] = gibbs(r1, r2, r3);
 
     %pause;
     % -------- loop through the refining process ------------  while () for
@@ -312,16 +358,17 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
     end
     rho2 = 999999.9;
     ll   = 0;
-    while ((abs(rhoold2-rho2) > 1.0e-12) && (ll <= 0 ))  % ll <= 4   15
+    % disabled now...
+    while ((abs(rhoold2-rho2) > 1.0e-12) && (ll <= -1 ))  % ll <= 4   15
         ll = ll + 1;
         fprintf(1, ' iteration #%3i \n',ll );
         rho2 = rhoold2;  % reset now that inside while loop
 
         % ---------- now form the three position vectors ----------
         for i= 1 : 3
-            r1(i)=  rhomat(1,1)*l1eci(i)/c1 + rseci1(i);
-            r2(i)= -rhomat(2,1)*l2eci(i)    + rseci2(i);
-            r3(i)=  rhomat(3,1)*l3eci(i)/c3 + rseci3(i);
+            r1(i)=  rhomat(1,1)*los1(i)/c1 + rseci1(i);
+            r2(i)= -rhomat(2,1)*los2(i)    + rseci2(i);
+            r3(i)=  rhomat(3,1)*los3(i)/c3 + rseci3(i);
         end
         magr1 = mag( r1 );
         magr2 = mag( r2 );
@@ -421,9 +468,9 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
         end
 
         for i= 1 : 3
-            r1(i)=  rhomat(1,1)*l1eci(i)/c1 + rseci1(i);
-            r2(i)=  rhomat(2,1)*l2eci(i)/c2 + rseci2(i);
-            r3(i)=  rhomat(3,1)*l3eci(i)/c3 + rseci3(i);
+            r1(i)=  rhomat(1,1)*los1(i)/c1 + rseci1(i);
+            r2(i)=  rhomat(2,1)*los2(i)/c2 + rseci2(i);
+            r3(i)=  rhomat(3,1)*los3(i)/c3 + rseci3(i);
         end
         if show == 'y'
             fprintf(1,'r1 %11.7f %11.7f %11.7f \n',r1);
@@ -442,8 +489,9 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
 
     % ---------------- find all three vectors ri ------------------
     for i= 1 : 3
-        r1(i)=  rhomat(1,1)*l1eci(i)/c1 + rseci1(i);
-        r2(i)= -rhomat(2,1)*l2eci(i)    + rseci2(i);
-        r3(i)=  rhomat(3,1)*l3eci(i)/c3 + rseci3(i);
+        r1(i)=  rhomat(1,1)*los1(i)/c1 + rseci1(i);
+        r2(i)= -rhomat(2,1)*los2(i)    + rseci2(i);
+        r3(i)=  rhomat(3,1)*los3(i)/c3 + rseci3(i);
     end
 
+end

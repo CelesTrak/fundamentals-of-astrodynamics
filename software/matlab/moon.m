@@ -1,44 +1,41 @@
-% ------------------------------------------------------------------------------
+% -----------------------------------------------------------------------------
 %
 %                           function moon
 %
 %  this function calculates the geocentric equatorial (ijk) position vector
 %    for the moon given the julian date.
 %
-%  author        : david vallado                  719-573-2600   27 may 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%                -
-%
-%  inputs          description                    range / units
-%    jd          - julian date                    days from 4713 bc
+%  inputs          description                              range / units
+%    jd          - julian date                              days from 4713 bc
 %
 %  outputs       :
-%    rmoon       - ijk position vector of moon    er
-%    rtasc       - right ascension                rad
-%    decl        - declination                    rad
+%    rmoon       - ijk position vector of moon              km
+%    rtasc       - right ascension                          rad
+%    decl        - declination                              rad
 %
 %  locals        :
 %    eclplong    - ecliptic longitude
 %    eclplat     - eclpitic latitude
 %    hzparal     - horizontal parallax
-%    l           - geocentric direction cosines
+%    l           - geocentric direction Math.Cosines
 %    m           -             "     "
 %    n           -             "     "
 %    ttdb        - julian centuries of tdb from
 %                  jan 1, 2000 12h
-%    hr          - hours                          0 .. 24
-%    min         - minutes                        0 .. 59
-%    sec         - seconds                        0.0  .. 59.99
+%    hr          - hours                                    0 .. 24
+%    min         - minutes                                  0 .. 59
+%    sec         - seconds                                  0.0  .. 59.99
 %    deg         - degrees
 %
 %  coupling      :
 %    none.
 %
 %  references    :
-%    vallado       2007, 290, alg 31, ex 5-3
+%    vallado       2022, 294, alg 31, ex 5-3
 %
-% [rmoon, rtasc, decl] = moon ( jd )
+% [rmoon, rtasc, decl] = moon ( jd );
 % ------------------------------------------------------------------------------
 
 function [rmoon, rtasc, decl] = moon ( jd )
@@ -94,3 +91,4 @@ function [rmoon, rtasc, decl] = moon ( jd )
     rtasc= atan2( m,l );
     decl = asin( n );
 
+end

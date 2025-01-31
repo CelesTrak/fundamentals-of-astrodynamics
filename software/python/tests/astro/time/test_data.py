@@ -2,87 +2,126 @@ import os
 import pytest
 
 import numpy as np
-import scipy
 
-from src.valladopy.astro.time.data import iau80in, iau06in
-from ...conftest import custom_allclose
-
-
-def load_matlab_data(file_path: str, keys: list) -> dict:
-    """Load MATLAB .mat file data
-
-    Args:
-        file_path (str): Path to the .mat file
-        keys (list): list of variable names to grab
-
-    Returns:
-        dict [str, np.ndarray]: Dictionary of the input keys and their associated matlab
-                                data as numpy arrays
-    """
-    # Load the .m data file
-    data = scipy.io.loadmat(file_path)
-
-    # Grab data for each key
-    return {key: data[key] for key in keys}
+from ...conftest import custom_isclose, custom_allclose, load_matlab_data
 
 
 @pytest.fixture()
-def iau80_mat_data():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, "data", "nutation_data.mat")
-    return load_matlab_data(file_path, keys=["iar80", "rar80"])
+def iau80_mat_data(test_data_dir):
+    struct_name = "iau80arr"
+    file_path = os.path.join(test_data_dir, "iau80in_data.mat")
+    return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 
 @pytest.fixture()
-def iau06_mat_data():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, "data", "iau06in_data.mat")
-    keys = [
-        "axs0",
-        "a0xi",
-        "ays0",
-        "a0yi",
-        "ass0",
-        "a0si",
-        "apn",
-        "apni",
-        "appl",
-        "appli",
-        "agst",
-        "agsti",
-    ]
-    return load_matlab_data(file_path, keys=keys)
+def iau06_pnold_mat_data(test_data_dir):
+    file_path = os.path.join(test_data_dir, "iau06in_pnold_data.mat")
+    return load_matlab_data(file_path, keys=["apn", "apni", "appl", "appli"])
 
 
-def test_iau80in(iau80_mat_data):
-    matlab_iar80 = iau80_mat_data["iar80"]
-    matlab_rar80 = iau80_mat_data["rar80"]
+@pytest.fixture()
+def iau06_mat_data(test_data_dir):
+    struct_name = "iau06arr"
+    file_path = os.path.join(test_data_dir, "iau06in_data.mat")
+    return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
-    # Load Python data using iau80in
-    iar80, rar80 = iau80in()
 
+@pytest.fixture()
+def xys_data(test_data_dir):
+    struct_name = "xys06table_struct"
+    file_path = os.path.join(test_data_dir, "xys_data.mat")
+    return load_matlab_data(file_path, keys=[struct_name])[struct_name]
+
+
+def test_iau80in(iau80arr, iau80_mat_data):
     # Check that they are the same
-    assert np.array_equal(iar80, matlab_iar80)
-    assert custom_allclose(rar80, matlab_rar80)
+    assert np.array_equal(iau80arr.iar80, iau80_mat_data.iar80)
+    assert custom_allclose(iau80arr.rar80, iau80_mat_data.rar80)
 
 
-def test_iau06in(iau06_mat_data):
-    # Load MATLAB data
-    matlab_data = iau06_mat_data
+def test_iau06in_pnold(iau06data_old, iau06_pnold_mat_data):
+    # Check that the data is the same
+    assert custom_allclose(iau06data_old.apn, iau06_pnold_mat_data["apn"])
+    assert np.array_equal(iau06data_old.apni, iau06_pnold_mat_data["apni"])
+    assert custom_allclose(iau06data_old.appl, iau06_pnold_mat_data["appl"])
+    assert np.array_equal(iau06data_old.appli, iau06_pnold_mat_data["appli"])
 
-    # Load Python data using iau06in
-    axs0, a0xi, ays0, a0yi, ass0, a0si, apn, apni, appl, appli, agst, agsti = iau06in()
 
+def test_iau06in(iau06arr, iau06_mat_data):
     # Check that they are the same
-    assert custom_allclose(axs0, matlab_data["axs0"])
-    assert np.array_equal(a0xi, matlab_data["a0xi"])
-    assert custom_allclose(ays0, matlab_data["ays0"])
-    assert np.array_equal(a0yi, matlab_data["a0yi"])
-    assert custom_allclose(ass0, matlab_data["ass0"])
-    assert np.array_equal(a0si, matlab_data["a0si"])
-    assert custom_allclose(apn, matlab_data["apn"])
-    assert np.array_equal(apni, matlab_data["apni"])
-    assert custom_allclose(appl, matlab_data["appl"])
-    assert np.array_equal(appli, matlab_data["appli"])
-    assert custom_allclose(agst, matlab_data["agst"])
-    assert np.array_equal(agsti, matlab_data["agsti"])
+    assert custom_allclose(iau06arr.ax0, iau06_mat_data.ax0)
+    assert np.array_equal(iau06arr.ax0i, iau06_mat_data.a0xi)
+    assert custom_allclose(iau06arr.ay0, iau06_mat_data.ay0)
+    assert np.array_equal(iau06arr.ay0i, iau06_mat_data.a0yi)
+    assert custom_allclose(iau06arr.as0, iau06_mat_data.as0)
+    assert np.array_equal(iau06arr.as0i, iau06_mat_data.a0si)
+    assert custom_allclose(iau06arr.agst, iau06_mat_data.agst)
+    assert np.array_equal(iau06arr.agsti, iau06_mat_data.agsti[:, :14])
+    assert custom_allclose(iau06arr.apn0, iau06_mat_data.apn0)
+    assert np.array_equal(iau06arr.apn0i, iau06_mat_data.apn0i)
+    assert custom_allclose(iau06arr.apl0, iau06_mat_data.apl0)
+    assert np.array_equal(iau06arr.apl0i, iau06_mat_data.apl0i)
+    assert custom_allclose(iau06arr.aapn0[:, :5], iau06_mat_data.aapn0[:, :5])
+    assert np.array_equal(iau06arr.aapn0i, iau06_mat_data.aapn0i)
+
+
+def test_readxys(iau06xysarr, xys_data):
+    # Check that the data is the same
+    assert custom_allclose(iau06xysarr.jd, xys_data.jd)
+    assert custom_allclose(iau06xysarr.jdf, xys_data.jdf)
+    assert custom_allclose(iau06xysarr.x, xys_data.x)
+    assert custom_allclose(iau06xysarr.y, xys_data.y)
+    assert custom_allclose(iau06xysarr.s, xys_data.s)
+    assert custom_allclose(iau06xysarr.mjd_tt, xys_data.mjd_tt)
+
+
+def test_readeop(eoparr):
+    # Check that the first line is correct
+    assert custom_isclose(eoparr.mjd[0], 37665)
+    assert custom_isclose(eoparr.xp[0], -0.0127)
+    assert custom_isclose(eoparr.yp[0], 0.213)
+    assert custom_isclose(eoparr.dut1[0], 0.0326338)
+    assert custom_isclose(eoparr.lod[0], 0.001723)
+    assert custom_isclose(eoparr.ddpsi[0], 0.064261)
+    assert custom_isclose(eoparr.ddeps[0], 0.006067)
+    assert custom_isclose(eoparr.dx[0], 0)
+    assert custom_isclose(eoparr.dy[0], 0)
+    assert eoparr.dat[0] == 2
+
+    # Check that the last line is correct
+    assert custom_isclose(eoparr.mjd[-1], 60126)
+    assert custom_isclose(eoparr.xp[-1], 0.203662)
+    assert custom_isclose(eoparr.yp[-1], 0.492913)
+    assert custom_isclose(eoparr.dut1[-1], -0.0114449)
+    assert custom_isclose(eoparr.lod[-1], -0.0009071)
+    assert custom_isclose(eoparr.ddpsi[-1], -0.113661)
+    assert custom_isclose(eoparr.ddeps[-1], -0.009266)
+    assert custom_isclose(eoparr.dx[-1], 0.000121)
+    assert custom_isclose(eoparr.dy[-1], -0.000211)
+    assert eoparr.dat[-1] == 37
+
+
+def test_readspw(spwarr):
+    # Check that the first line is correct (1957 10 01)
+    assert custom_isclose(spwarr.mjd[0], 36112)
+    assert custom_allclose(spwarr.kparray[0], [43, 40, 30, 20, 37, 23, 43, 37])
+    assert custom_isclose(spwarr.sumkp[0], 273)
+    assert custom_allclose(spwarr.aparray[0], [32, 27, 15, 7, 22, 9, 32, 22])
+    assert custom_isclose(spwarr.avgap[0], 21)
+    assert custom_isclose(spwarr.adjf107[0], 268.0)
+    assert custom_isclose(spwarr.adjctrf81[0], 265.2)
+    assert custom_isclose(spwarr.obsf107[0], 269.3)
+    assert custom_isclose(spwarr.obsctrf81[0], 266.6)
+    assert custom_isclose(spwarr.obslstf81[0], 230.9)
+
+    # Check that the last line is correct (2025 02 23)
+    assert custom_isclose(spwarr.mjd[-1], 60729)
+    assert custom_allclose(spwarr.kparray[-1], [13, 13, 13, 13, 13, 13, 13, 13])
+    assert custom_isclose(spwarr.sumkp[-1], 104)
+    assert custom_allclose(spwarr.aparray[-1], [5, 5, 5, 5, 5, 5, 5, 5])
+    assert custom_isclose(spwarr.avgap[-1], 5)
+    assert custom_isclose(spwarr.adjf107[-1], 220.0)
+    assert custom_isclose(spwarr.adjctrf81[-1], 187.4)
+    assert custom_isclose(spwarr.obsf107[-1], 224.7)
+    assert custom_isclose(spwarr.obsctrf81[-1], 191.2)
+    assert custom_isclose(spwarr.obslstf81[-1], 202.1)

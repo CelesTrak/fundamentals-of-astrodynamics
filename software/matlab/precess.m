@@ -1,43 +1,40 @@
-    % ----------------------------------------------------------------------------
-    %
-    %                           function precess
-    %
-    %  this function calulates the transformation matrix that accounts for the effects
-    %    of precession. both the 1980 and 2006 theories are handled. note that the
-    %    required parameters differ a little.
-    %
-    %  author        : david vallado                  719-573-2600   25 jun 2002
-    %
-    %  inputs          description                    range / units
-    %    ttt         - julian centuries of tt
-    %    opt         - method option                  '01', '02', '96', '80'
-    %
-    %  outputs       :
-    %    prec        - transformation matrix for mod - j2000 (80 only)
-    %    psia        - cannonical precession angle    rad    (00 only)
-    %    wa          - cannonical precession angle    rad    (00 only)
-    %    ea          - cannonical precession angle    rad    (00 only)
-    %    xa          - cannonical precession angle    rad    (00 only)
-    %
-    %  locals        :
-    %    ttt2        - ttt squared
-    %    ttt3        - ttt cubed
-    %    zeta        - precession angle               rad
-    %    z           - precession angle               rad
-    %    theta       - precession angle               rad
-    %    oblo        - obliquity value at j2000 epoch "%
-    %
-    %  coupling      :
-    %    none        -
-    %
-    %  references    :
-    %    vallado       2022, 219, 227-229
-    %
-    % [prec,psia,wa,ea,xa] = precess ( ttt, opt );
-    % ----------------------------------------------------------------------------
+% -----------------------------------------------------------------------------
+%
+%                           function precess
+%
+%  this function calculates the transformation matrix that accounts for the effects
+%    of precession. both the 1980 and 2006 theories are handled. note that the
+%    required parameters differ a little.
+%
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
+%
+%  inputs          description                              range / units
+%    ttt         - julian centuries of tt
+%    opt         - method option                           e80, e96, e06cio
+%
+%  outputs       :
+%    psia        - cannonical precession angle                    rad    (00 only)
+%    wa          - cannonical precession angle                    rad    (00 only)
+%    epsa        - cannonical precession angle                    rad    (00 only)
+%    chia        - cannonical precession angle                    rad    (00 only)
+%    precess     - matrix converting from "mod" to gcrf
+%
+%  locals        :
+%    zeta        - precession angle                               rad
+%    z           - precession angle                               rad
+%    theta       - precession angle                               rad
+%    oblo        - obliquity value at j2000 epoch                 rad
+%
+%  coupling      :
+%    none        -
+%
+%  references    :
+%    vallado       2022, 219, 227-229
+%
+% [prec,psia,wa,ea,xa] = precess ( ttt, opt );
+% ----------------------------------------------------------------------------
 
-    function [prec,psia,wa,ea,xa] = precess ( ttt, opt );
-
+function [prec,psia,wa,ea,xa] = precess ( ttt, opt )
     sethelp;
 
     % " to rad
@@ -46,7 +43,7 @@
     ttt3= ttt2 * ttt;
 
     prec = eye(3);
-    
+
     % ------------------- fk4 b1950 precession angles --------------------
     if (opt == '50')
 
@@ -136,7 +133,7 @@
 
             % fukishima williams approach
             %gamb
-            %     zeta = ((((0.0000000260 * ttt - 0.000002788) * ttt - 0.00031238) * ttt + 0.4932044) * ttt + 10.556378) * ttt + -0.052928; // "
+            %     zeta = ((((0.0000000260 * ttt - 0.000002788) * ttt - 0.00031238) * ttt + 0.4932044) * ttt + 10.556378) * ttt + -0.052928; % "
             %phib
             %     theta = ((((-0.0000000176 * ttt - 0.000000440) * ttt + 0.00053289) * ttt + 0.0511268) * ttt + -46.811016) * ttt + 84381.412819;
             %psib
@@ -204,3 +201,4 @@
         %             prec3 = a7*a6*a5*a4
     end
 
+end

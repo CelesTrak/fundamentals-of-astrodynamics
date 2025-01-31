@@ -24,44 +24,43 @@
 %
 %     *****************************************************************
 
-rad = 180.0 /pi;
-
-            r = [ -605.79221660, -5870.22951108, 3493.05319896 ];
-            v = [ -1.56825429, -3.70234891, -6.47948395 ];
-            rv2coe(r, v, out p, out a, out ecc, out incl, out raan, out argp, out nu, out m, out arglat, out truelon, out lonper);
-
-            coe2rv(p, ecc, incl, raan, argp, nu, arglat, truelon, lonper, out r, out v);
-
-            fprintf(1,'coe2rv r ' + r(1), r(2), r(3),
-            'v ' + v(1), v(2), v(3));
-
-            rad = 180.0 /pi;
-
-
-
-fprintf(1,'coe test ----------------------------\n' );
-r=[ 6524.834;6862.875;6448.296];
-v=[ 4.901327;5.533756;-1.976341];
-
-fprintf(1,'start %15.9f %15.9f %15.9f',r );
-fprintf(1,' v %15.10f %15.10f %15.10f\n',v );
-
-% --------  rv2coe       - position and velocity vectors to classical elements
-[p,a,ecc,incl,omega,argp,nu,m,arglat,truelon,lonper ] = rv2coeS (r,v);
-
-fprintf(1,'          p km       a km      ecc      incl deg     raan deg     argp deg      nu deg      m deg      arglat   truelon    lonper\n');
-fprintf(1,'coes %11.4f %11.4f %13.9f %13.7f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f\n',...
-    p,a,ecc,incl*rad,omega*rad,argp*rad,nu*rad,m*rad, ...
-    arglat*rad,truelon*rad,lonper*rad );
-
-[p,a,ecc,incl,omega,argp,nu,m,arglat,truelon,lonper ] = rv2coe(r,v);
-
-fprintf(1,'          p km       a km      ecc      incl deg     raan deg     argp deg      nu deg      m deg      arglat   truelon    lonper\n');
-fprintf(1,'coes %11.4f %11.4f %13.9f %13.7f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f\n',...
-    p,a,ecc,incl*rad,omega*rad,argp*rad,nu*rad,m*rad, ...
-    arglat*rad,truelon*rad,lonper*rad );
-
-
-
+    rad = 180.0 /pi;
+    
+    r = [ -605.79221660; -5870.22951108; 3493.05319896 ];
+    v = [ -1.56825429; -3.70234891; -6.47948395 ];
+    [p,a,ecc,incl,raan,argp,nu,m,arglat,truelon,lonper ] = rv2coe(r,v);
+    
+    [r, v] = coe2rv(p, ecc, incl, raan, argp, nu, arglat, truelon, lonper);
+    
+    fprintf(1,'start %15.9f %15.9f %15.9f',r );
+    fprintf(1,' v %15.10f %15.10f %15.10f\n',v );
+    
+    [p,a,ecc,incl,omega,argp,nu,m,arglat,truelon,lonper ] = rv2coe (r,v);
+    
+    fprintf(1,'          p km       a km      ecc      incl deg     raan deg     argp deg      nu deg      m deg      arglat   truelon    lonper\n');
+    fprintf(1,'coes %11.4f %11.4f %13.9f %13.7f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f\n',...
+        p,a,ecc,incl*rad,omega*rad,argp*rad,nu*rad,m*rad, ...
+        arglat*rad,truelon*rad,lonper*rad );
+    
+    
+    
+    fprintf(1,'\ncoe test ----------------------------\n' );
+    r=[ 6524.834;6862.875;6448.296];
+    v=[ 4.901327;5.533756;-1.976341];
+    
+    fprintf(1,'start %15.9f %15.9f %15.9f',r );
+    fprintf(1,' v %15.10f %15.10f %15.10f\n',v );
+    
+    % --------  rv2coe       - position and velocity vectors to classical elements
+    
+    [p,a,ecc,incl,omega,argp,nu,m,arglat,truelon,lonper ] = rv2coe(r,v);
+    
+    fprintf(1,'          p km       a km      ecc      incl deg     raan deg     argp deg      nu deg      m deg      arglat   truelon    lonper\n');
+    fprintf(1,'coes %11.4f %11.4f %13.9f %13.7f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f\n',...
+        p,a,ecc,incl*rad,omega*rad,argp*rad,nu*rad,m*rad, ...
+        arglat*rad,truelon*rad,lonper*rad );
+    
+    
+    
 
 

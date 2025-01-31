@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 1 March 2001
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 import warnings
 from typing import Tuple
@@ -23,13 +23,11 @@ def gibbs(
     tol_angle: float = np.radians(1),
     orbit_tol: float = 1e-6,
 ) -> Tuple[np.ndarray, float, float, float]:
-    """Performs the Gibbs method for orbit determination.
-
-    This method determines the velocity at the middle point of the 3 given position
-    vectors.
+    """Determine the velocity at the middle point of the 3 given position vectors using
+    the Gibbs method.
 
     References:
-        Vallado: 2007, p. 456, Algorithm 52
+        Vallado: 2022, p. 460-467, Algorithm 54
 
     Args:
         r1 (array_like): ECI position vector #1 in km
@@ -46,7 +44,7 @@ def gibbs(
             copa (float): Co-planarity angle in radians
     """
     # Initialize variables
-    theta12, theta23 = 0.0, 0.0
+    theta12, theta23 = 0, 0
 
     # Magnitudes of position vectors
     magr1 = np.linalg.norm(r1)
@@ -118,13 +116,11 @@ def hgibbs(
     jd3: float,
     tol_angle: float = np.radians(1),
 ) -> Tuple[np.ndarray, float, float, float]:
-    """Performs the Herrick-Gibbs method for orbit determination.
-
-    This method determines the velocity at the middle point of the 3 given position
-    vectors.
+    """Determines the velocity at the middle point of the 3 given position vectors
+    using the Herrick-Gibbs method.
 
     References:
-        Vallado: 2007, p. 462, Algorithm 52
+        Vallado: 2022, p. 467-472, Algorithm 55
 
     Args:
         r1 (array_like): ECI position vector #1 in km
@@ -137,10 +133,10 @@ def hgibbs(
 
     Returns:
         tuple: (v2, theta12, theta23, copa)
-            v2 (np.ndarray): Velocity vector at r2 (km/s)
-            theta12 (float): Angle between r1 and r2 (radians)
-            theta23 (float): Angle between r2 and r3 (radians)
-            copa (float): Co-planarity angle (radians)
+            v2 (np.ndarray): Velocity vector at r2 in km/s
+            theta12 (float): Angle between r1 and r2 in radians
+            theta23 (float): Angle between r2 and r3 in radians
+            copa (float): Co-planarity angle in radians
     """
     # Magnitudes of position vectors
     magr1 = np.linalg.norm(r1)
@@ -171,9 +167,9 @@ def hgibbs(
         warnings.warn("Angles between vectors exceed tolerance.", UserWarning)
 
     # Herrick-Gibbs method
-    term1 = -dt32 * (1.0 / (dt21 * dt31) + const.MU / (12.0 * magr1**3))
-    term2 = (dt32 - dt21) * (1.0 / (dt21 * dt32) + const.MU / (12.0 * magr2**3))
-    term3 = dt21 * (1.0 / (dt32 * dt31) + const.MU / (12.0 * magr3**3))
+    term1 = -dt32 * (1 / (dt21 * dt31) + const.MU / (12 * magr1**3))
+    term2 = (dt32 - dt21) * (1 / (dt21 * dt32) + const.MU / (12 * magr2**3))
+    term3 = dt21 * (1 / (dt32 * dt31) + const.MU / (12 * magr3**3))
 
     # Calculate velocity at r2
     v2 = term1 * np.array(r1) + term2 * np.array(r2) + term3 * np.array(r3)

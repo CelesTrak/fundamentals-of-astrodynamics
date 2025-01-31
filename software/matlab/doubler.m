@@ -1,14 +1,55 @@
+%  ------------------------------------------------------------------------------
 %
-%  this rountine accomplishes the iteration work for the double-r angles
-%  only routine
+%                           procedure doubler
 %
+%  this rountine accomplishes the iteration evaluation of one step for the double-r
+%  angles only routine.
 %
-% dav 12-23-03
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
+%  inputs          description                              range / units
+%    cc1          -
+%    cc2          -
+%    magrsite1    -
+%    magrsite2    -
+%    magr1in      - initial estimate
+%    magr2in      - initial estimate
+%    los1         - line of sight vector for 1st
+%    los2         - line of sight vector for 2nd
+%    los3         - line of sight vector for 3rd
+%    rsite1       - eci site position vector #1                  km
+%    rsite2       - eci site position vector #2                  km
+%    rsite3       - eci site position vector #3                  km
+%    t1           -                                              sec
+%    t3           -                                              sec
+%    dm           - direction of motion                          'S', 'L'
+%       likely not needed because for orbits that repeat, you always want to go the short way, rel to the initial vectors
+%    n12          - # of days between tracks 1,2                 days
+%    n13          - # of days between tracks 1,3                 days
+%    n23          - # of days between tracks 2,3                 days
 %
-% [r2, r3, f1, f2, q1, magr1, magr2, a, deltae32] = doubler(cc1, cc2, magrsite1, magrsite2, magr1in, magr2in,...
-%    los1, los2, los3, rsite1, rsite2, rsite3, t1, t3, n12, n13, n23)
+%  outputs        :
+%    r2           - position vector at t2                        km
+%    r3           - position vector at t3                        km
+%    f1           -
+%    f2           -
+%    q1           - quality estimate
+%    magr1        - magnitude of r1 vector                       km
+%    magr2        - magnitude of r2 vector                       km
+%    a            - semi major axis                              km / s
+%    deltae32     - eccentric anomaly difference 3-2
+%    errstr       - output results for debugging
 %
+%  coupling       :
+%    dot, cross, mag
+%
+%  references     :
+%    vallado       2022, 450 Alg 53
+%
+%  [r2, r3, f1, f2, q1, magr1, magr2, a, deltae32] = doubler(cc1, cc2, magrsite1, magrsite2, magr1in, magr2in,...
+%        los1, los2, los3, rsite1, rsite2, rsite3, t1, t3, n12, n13, n23);
+% ----------------------------------------------------------------------------
+
 
 function [r2, r3, f1, f2, q1, magr1, magr2, a, deltae32] = doubler(cc1, cc2, magrsite1, magrsite2, magr1in, magr2in,...
         los1, los2, los3, rsite1, rsite2, rsite3, t1, t3, n12, n13, n23)

@@ -45,14 +45,12 @@ These aren't used anymore?
              
 Notes:
 The 2000a nutation and planetary nutation only seem to be online embedded in the SOFA source code, and 
-they're different from those originaly specified in IERS TN-32. these new coefficients are in aiu00annew.dat 
+they're different from those originaly specified in IERS TN-32. these new coefficients are in iau00annew.dat 
 and iau00aplnew.dat, but not used yet.
 http://www.iausofa.org/2021_0125_C/sofa/nut00a.c                 
              
 It "looks" like the 678 687 terms are still used by nut00a? and that they use the 2006/2000
-values? SOFA is VERY convoluted and drawn out. very poor code imo. some routines are 100 lines of code,
-most are just 1 or 2. they do not seem to be functionally grouped for processing. Much better optioh to simply
-use the series aproach with interpolation!
+values? Much better option to simply use the series aproach with interpolation!
 
 
 

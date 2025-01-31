@@ -46,7 +46,7 @@
     sinlat      = sin( latgd );
     earthrate(1)= 0.0;
     earthrate(2)= 0.0;
-    earthrate(3)= omegaearth
+    earthrate(3)= earthrot;
 
     % ------  find rdel and rk components of site vector  ---------
     cearth= re / sqrt( 1.0 - ( eccearthsqrd*sinlat*sinlat ) )

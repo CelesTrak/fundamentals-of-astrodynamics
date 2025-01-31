@@ -4,32 +4,29 @@
 %
 %  this function calculates various position information for hills equations.
 %
-%  author        : david vallado                  719-573-2600    1 mar 2001
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  inputs          description                    range / units
-%    r           - init rel position of int       m or km
-%    v           - init rel velocity of int       m or km/s
-%    alt         - altitude of tgt satellite      km
-%    dts         - desired time                   s
+%  inputs          description                              range / units
+%    r           - init rel position of int                 m or km
+%    v           - init rel velocity of int                 m or km/s
+%    alt         - altitude of tgt satellite                km
+%    dts         - desired time                             s
 %
 %  outputs       :
-%    rinit       - final rel position of int      m or km
-%    vinit       - final rel velocity of int      m or km/s
+%    rinit       - final rel position of int                m or km
+%    vinit       - final rel velocity of int                m or km/s
 %
 %  locals        :
-%    nt          - angular velocity times time    rad
+%    nt          - angular velocity times time              rad
 %    omega       -
 %    sinnt       - sine of nt
 %    cosnt       - cosine of nt
-%    radius      - magnitude of range vector      km
-%
-%  coupling      :
-%
+%    radius      - magnitude of range vector                km
 %
 %  references    :
-%    vallado       2007, 397, alg 47, ex 6-14
+%    vallado       2022, 401, alg 48, ex 6-14
 %
-%  [rint, vint] = hillsr( r,v, alt, dts )
+%  [rint, vint] = hillsr( r,v, alt, dts );
 % ------------------------------------------------------------------------------
 
 function [rint, vint] = hillsr( r, v, alt, dts )
@@ -59,5 +56,4 @@ function [rint, vint] = hillsr( r, v, alt, dts )
         +6.0*omega*r(1))*cosnt - (3.0*v(2)+6.0*omega*r(1));
     vint(3)= -r(3)*omega*sinnt + v(3)*cosnt;
 
-
-
+end

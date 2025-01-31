@@ -1,50 +1,41 @@
-% ------------------------------------------------------------------------------
+%  ------------------------------------------------------------------------------
 %
-%                           function rv2tradec
+%                           procedure rv_tradec
 %
-%  this function converts geocentric equatorial (ecef) position and velocity
-%    vectors into range, topcentric right acension, declination, and rates.
-%    notice the value of small as it can affect the rate term calculations.
-%    the solution uses the velocity vector to find the singular cases. also,
-%    the right acension and declination rate terms are not observable unless
-%    the acceleration vector is available.
+%  this procedure converts topocentric right-ascension declination with
+%    position and velocity vectors. the velocity vector is used to find the
+%    solution of singular cases.
 %
-%  author        : david vallado           davallado@gmail.com    19 jul 2004
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
 %  inputs          description                              range / units
-%    recef        - ecef position vector                      km
-%    vecef        - ecef velocity vector                      km/s
-%    latgd       - geodetic latitude                        -pi/2 to pi/2 rad
-%    lon         - longitude of site                        -2pi to 2pi rad
-%    alt         - altitude                                 km
-%    ttt         - julian centuries of tt                   centuries
-%    jdut1       - julian date of ut1                       days from 4713 bc
-%    lod         - excess length of day                     sec
-%    xp          - polar motion coefficient                 rad
-%    yp          - polar motion coefficient                 rad
-%    terms       - number of terms for ast calculation      0,2
+%    reci        - eci position vector                      km
+%    veci        - eci velocity vector                      km/s
+%    rseci       - eci site position vector                 km
+%    direct      - direction to convert                     efrom  eto
 %
 %  outputs       :
-%    rho         - satellite range from site                km
-%    trtasc      - topocentric right ascension              0.0 to 2pi rad
-%    tdecl       - topocentric declination                  -pi/2 to pi/2 rad
-%    drho        - range rate                               km/s
-%    dtrtasc     - topocentric rtasc rate                   rad / s
-%    dtdecl      - topocentric decl rate                    rad / s
+%    rho         - topo radius of the sat                   km
+%    trtasc      - topo right ascension                     rad
+%    tdecl       - topo declination                         rad
+%    drho        - topo radius of the sat rate              km/s
+%    tdrtasc     - topo right ascension rate                rad/s
+%    tddecl      - topo declination rate                    rad/s
 %
 %  locals        :
-%    rhovecef     - ecef range vector from site               km
-%    drhovecef    - ecef velocity vector from site            km / s
+%    rhov        - eci range vector from site               km
+%    drhov       - eci velocity vector from site            km/s
+%    latgc       - geocentric lat of satellite, not nadir point  -pi/2 to pi/2 rad
 %
 %  coupling      :
 %    mag         - magnitude of a vector
-%    rot3        - rotation about the 3rd axis
-%    rot2        - rotation about the 2nd axis
+%    addvec      - add two vectors
+%    dot         - dot product of two vectors
 %
 %  references    :
-%    vallado       2022, 257, alg 26
+%    vallado       2022, 257, eq 4-1, 4-2, alg 26
 %
-%  [rho, trtasc, tdecl, drho, dtrtasc, dtdecl] = rv2tradec ( recef, vecef, rsecef, vsecef )
+%  [rho, trtasc, tdecl, drho, dtrtasc, dtdecl] = rv2tradec ( recef, vecef, rsecef, vsecef );
 % ------------------------------------------------------------------------------
 
 function [rho, trtasc, tdecl, drho, dtrtasc, dtdecl] = rv2tradec ( recef, vecef, rsecef, vsecef )

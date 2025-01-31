@@ -51,6 +51,12 @@
     timezone=0;
     opt = 'c'; % specify the iau00 cio approach
 
+    fileLoc = 'D:\Codes\LIBRARY\DataLib\';
+    [iau06arr] = iau06in(fileLoc);
+
+    fileLoc = 'D:\Codes\LIBRARY\DataLib\';
+    [xys06table] = readxys(fileLoc);
+
 
     fprintf(1, 'input data \n\n');
     fprintf(1, ' year %5i ', year);
@@ -85,8 +91,9 @@
     fprintf(1, 'hms %3i %3i %8.6f \n', h, m, s);
     fprintf(1, 'tdb %8.6f ttdb %16.12f jdtdb %18.11f\n', tdb, ttdb, jdtdb+jdtdbfrac );
 
-    [recigg, vecigg, aecig] = ecef2eciiau06 ( recef, vecef, aecef, jdtt, ttt, jdut1+jdut1frac, lod, xp, yp, opt, ddx, ddy );
-    fprintf(1, 'GCRF          IAU-2006 CIO %14.7f %14.7f %14.7f', recigg );
+    [recigg vecigg, aecig] = ecef2eci06(recef, vecef, aecef, iau06arr, xys06table, ...
+        ttt, jdut1+jdut1frac, lod, xp, yp, ddx, ddy, '06x');
+    fprintf(1, 'GCRF  IAU-2006 CIO %14.7f %14.7f %14.7f', recigg );
     fprintf(1, ' v %14.9f %14.9f %14.9f', vecigg );
     fprintf(1, ' a %14.9f %14.9f %14.9f\n', aecig );
 

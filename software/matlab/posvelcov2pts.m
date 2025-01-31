@@ -2,9 +2,8 @@
 %
 %                           function posvelcov2pts
 %
-%  finds 12 sigma points given positino and velocity and covariance information
-%  using cholesky matrix square root algorithm
-%  then progates covariance points
+%  finds 12 sigma points given position and velocity and covariance information
+%  using cholesky matrix square root algorithm, then propagates covariance points
 %
 %  author        : sal alfano      719-573-2600   31 mar 2011
 %
@@ -13,9 +12,9 @@
 %                  points
 %
 %  inputs          description 
-%    cov         - eci 6x6 covariance matrix      km or m
 %    reci        - eci 3x1 position vector        km or m
 %    veci        - eci 3x1 velocity vector        km or m
+%    cov         - eci 6x6 covariance matrix      km or m
 %
 %  outputs       :
 %    sigmapts    - structure of sigma points (6 x 12)

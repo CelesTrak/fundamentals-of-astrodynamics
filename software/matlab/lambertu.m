@@ -1,58 +1,69 @@
-% ------------------------------------------------------------------------------
+%  ------------------------------------------------------------------------------
 %
-%                           function lambertu
+%                           procedure lambertuniv
 %
-%  this function solves the lambert problem for orbit determination and returns
+%  this procedure solves the lambert problem for orbit determination and returns
 %    the velocity vectors at each of two given position vectors.  the solution
-%    uses universal variables for calculation and a bissection technique
+%    uses universal variables for calculation and a bissection technique for
 %    updating psi.
 %
-%  author        : david vallado                  719-573-2600    1 mar 2001
+%  algorithm     : setting the initial bounds:
+%                  using -8pi and 4pi2 will allow single rev solutions
+%                  using -4pi2 and 8pi2 will allow multi-rev solutions
+%                  the farther apart the initial guess, the more iterations
+%                    because of the iteration
+%                  inner loop is for special cases. must be sure to exit both!
 %
-%  inputs          description                         range / units
-%    r1          - ijk position vector 1               km
-%    v1          - ijk velocity vector 1               needed for 180 deg transfer  km / s
-%    r2          - ijk position vector 2               km
-%    dm          - direction of motion                 'S','L'  short long period
-%    de          - direction of flight                 'L','H'  low high energy
-%    dtsec       - time between r1 and r2              s
-%    nrev        - multiple revoluions                 0, 1, ...
-%    tbi         - time of the bottom interval -       only needed for multi-rev cases
-%                  this is a two-dimension array of psi and tof
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
+%
+%  inputs          description                              range / units
+%    r1          - ijk position vector 1                     km
+%    r2          - ijk position vector 2                     km
+%    v1          - ijk velocity vector 1 if avail            km/s
+%    dm          - direction of motion                       'L', 'S'
+%    de          - orbital energy                            'L', 'H'
+%                  only affects nrev >= 1 upper/lower bounds
+%    dtsec       - time between r1 and r2                    sec
+%    nrev        - number of revs to complete                0, 1, 2, 3,
+%    kbi         - psi value for min
+%    altpad      - altitude pad for hitearth calc            km
+%    show        - control output don't output for speed      'y', 'n'
+%
 %  outputs       :
-%    v1          - ijk velocity vector                 km / s
-%    v2          - ijk velocity vector                 km / s
-%    error       - error flag                          'ok', ...
+%    v1t         - ijk transfer velocity vector              km/s
+%    v2t         - ijk transfer velocity vector              km/s
+%    hitearth    - flag if hit or not                        'y', 'n'
+%    error       - error flag                                1, 2, 3,   use numbers since c++ is so horrible at strings
 %
 %  locals        :
 %    vara        - variable of the iteration,
-%                  not the semi-axis
+%                  not the semi or axis!
 %    y           - area between position vectors
 %    upper       - upper bound for z
 %    lower       - lower bound for z
-%    cosdeltanu  - cosine of true anomaly change        rad
+%    cosdeltanu  - cosine of true anomaly change             rad
 %    f           - f expression
 %    g           - g expression
 %    gdot        - g dot expression
-%    x           - old universal variable x
-%    xcubed      - x cubed
+%    xold        - old universal variable x
+%    xoldcubed   - xold cubed
 %    zold        - old value of z
 %    znew        - new value of z
-%    c2          - c2(z) function
-%    c3          - c3(z) function
-%    timenew     - new time                             s
+%    c2new       - c2(z) function
+%    c3new       - c3(z) function
+%    timenew     - new time                                  sec
 %    small       - tolerance for roundoff errors
 %    i, j        - index
 %
-%  coupling      :
+%  coupling
 %    mag         - magnitude of a vector
 %    dot         - dot product of two vectors
 %    findc2c3    - find c2 and c3 functions
 %
 %  references    :
-%    vallado       2013, 489-493, alg 58, ex 7-5
+%    vallado       2022, 499, alg 60, ex 7-5
 %
-% [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, outfile )
+% [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, outfile );
 % ------------------------------------------------------------------------------
 
 function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, outfile )
@@ -62,6 +73,7 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
     small = 0.00001; % can affect cases where znew is multiples of 2pi^2
     numiter= 20;
     errorl  = '      ok';
+    show = 'n';
     for i= 1 : 3
         v1tu(i) = 0.0;
         v2tu(i) = 0.0;
@@ -203,7 +215,9 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
                         y= magr1 + magr2;
                     end
                     % outfile
-                    fprintf(1,'yneg %3i  y %11.7f lower %11.7f c2 %11.7f psinew %11.7f yneg %3i \n',loops,y,lower,c2new,psinew,ynegktr );
+                    if show == 'y'
+                        fprintf(1,'yneg %3i  y %11.7f lower %11.7f c2 %11.7f psinew %11.7f yneg %3i \n',loops,y,lower,c2new,psinew,ynegktr );
+                    end
                     ynegktr = ynegktr + 1;
                 end % while
             end  % if  y neg
@@ -318,7 +332,7 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
         v2tu = v2t;% / velkmps;
 
         tof = dtsec;
-        pause;
+        %pause;
         %             % use JGCD 2011 v34 n6 1925 to solve 180 deg case
         %             p = 2.0*magr1*magr2 / (magr1 + magr2);
         %             ecc = sqrt(1.0 - 4.0*magr1*magr2 / ((magr1+magr2)^2) );

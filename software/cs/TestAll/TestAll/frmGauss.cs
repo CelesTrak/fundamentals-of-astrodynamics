@@ -160,8 +160,10 @@ namespace TestAllTool
         {
             double[] rsecef = new double[3];
             double[] vsecef = new double[3];
+            double[] asecef = new double[3];
             double[] rseci = new double[3];
             double[] vseci = new double[3];
+            double[] aseci = new double[3];
             double magr, latgc;
             double jd, jdf, second;
             double dut1, lod, xp, yp, ddpsi, ddeps, ddx, ddy, jdtt, jdftt, ttt, jdut1;
@@ -186,15 +188,14 @@ namespace TestAllTool
             string nutLoc;
             Int32 ktrActObs;
             string EOPupdate;
-            Int32 mjdeopstart;
             EOPSPWLib.iau80Class iau80arr;
             nutLoc = @"D:\Codes\LIBRARY\DataLib\nut80.dat";
             EOPSPWLibr.iau80in(nutLoc, out iau80arr);
 
             string eopFileName = @"D:\Codes\LIBRARY\DataLib\EOP-All-v1.1_2023-01-01.txt";
-            EOPSPWLibr.readeop(ref EOPSPWLibr.eopdata, eopFileName, out mjdeopstart, out ktrActObs, out EOPupdate);
+            EOPSPWLibr.readeop(ref EOPSPWLibr.eopdata, eopFileName, out ktrActObs, out EOPupdate);
 
-            EOPSPWLibr.findeopparam(jd, jdf, 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5,
+            EOPSPWLibr.findeopparam(jd, jdf, 's', EOPSPWLibr.eopdata, 
                        out dut1, out dat, out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
             jdtt = jd;
             jdftt = jdf + (dat + 32.184) / 86400.0;
@@ -204,8 +205,8 @@ namespace TestAllTool
             jdut1 = jd + jdf + dut1 / 86400.0;
 
             // -------- convert r to ecef for lat/lon calculation
-            AstroLibr.eci_ecef(ref rseci, ref vseci, MathTimeLib.Edirection.eto, ref rsecef, ref vsecef,
-                EOPSPWLibr.iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+            AstroLibr.eci_ecef(ref rseci, ref vseci, ref aseci, MathTimeLib.Edirection.eto, ref rsecef, ref vsecef, ref asecef,
+                EOPSPWLibr.iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
 
             AstroLibr.ecef2ll(rsecef, out latgc, out latgd, out lon, out alt);
         }  // getSensorECI
@@ -1241,7 +1242,7 @@ namespace TestAllTool
         {
             int dat;
             double jdut1, dut1, jdtt, jdftt, ttt, xp, yp, ddx, ddy, ddpsi, ddeps, lod;
-            Int32 year, mon, day, hr, minute, mjdeopstart, sennum;
+            Int32 year, mon, day, hr, minute, sennum;
             double second;
             double[] rseci1 = new double[3];
             double[] rseci2 = new double[3];
@@ -1249,12 +1250,18 @@ namespace TestAllTool
             double[] vseci1 = new double[3];
             double[] vseci2 = new double[3];
             double[] vseci3 = new double[3];
+            double[] aseci1 = new double[3];
+            double[] aseci2 = new double[3];
+            double[] aseci3 = new double[3];
             double[] rsecef1 = new double[3];
             double[] rsecef2 = new double[3];
             double[] rsecef3 = new double[3];
             double[] vsecef1 = new double[3];
             double[] vsecef2 = new double[3];
             double[] vsecef3 = new double[3];
+            double[] asecef1 = new double[3];
+            double[] asecef2 = new double[3];
+            double[] asecef3 = new double[3];
             double[] jd = new double[50];
             double[] jdf = new double[50];
             double[] trtasc = new double[50];
@@ -1288,7 +1295,7 @@ namespace TestAllTool
             EOPSPWLibr.iau06in(nutLoc, out iau06arr);
 
             string eopFileName = @"D:\Codes\LIBRARY\DataLib\EOP-All-v1.1_2020-02-12.txt";
-            EOPSPWLibr.readeop(ref EOPSPWLibr.eopdata, eopFileName, out mjdeopstart, out ktrActObs, out EOPupdate);
+            EOPSPWLibr.readeop(ref EOPSPWLibr.eopdata, eopFileName, out ktrActObs, out EOPupdate);
 
             // now read it in
             AstroLib.xysdataClass[] xysarr = AstroLibr.xysarr;
@@ -1455,7 +1462,7 @@ namespace TestAllTool
                     //jd3 = jd[idx3] + jdf[idx3];
                     AstroLibr.site(latgd[idx1], lon[idx1], alt[idx1], out rsecef1, out vsecef1);
                     if (caseopt != 0 && caseopt != 1)
-                        EOPSPWLibr.findeopparam(jd[idx1], jdf[idx1], 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5,
+                        EOPSPWLibr.findeopparam(jd[idx1], jdf[idx1], 's', EOPSPWLibr.eopdata, 
                             out dut1, out dat, out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
                     //MathTimeLibr.convtime(year[idx1], mon[idx1], day[idx1], hr[idx1], minute[idx1], second[idx1], 0, dut1, dat,
                     //    out ut1, out tut1, out jdut1, out jdut1frac, out utc, out tai,
@@ -1466,8 +1473,8 @@ namespace TestAllTool
                     // note you have to use tdb for time of interst AND j2000 (when dat = 32)
                     //  ttt = (jd + jdFrac + (dat + 32.184) / 86400.0 - 2451545.0 - (32 + 32.184) / 86400.0) / 36525.0;
                     jdut1 = jd[idx1] + jdf[idx1] + dut1 / 86400.0;
-                    AstroLibr.eci_ecef(ref rseci1, ref vseci1, MathTimeLib.Edirection.efrom, ref rsecef1, ref vsecef1,
-                         iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                    AstroLibr.eci_ecef(ref rseci1, ref vseci1, ref aseci1, MathTimeLib.Edirection.efrom, ref rsecef1, ref vsecef1, ref asecef1,
+                         iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
 
                     // get new site info
                     // if a value, set the lat lon alt
@@ -1479,7 +1486,7 @@ namespace TestAllTool
 
                     AstroLibr.site(latgd[idx2], lon[idx2], alt[idx2], out rsecef2, out vsecef2);
                     if (caseopt != 0 && caseopt != 1)
-                        EOPSPWLibr.findeopparam(jd[idx2], jdf[idx2], 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5,
+                        EOPSPWLibr.findeopparam(jd[idx2], jdf[idx2], 's', EOPSPWLibr.eopdata, 
                         out dut1, out dat, out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
                     //MathTimeLibr.convtime(year[idx2], mon[idx2], day[idx2], hr[idx2], minute[idx2], second[idx2], 0, dut1, dat,
                     //    out ut1, out tut1, out jdut1, out jdut1frac, out utc, out tai,
@@ -1488,8 +1495,8 @@ namespace TestAllTool
                     jdftt = jdf[idx2] + (dat + 32.184) / 86400.0;
                     ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
                     jdut1 = jd[idx2] + jdf[idx2] + dut1 / 86400.0;
-                    AstroLibr.eci_ecef(ref rseci2, ref vseci2, MathTimeLib.Edirection.efrom, ref rsecef2, ref vsecef2,
-                         iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                    AstroLibr.eci_ecef(ref rseci2, ref vseci2, ref aseci2, MathTimeLib.Edirection.efrom, ref rsecef2, ref vsecef2, ref asecef2,
+                         iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
                     double gst, lst;
                     AstroLibr.lstime(lon[idx2], jdut1, out lst, out gst);
                     strbuildall.AppendLine("\nlst " + lst.ToString() + " " + (lst * rad).ToString());
@@ -1505,14 +1512,14 @@ namespace TestAllTool
 
                     AstroLibr.site(latgd[idx3], lon[idx3], alt[idx3], out rsecef3, out vsecef3);
                     if (caseopt != 0 && caseopt != 1)
-                        EOPSPWLibr.findeopparam(jd[idx3], jdf[idx3], 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5,
+                        EOPSPWLibr.findeopparam(jd[idx3], jdf[idx3], 's', EOPSPWLibr.eopdata, 
                         out dut1, out dat, out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
                     jdtt = jd[idx3];
                     jdftt = jdf[idx3] + (dat + 32.184) / 86400.0;
                     ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
                     jdut1 = jd[idx3] + jdf[idx3] + dut1 / 86400.0;
-                    AstroLibr.eci_ecef(ref rseci3, ref vseci3, MathTimeLib.Edirection.efrom, ref rsecef3, ref vsecef3,
-                         iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                    AstroLibr.eci_ecef(ref rseci3, ref vseci3, ref aseci3, MathTimeLib.Edirection.efrom, ref rsecef3, ref vsecef3, ref asecef3,
+                         iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
 
                     //if (Math.Abs(latgd[idx1] - latgd[idx2]) < 0.001 && Math.Abs(latgd[idx1] - latgd[idx3]) < 0.001
                     //    && Math.Abs(lon[idx1] - lon[idx2]) < 0.001 && Math.Abs(lon[idx1] - lon[idx3]) < 0.001)
@@ -1604,7 +1611,7 @@ namespace TestAllTool
                 //jd2 = jd[idx2] + jdf[idx2];
                 //jd3 = jd[idx3] + jdf[idx3];
                 AstroLibr.site(latgd[idx1], lon[idx1], alt[idx1], out rsecef1, out vsecef1);
-                EOPSPWLibr.findeopparam(jd[idx1], jdf[idx1], 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5,
+                EOPSPWLibr.findeopparam(jd[idx1], jdf[idx1], 's', EOPSPWLibr.eopdata, 
                     out dut1, out dat, out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
                 //MathTimeLibr.convtime(year[idx1], mon[idx1], day[idx1], hr[idx1], minute[idx1], second[idx1], 0, dut1, dat,
                 //    out ut1, out tut1, out jdut1, out jdut1frac, out utc, out tai,
@@ -1615,8 +1622,8 @@ namespace TestAllTool
                 // note you have to use tdb for time of interst AND j2000 (when dat = 32)
                 //  ttt = (jd + jdFrac + (dat + 32.184) / 86400.0 - 2451545.0 - (32 + 32.184) / 86400.0) / 36525.0;
                 jdut1 = jd[idx1] + jdf[idx1] + dut1 / 86400.0;
-                AstroLibr.eci_ecef(ref rseci1, ref vseci1, MathTimeLib.Edirection.efrom, ref rsecef1, ref vsecef1,
-                         iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                AstroLibr.eci_ecef(ref rseci1, ref vseci1, ref aseci1, MathTimeLib.Edirection.efrom, ref rsecef1, ref vsecef1, ref asecef1,
+                         iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
 
                 // get new site info
                 // if a value, set the lat lon alt
@@ -1628,7 +1635,7 @@ namespace TestAllTool
                 this.alt2.Text = alt[idx2].ToString();
 
                 AstroLibr.site(latgd[idx2], lon[idx2], alt[idx2], out rsecef2, out vsecef2);
-                EOPSPWLibr.findeopparam(jd[idx2], jdf[idx2], 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5,
+                EOPSPWLibr.findeopparam(jd[idx2], jdf[idx2], 's', EOPSPWLibr.eopdata, 
                     out dut1, out dat, out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
                 //MathTimeLibr.convtime(year[idx2], mon[idx2], day[idx2], hr[idx2], minute[idx2], second[idx2], 0, dut1, dat,
                 //    out ut1, out tut1, out jdut1, out jdut1frac, out utc, out tai,
@@ -1637,8 +1644,8 @@ namespace TestAllTool
                 jdftt = jdf[idx2] + (dat + 32.184) / 86400.0;
                 ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
                 jdut1 = jd[idx2] + jdf[idx2] + dut1 / 86400.0;
-                AstroLibr.eci_ecef(ref rseci2, ref vseci2, MathTimeLib.Edirection.efrom, ref rsecef2, ref vsecef2,
-                         iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                AstroLibr.eci_ecef(ref rseci2, ref vseci2, ref aseci2, MathTimeLib.Edirection.efrom, ref rsecef2, ref vsecef2, ref asecef2,
+                         iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
                 double gst, lst;
                 AstroLibr.lstime(lon[idx2], jdut1, out lst, out gst);
                 strbuildall.AppendLine("\nlst " + lst.ToString() + " " + (lst * rad).ToString());
@@ -1654,14 +1661,14 @@ namespace TestAllTool
                 this.alt3.Text = alt[idx3].ToString();
 
                 AstroLibr.site(latgd[idx3], lon[idx3], alt[idx3], out rsecef3, out vsecef3);
-                EOPSPWLibr.findeopparam(jd[idx3], jdf[idx3], 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5,
+                EOPSPWLibr.findeopparam(jd[idx3], jdf[idx3], 's', EOPSPWLibr.eopdata,
                     out dut1, out dat, out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
                 jdtt = jd[idx3];
                 jdftt = jdf[idx3] + (dat + 32.184) / 86400.0;
                 ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
                 jdut1 = jd[idx3] + jdf[idx3] + dut1 / 86400.0;
-                AstroLibr.eci_ecef(ref rseci3, ref vseci3, MathTimeLib.Edirection.efrom, ref rsecef3, ref vsecef3,
-                         iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                AstroLibr.eci_ecef(ref rseci3, ref vseci3, ref aseci3, MathTimeLib.Edirection.efrom, ref rsecef3, ref vsecef3, ref asecef3,
+                         iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
 
                 //if (Math.Abs(latgd[idx1] - latgd[idx2]) < 0.001 && Math.Abs(latgd[idx1] - latgd[idx3]) < 0.001
                 //    && Math.Abs(lon[idx1] - lon[idx2]) < 0.001 && Math.Abs(lon[idx1] - lon[idx3]) < 0.001)
@@ -1958,8 +1965,10 @@ namespace TestAllTool
             string[] linedata;
             double[] rseci = new double[3];
             double[] vseci = new double[3];
+            double[] aseci = new double[3];
             double[] rsecef = new double[3];
             double[] vsecef = new double[3];
+            double[] asecef = new double[3];
 
             double rtasc0, decl0, t0;
 
@@ -1977,7 +1986,6 @@ namespace TestAllTool
             string nutLoc;
             Int32 ktrActObs;
             string EOPupdate;
-            Int32 mjdeopstart;
             EOPSPWLib.iau80Class iau80arr;
             EOPSPWLib.iau06Class iau06arr;
             nutLoc = @"D:\Codes\LIBRARY\DataLib\nut80.dat";
@@ -1986,7 +1994,7 @@ namespace TestAllTool
             EOPSPWLibr.iau06in(nutLoc, out iau06arr);
 
             string eopFileName = @"D:\Codes\LIBRARY\DataLib\EOP-All-v1.1_2022-01-15.txt";
-            EOPSPWLibr.readeop(ref EOPSPWLibr.eopdata, eopFileName, out mjdeopstart, out ktrActObs, out EOPupdate);
+            EOPSPWLibr.readeop(ref EOPSPWLibr.eopdata, eopFileName, out ktrActObs, out EOPupdate);
 
             AstroLib.xysdataClass[] xysarr = AstroLibr.xysarr;
             AstroLibr.readXYS(ref xysarr, nutLoc, "xysdata.dat");
@@ -2056,14 +2064,14 @@ namespace TestAllTool
                     obsClassArr[numobs].alt = senClassArr[0].senalt;
 
                     AstroLibr.site(obsClassArr[numobs].lat, obsClassArr[numobs].lon, obsClassArr[numobs].alt, out rsecef, out vsecef);
-                    EOPSPWLibr.findeopparam(obsClassArr[numobs].jd, obsClassArr[numobs].jdf, 's', EOPSPWLibr.eopdata, mjdeopstart + 2400000.5,
+                    EOPSPWLibr.findeopparam(obsClassArr[numobs].jd, obsClassArr[numobs].jdf, 's', EOPSPWLibr.eopdata,
                         out dut1, out dat, out lod, out xp, out yp, out ddpsi, out ddeps, out ddx, out ddy);
                     double jdtt = obsClassArr[numobs].jd;
                     double jdftt = obsClassArr[numobs].jdf + (dat + 32.184) / 86400.0;
                     ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
                     jdut1 = obsClassArr[numobs].jd + obsClassArr[numobs].jdf + dut1 / 86400.0;
-                    AstroLibr.eci_ecef(ref rseci, ref vseci, MathTimeLib.Edirection.efrom, ref rsecef, ref vsecef,
-                         iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                    AstroLibr.eci_ecef(ref rseci, ref vseci, ref aseci, MathTimeLib.Edirection.efrom, ref rsecef, ref vsecef, ref asecef, 
+                         iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
                     obsClassArr[numobs].rsecef[0] = rsecef[0];
                     obsClassArr[numobs].rsecef[1] = rsecef[1];
                     obsClassArr[numobs].rsecef[2] = rsecef[2];

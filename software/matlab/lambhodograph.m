@@ -1,33 +1,37 @@
-% ------------------------------------------------------------------------------
-%
+% --------------------------------------------------------------------------
 %                           function lambhodograph
 %
-% this function accomplishes 180 deg transfer (and 360 deg) for lambert problem.
+% this function accomplishes 180 deg transfer(and 360 deg) for lambert problem.
 %
-%  author        : david vallado                  719-573-2600   22 may 2017
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  inputs          description                    range / units
-%    r1          - ijk position vector 1          km
-%    r2          - ijk position vector 2          km
-%    dtsec       - time between r1 and r2         s
-%    dnu         - true anomaly change            rad
+%  inputs          description                              range / units
+%    r1    - ijk position vector 1                            km
+%    r2    - ijk position vector 2                            km
+%    v1    - intiial ijk velocity vector 1                    km/s
+%    p     - semiparamater of transfer orbit                  km
+%    ecc   - eccentricity of transfer orbit                   km
+%    dnu   - true anomaly delta for transfer orbit            rad
+%    dtsec - time between r1 and r2                           s
+%    dnu - true anomaly change                                rad
 %
 %  outputs       :
-%    v1t         - ijk transfer velocity vector   km / s
-%    v2t         - ijk transfer velocity vector   km / s
+%    v1t - ijk transfer velocity vector                       km/s
+%    v2t - ijk transfer velocity vector                       km/s
 %
-%  references    :
+%  references :
 %    Thompson JGCD 2013 v34 n6 1925
 %    Thompson AAS GNC 2018
-% [v1t, v2t] = lambhodograph( r1, v1, r2, p, a, ecc, dnu, dtsec ) 
+%
+% [v1t, v2t] = lambhodograph( r1, v1, r2, p, a, ecc, dnu, dtsec );
 % ------------------------------------------------------------------------------
 
 function [v1t, v2t] = lambhodograph( r1, v1, r2, p, ecc, dnu, dtsec )
     mu  = 3.986004418e5;   % e14 m3/s2
     twopi = 2.0 * pi;
-    
-    magr1 = mag(r1);  
-    magr2 = mag(r2);  
+
+    magr1 = mag(r1);
+    magr2 = mag(r2);
     eps = 0.001 / magr2;  % 1.0e-8;  % -14 -8 seems to be the same
 
     a = mu*(1.0/magr1 - 1.0/p);  % not the semi-major axis
@@ -46,9 +50,9 @@ function [v1t, v2t] = lambhodograph( r1, v1, r2, p, ecc, dnu, dtsec )
                 x1 = -x1;
             end
         end
-       fprintf(1,'less than\n');
+        fprintf(1,'less than\n');
     else
-         % more common path?
+        % more common path?
         y2a = mu/p - x1*sin(dnu) + a*cos(dnu);
         y2b = mu/p + x1*sin(dnu) + a*cos(dnu);
         if abs(mu/magr2 - y2b) < abs(mu/magr2 - y2a)
@@ -60,9 +64,9 @@ function [v1t, v2t] = lambhodograph( r1, v1, r2, p, ecc, dnu, dtsec )
         if (mod(dnu, twopi) > pi)
             nvec = -nvec;
         end
-%       fprintf(1,'gtr than\n');
+        %       fprintf(1,'gtr than\n');
     end
-    
+
     v1t = (sqrt(mu*p) / magr1) * ((x1/mu)*r1 + cross(nvec,r1)/magr1 );
     x2  = x1*cos(dnu) + a*sin(dnu);
     v2t = (sqrt(mu*p) / magr2) * ((x2/mu)*r2 + cross(nvec,r2)/magr2 );

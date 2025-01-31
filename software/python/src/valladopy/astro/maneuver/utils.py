@@ -27,7 +27,7 @@ def specific_mech_energy(a: float) -> float:
     Returns:
         float: Specific mechanical energy
     """
-    return -const.MU / (2.0 * a)
+    return -const.MU / (2 * a)
 
 
 def velocity_mag(r: float, a: float) -> float:
@@ -40,7 +40,7 @@ def velocity_mag(r: float, a: float) -> float:
     Returns:
         float: Velocity magnitude in km/s
     """
-    return np.sqrt(2.0 * ((const.MU / r) + specific_mech_energy(a)))
+    return np.sqrt(2 * ((const.MU / r) + specific_mech_energy(a)))
 
 
 def angular_velocity(a: float) -> float:
@@ -66,7 +66,7 @@ def deltav(v1: float, v2: float, theta: float) -> float:
     Returns:
         float: Delta-v in km/s
     """
-    return np.sqrt(v1**2 + v2**2 - 2.0 * v1 * v2 * np.cos(theta))
+    return np.sqrt(v1**2 + v2**2 - 2 * v1 * v2 * np.cos(theta))
 
 
 def semimajor_axis(r: float, e: float, nu: float) -> float:
@@ -80,4 +80,57 @@ def semimajor_axis(r: float, e: float, nu: float) -> float:
     Returns:
         float: Semi-major axis in km
     """
-    return (r * (1.0 + e * np.cos(nu))) / (1.0 - e**2)
+    return (r * (1 + e * np.cos(nu))) / (1 - e**2)
+
+
+def period(a: float) -> float:
+    """Computes the period of an orbit given the semi-major axis.
+
+    Args:
+        a (float): Semi-major axis of the orbit in km
+
+    Returns:
+        float: Period of the orbit in seconds
+    """
+    return const.TWOPI * np.sqrt(a**3 / const.MU)
+
+
+def lowuz(z: float) -> float:
+    """Computes the control parameter u using Chebyshev polynomial approximation.
+
+    References:
+        Alfano: "Optimal Many-Revolution Orbit Transfer", Journal of Guidance, Vol 8,
+                 No. 1, 1985, pp. 155-157.
+
+    Args:
+        z (float): Input parameter
+
+    Returns:
+        u (float): Computed control parameter (bounded between 0.000001 and 0.999999)
+    """
+    # Assign coefficients and starting values
+    # fmt: off
+    alpha = np.array([
+        2.467410607, -1.907470562, 35.892442177, -214.672979624, 947.773273608,
+        -2114.861134906, 2271.240058672, -1127.457440108, 192.953875268, 8.577733773
+    ])
+
+    beta = np.array([
+        0.4609698838, 13.7756315324, -69.1245316678, 279.0671832500, -397.6628952136,
+        -70.0139935047, 528.0334266841, -324.9303836520, 20.5838245170, 18.8165370778
+    ])
+    # fmt: on
+
+    # Compute u using Chebyshev polynomial approximation
+    alphasum, betasum, zterm = 0, 1, 1
+    for i in range(10):
+        zterm *= z
+        alphasum += zterm * alpha[i]
+        betasum += zterm * beta[i]
+
+    u = abs(alphasum / betasum)
+
+    # Clamp the value of u to be within the range [0.000001, 0.999999]
+    u = max(0.000001, min(u, 0.999999))
+
+    return u

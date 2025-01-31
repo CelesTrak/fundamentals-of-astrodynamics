@@ -1,49 +1,46 @@
-% ------------------------------------------------------------------------------
+%  ------------------------------------------------------------------------------
 %
-%                           function tradec2rv
+%                           procedure rv_tradec
 %
-%  this function converts range, topcentric right acension, declination, and rates
-%    into geocentric equatorial (eci) position and velocity vectors.  
+%  this procedure converts topocentric right-ascension declination with
+%    position and velocity vectors. the velocity vector is used to find the
+%    solution of singular cases.
 %
-%  author        : david vallado           davallado@gmail.com    4 nov 2022
-%
-%  revisions
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
 %  inputs          description                              range / units
-%    rho         - satellite range from site                km
-%    trtasc      - topocentric right ascension              0.0 to 2pi rad
-%    tdecl       - topocentric declination                  -pi/2 to pi/2 rad
-%    drho        - range rate                               km/s
-%    dtrtasc     - topocentric rtasc rate                   rad / s
-%    dtdecl      - topocentric decl rate                    rad / s
-%    rseci       - eci site position vector                 km
-%    lod         - excess length of day                     sec
-%
-%  outputs       :
 %    reci        - eci position vector                      km
 %    veci        - eci velocity vector                      km/s
+%    rseci       - eci site position vector                 km
+%    direct      - direction to convert                     efrom  eto
+%
+%  outputs       :
+%    rho         - topo radius of the sat                   km
+%    trtasc      - topo right ascension                     rad
+%    tdecl       - topo declination                         rad
+%    drho        - topo radius of the sat rate              km/s
+%    tdrtasc     - topo right ascension rate                rad/s
+%    tddecl      - topo declination rate                    rad/s
 %
 %  locals        :
 %    rhov        - eci range vector from site               km
-%    drhov       - eci velocity vector from site            km / s
-%    omegaearth  - eci earth's rotation rate vec            rad / s
-%    tempvec     - temporary vector
-%    latgc       - site geocentric latitude                 rad
+%    drhov       - eci velocity vector from site            km/s
+%    latgc       - geocentric lat of satellite, not nadir point  -pi/2 to pi/2 rad
 %
 %  coupling      :
 %    mag         - magnitude of a vector
-%    rot3        - rotation about the 3rd axis
-%    rot2        - rotation about the 2nd axis
+%    addvec      - add two vectors
+%    dot         - dot product of two vectors
 %
 %  references    :
-%    vallado       2022, 254, eq 4-1 to 4-2
+%    vallado       2022, 257, eq 4-1, 4-2, alg 26
 %
-% [reci, veci] = tradec2rv(trr, trtasc, tdecl, tdrr, tdrtasc, tddecl, rseci, vseci)
+% [reci, veci] = tradec2rv(trr, trtasc, tdecl, tdrr, tdrtasc, tddecl, rseci, vseci);
 % ------------------------------------------------------------------------------
-                                          
+
 function [reci, veci] = tradec2rv(trr, trtasc, tdecl, tdrr, tdrtasc, tddecl, rseci, vseci)
     constmath;
-    
+
     % --------  calculate topocentric slant range vectors ------------------
     rhov(1) = trr * cos(tdecl) * cos(trtasc);
     rhov(2) = trr * cos(tdecl) * sin(trtasc);
@@ -60,6 +57,5 @@ function [reci, veci] = tradec2rv(trr, trtasc, tdecl, tdrr, tdrtasc, tddecl, rse
     % ------ find eci range vector from site to satellite ------
     reci = rhov + rseci;
     veci = drhov + vseci;
-    
-    end  % tradec2rv
 
+end  % tradec2rv

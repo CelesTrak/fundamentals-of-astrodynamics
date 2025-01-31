@@ -47,3 +47,15 @@ def test_semimajor_axis(r):
     nu = np.radians(45)
     a = utils.semimajor_axis(r, e, nu)
     assert np.isclose(a, 7354.376374956417, rtol=DEFAULT_TOL)
+
+
+def test_period(a):
+    assert np.isclose(utils.period(a), 5828.516639879384, rtol=DEFAULT_TOL)
+
+
+@pytest.mark.parametrize(
+    "z, u_expected", [(0.1234, 0.26358469539982904), (0, 1e-6), (1, 0.999999)]
+)
+def test_lowuz(z, u_expected):
+    u = utils.lowuz(z)
+    assert np.isclose(u, u_expected, rtol=DEFAULT_TOL)

@@ -23,6 +23,10 @@
     %
     %     *****************************************************************
 
+
+    fileLoc = 'D:\Codes\LIBRARY\DataLib\';
+    [iau80arr] = iau80in(fileLoc);
+
     % LEO test
     recef = [-1033.4793830;  7901.2952754;  6380.3565958];
     vecef = [-3.225636520;  -2.872451450;   5.531924446];
@@ -83,20 +87,15 @@
     fprintf(1, 'hms %3i %3i %8.6f \n', h, m, s);
     fprintf(1, 'tdb %8.6f ttdb %16.12f jdtdb %18.11f\n', tdb, ttdb, jdtdb+jdtdbfrac );
 
-    [recig, vecig, aecig] = ecef2eci(recef, vecef, aecef, ttt, jdut1+jdut1frac, lod, xp, yp, 2, ddpsi, ddeps);
-    fprintf(1, 'GCRF 2 w corr IAU-76/FK5     %14.7f %14.7f %14.7f', recig );
-    fprintf(1, ' v %14.9f %14.9f %14.9f', vecig );
-    fprintf(1, ' a %14.9f %14.9f %14.9f\n', aecig );
+    % J2000
+    [recii, vecii, aecii] = ecef2eci(recef, vecef, aecef, iau80arr, ttt, jdut1+jdut1frac, lod, xp, yp, eqeterms, 0.0, 0.0 );
+    fprintf(1,'J2000 wo corr IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recii(1), recii(2), recii(3), vecii(1), vecii(2), vecii(3));
 
-    [recig, vecig, aecig] = ecef2eci(recef, vecef, aecef, ttt, jdut1+jdut1frac, lod, xp, yp, 2, 0.0, 0.0);
-    fprintf(1, 'GCRF 2 w/o corr IAU-76/FK5   %14.7f %14.7f %14.7f', recig );
-    fprintf(1, ' v %14.9f %14.9f %14.9f', vecig );
-    fprintf(1, ' a %14.9f %14.9f %14.9f\n', aecig );
+    % GCRF
+    [reci, veci, aeci] = ecef2eci(recef, vecef, aecef, iau80arr, ttt, jdut1+jdut1frac, lod, xp, yp, eqeterms, ddpsi, ddeps );
+    fprintf(1,'GCRF w corr   IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', reci(1), reci(2), reci(3), veci(1), veci(2), veci(3));
+  
+    [recefi, vecefi, aecefi] = eci2ecef(reci, veci, aeci, iau80arr, ttt, jdut1+jdut1frac, lod, xp, yp, eqeterms, ddpsi, ddeps );
+    fprintf(1,'ITRF rev      IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', recefi(1), recefi(2), recefi(3), vecefi(1), vecefi(2), vecefi(3));
 
-    [recef, vecef, aecef] = eci2ecef(recig, vecig, aecig, ttt, jdut1+jdut1frac, lod, xp, yp, 2, 0.0, 0.0);
-    fprintf(1, 'ecef 2 w/o corr              %14.7f %14.7f %14.7f', recef );
-    fprintf(1, ' v %14.9f %14.9f %14.9f', vecef );
-    fprintf(1, ' a %14.9f %14.9f %14.9f\n', aecef );
-    
-    
     

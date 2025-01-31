@@ -77,7 +77,7 @@
 
 function [bigr2] = getGaussRoot(decl1, decl2, decl3, rtasc1, rtasc2, rtasc3, ...
         jd1, jdf1, jd2, jdf2, jd3, jdf3, rseci1, rseci2, rseci3)
-    show = 'y';
+    show = 'n';
     constastro;
     rad = 180.0 / pi;
 
@@ -234,9 +234,9 @@ function [bigr2] = getGaussRoot(decl1, decl2, decl3, rtasc1, rtasc2, rtasc3, ...
         fprintf(1,'%11.7f \n',poly);
     end
 
-    rootarr = roots( poly )
+    rootarr = roots( poly );
     if show == 'y'
-        rootarr
+        rootarr;
         %fprintf(1,'rootarr %11.7f \n',rootarr);
     end
 
@@ -271,7 +271,7 @@ function [bigr2] = getGaussRoot(decl1, decl2, decl3, rtasc1, rtasc2, rtasc3, ...
 
     bigr2 = bigr2c * re;
     if show == 'y'
-        bigr2
+        bigr2;
     end
 
 end

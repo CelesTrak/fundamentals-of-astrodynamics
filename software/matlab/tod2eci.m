@@ -1,45 +1,43 @@
-%
 % ----------------------------------------------------------------------------
 %
-%                           function tod2eci
+%                           function eci_tod
 %
-%  this function transforms a vector from the true equator true equinox frame
-%    of date (tod), to the mean equator mean equinox (j2000) frame.
+%  this function transforms between the eci mean equator mean equinox (gcrf), and
+%    the true of date frame (tod).
 %
-%  author        : david vallado                  719-573-2600   27 may 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%    vallado     - consolidate with iau 2000                     14 feb 2005
-%
-%  inputs          description                    range / units
-%    rtod        - position vector of date
-%                    true equator, true equinox   km
-%    vtod        - velocity vector of date
-%                    true equator, true equinox   km/s
-%    atod        - acceleration vector of date
-%                    true equator, true equinox   km/s2
-%    ttt         - julian centuries of tt         centuries
+%  inputs          description                              range / units
+%    reci        - position vector eci                           km
+%    veci        - velocity vector eci                           km/s
+%    direct      - direction                                     eto, efrom
+%    iau80arr    - iau76/fk5 eop constants
+%    jdtt        - julian date of tt                             days from 4713 bc
+%    jdftt       - fractional julian centuries of tt             days
+%    jdut1       - julian date of ut1                            days from 4713 bc
+%    lod         - excess length of day                          sec
+%    ddpsi       - delta psi correction to eci                   rad
+%    ddeps       - delta eps correction to eci                   rad
 %
 %  outputs       :
-%    reci        - position vector eci            km
-%    veci        - velocity vector eci            km/s
-%    aeci        - acceleration vector eci        km/s2
+%    rtod       - position vector tod                            km
+%    vtod       - velocity vector tod                            km/s
 %
 %  locals        :
-%    deltapsi    - nutation angle                 rad
-%    trueeps     - true obliquity of the ecliptic rad
-%    meaneps     - mean obliquity of the ecliptic rad
-%    omega       -                                rad
-%    nut         - matrix for mod - tod
+%    deltapsi    - nutation angle                                rad
+%    trueeps     - true obliquity of the ecliptic                rad
+%    meaneps     - mean obliquity of the ecliptic                rad
+%    prec        - matrix for mod - eci
+%    nut         - matrix for tod - mod
 %
 %  coupling      :
-%   precess      - rotation for precession        mod - eci
-%   nutation     - rotation for nutation          tod - mod
+%   precess      - rotation for precession
+%   nutation     - rotation for nutation
 %
 %  references    :
-%    vallado       2001, 219-220, eq 3-68
+%    vallado       2022, 225
 %
-% [reci, veci, aeci] = tod2eci(rtod, vtod, atod, iau80arr, ttt, ddpsi, ddeps)
+% [reci, veci, aeci] = tod2eci(rtod, vtod, atod, iau80arr, ttt, ddpsi, ddeps);
 % ----------------------------------------------------------------------------
 
 function [reci, veci, aeci] = tod2eci(rtod, vtod, atod, iau80arr, ttt, ddpsi, ddeps)
@@ -56,4 +54,4 @@ function [reci, veci, aeci] = tod2eci(rtod, vtod, atod, iau80arr, ttt, ddpsi, dd
 
     aeci = prec*nut*atod;
 
-
+end

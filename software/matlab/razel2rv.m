@@ -1,55 +1,59 @@
-%
+
 % ------------------------------------------------------------------------------
 %
-%                           function razel2rv
+%                           procedure razel2rv
 %
-%  this function converts range, azimuth, and elevation and their rates to
-%    the geocentric equatorial (eci) position and velocity vectors.
+%  this procedure converts range, azimuth, and elevation and their rates with
+%    the geocentric equatorial (ecef) position and velocity vectors.  notice the
+%    value of small as it can affect rate term calculations. uses velocity
+%    vector to find the solution of singular cases.
 %
-%  author        : david vallado                  719-573-2600   30 may 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%    vallado     - add terms for ast calculation                 30 sep 2002
-%
-%  inputs          description                    range / units
-%    rho         - satellite range from site      km
-%    az          - azimuth                        0.0 to 2pi rad
-%    el          - elevation                      -pi/2 to pi/2 rad
-%    drho        - range rate                     km/s
-%    daz         - azimuth rate                   rad / s
-%    del         - elevation rate                 rad / s
-%    rs          - ecef site position vector      km
-%    latgd       - geodetic latitude              -pi/2 to pi/2 rad
-%    lon         - longitude of site              -2pi to 2pi rad
-%    alt         - altitude                       km
-%    ttt         - julian centuries of tt         centuries
-%    jdut1       - julian date of ut1             days from 4713 bc
-%    lod         - excess length of day           sec
-%    xp          - polar motion coefficient       arc sec
-%    yp          - polar motion coefficient       arc sec
-%    terms       - number of terms for ast calculation 0,2
+%  inputs          description                              range / units
+%    recef       - ecef position vector                       km
+%    vecef       - ecef velocity vector                       km/s
+%    latgd       - geodetic latitude                          -pi/2 to pi/2 rad
+%    lon         - geodetic longitude                         -2pi to pi rad
+%    direct      -  direction to convert                      eFrom  eTo
 %
 %  outputs       :
-%    reci        - eci position vector            km
-%    veci        - eci velocity vector            km/s
+%    rho         - satellite range from site                  km
+%    az          - azimuth                                    0.0 to 2pi rad
+%    el          - elevation                                  -pi/2 to pi/2 rad
+%    drho        - range rate                                 km/s
+%    daz         - azimuth rate                               rad/s
+%    del         - elevation rate                             rad/s
 %
 %  locals        :
-%    rhoecef     - ecef range vector from site    km
-%    drhoecef    - ecef velocity vector from site km/s
-%    rhosez      - sez range vector from site     km
-%    drhosez     - sez velocity vector from site  km
+%    rsecef      - ecef site position vector                  km
+%    rhovecef    - ecef range vector from site                km
+%    drhovecef   - ecef velocity vector from site             km/s
+%    rhosez      - sez range vector from site                 km
+%    drhosez     - sez velocity vector from site              km
 %    tempvec     - temporary vector
+%    temp        - temporary extended value
+%    temp1       - temporary extended value
+%    i           - index
 %
 %  coupling      :
-%    raz2rvs     - find r and v from site in topocentric horizon (sez) system
+%    mag         - magnitude of a vector
+%    addvec      - add two vectors
+%    rot3        - rotation about the 3rd axis
+%    rot2        - rotation about the 2nd axis
+%    atan2       - arc tangent function which also resloves quadrants
+%    dot         - dot product of two vectors
+%    rvsez_razel - find r and v from site in topocentric horizon (sez) system
+%    arcsin      - arc sine function
+%    sign        - returns the sign of a variable
 %
 %  references    :
-%    vallado       2001, 250-255, alg 27
+%    vallado       2022, 262, alg 27
 %
-% [reci,veci] = razel2rv ( rho,az,el,drho,daz,del,latgd,lon,alt,ttt,jdut1,lod,xp,yp,terms,ddpsi,ddeps );
+% [recef, vecef] = razel2rv(latgd, lon, alt, rho, az, el, drho, daz, del);
 % ------------------------------------------------------------------------------
 
-function [reci,veci] = razel2rv ( rho,az,el,drho,daz,del,latgd,lon,alt,ttt,iau80arr,jdut1,lod,xp,yp,terms,ddpsi,ddeps );
+function [recef, vecef] = razel2rv(latgd, lon, alt, rho, az, el, drho, daz, del)
 
         % -------------------------  implementation   -----------------
         constmath;
@@ -67,13 +71,14 @@ function [reci,veci] = razel2rv ( rho,az,el,drho,daz,del,latgd,lon,alt,ttt,iau80
         drhoecef = drhoecef';
 
         % ----------  find ecef range and velocity vectors -------------
-        [rs,vs] = site ( latgd,lon,alt );
+        [rs, vs] = site ( latgd, lon, alt );
         recef = rhoecef + rs;
         vecef = drhoecef;
 
-        % -------- convert ecef to eci
-        recef = recef;
-        vecef = vecef;
-        aceef     = [0;0;0];
-        [reci,veci,aeci] = ecef2eci(recef,vecef,acef,ttt,iau80arr, jdut1,lod,xp,yp,terms,ddpsi,ddeps );
+        % % -------- convert ecef to eci
+        % recef = recef;
+        % vecef = vecef;
+        % aceef     = [0;0;0];
+        % [reci,veci,aeci] = ecef2eci(recef,vecef,acef,ttt,iau80arr, jdut1,lod,xp,yp,terms,ddpsi,ddeps );
 
+end

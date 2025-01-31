@@ -8,11 +8,10 @@
 %  author        : david vallado                      719-573-2600   12 dec 2005
 %
 %  inputs          description                               range / units
-%    jdtdb         - epoch julian date                     days from 4713 BC
-%    jdtdbF        - epoch julian date fraction            day fraction from jdutc
+%    jd            - epoch julian date                     days from 4713 BC
+%    jdF           - epoch julian date fraction            day fraction from jdutc
 %    interp        - interpolation                        n-none, l-linear, s-spline
-%    eopearr      - array of eop data records
-%    jdeopstart  - julian date of the start of the eopearr data (set in initeop)
+%    eopearr       - array of eop data records
 %
 %  outputs       :
 %    dut1        - delta ut1 (ut1-utc)                        sec
@@ -38,25 +37,27 @@
 %
 %  references    :
 %    vallado       2013,
-%  [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, jdtdbF, interp, eoparr)
+%  [dut1, dat, lod, xp, yp, ddpsi, ddeps, ddx, ddy] = findeopparam( jd, jdF, interp, eoparr);
 % --------------------------------------------------------------------------- 
 
-function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, jdtdbF, interp, eoparr)
+function [dut1, dat, lod, xp, yp, ddpsi, ddeps, ddx, ddy] = findeopparam( jd, jdF, interp, eoparr)
 
+    convrt = pi / (3600.0 * 180.0);  % " to rad
+   
     % the ephemerides are centered on jdtdb, but it turns out to be 0.5, or 0000 hrs.
     % check if any whole days in jdF
-    jdb = floor(jdtdb + jdtdbF) + 0.5;  % want jd at 0 hr
-    mfme = (jdtdb + jdtdbF - jdb) * 1440.0;
+    jd1 = floor(jd + jdF) + 0.5;  % want jd at 0 hr
+    mfme = (jdF + (jd - jd1)) * 1440.0;
     if (mfme < 0.0)
         mfme = 1440.0 + mfme;
     end
 
     % ---- read data for day of interest
-    jdeopstarto = floor(jdtdb + jdtdbF - eoparr(1).mjd - 2400000.5);
-    recnum = floor(jdeopstarto);
+    jdeopstarto = floor(jd + jdF - eoparr(1).mjd - 2400000.5);
+    recnum = jdeopstarto + 1;
 
     % check for out of bound values
-    if ((recnum >= 1) && (recnum <= 51830))  % eopsize
+    if ((recnum >= 1) && (recnum <= size(eoparr, 2)))  % eopsize
         % ---- set non-interpolated values
         dut1 = eoparr(recnum).dut1;
         dat = eoparr(recnum).dat;
@@ -65,8 +66,8 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
         yp = eoparr(recnum).yp;
         ddpsi = eoparr(recnum).ddpsi;
         ddeps = eoparr(recnum).ddeps;
-        dx = eoparr(recnum).dx;
-        dy = eoparr(recnum).dy;
+        ddx = eoparr(recnum).dx;
+        ddy = eoparr(recnum).dy;
 
         % ---- find nutation parameters for use in optimizing speed
 
@@ -81,8 +82,8 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
             yp = eoparr(recnum).yp + (eoparr(recnum + 1).yp - eoparr(recnum).yp) * fixf;
             ddpsi = eoparr(recnum).ddpsi + (eoparr(recnum + 1).ddpsi - eoparr(recnum).ddpsi) * fixf;
             ddeps = eoparr(recnum).ddeps + (eoparr(recnum + 1).ddeps - eoparr(recnum).ddeps) * fixf;
-            dx = eoparr(recnum).dx + (eoparr(recnum + 1).dx - eoparr(recnum).dx) * fixf;
-            dy = eoparr(recnum).dy + (eoparr(recnum + 1).dy - eoparr(recnum).dy) * fixf;
+            ddx = eoparr(recnum).dx + (eoparr(recnum + 1).dx - eoparr(recnum).dx) * fixf;
+            ddy = eoparr(recnum).dy + (eoparr(recnum + 1).dy - eoparr(recnum).dy) * fixf;
             %printf("sunm %i xp %lf fixf %lf n %lf nxt %lf \n", recnum, xp, fixf, eoparr(recnum).dut1, eoparr(recnum).dut1);
             %printf("recnum l %i fixf %lf %lf rsun %lf %lf %lf \n", recnum, fixf, eoparr(recnum).dut1, dut1, rsuny, rsunz);
         end
@@ -122,11 +123,11 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
                 eoparr(recnum + off2).ddeps,...
                 eoparr(recnum - off1).mjd, eoparr(recnum).mjd, eoparr(recnum + off1).mjd, eoparr(recnum + off2).mjd,...
                 eoparr(recnum).mjd + fixf);
-            dx = cubicinterp(eoparr(recnum- off1).dx, eoparr(recnum).dx, eoparr(recnum + off1).dx,...
+            ddx = cubicinterp(eoparr(recnum- off1).dx, eoparr(recnum).dx, eoparr(recnum + off1).dx,...
                 eoparr(recnum + off2).dx,...
                 eoparr(recnum - off1).mjd, eoparr(recnum).mjd, eoparr(recnum + off1).mjd, eoparr(recnum + off2).mjd,...
                 eoparr(recnum).mjd + fixf);
-            dy = cubicinterp(eoparr(recnum- off1).dy, eoparr(recnum).dy, eoparr(recnum + off1).dy,...
+            ddy = cubicinterp(eoparr(recnum- off1).dy, eoparr(recnum).dy, eoparr(recnum + off1).dy,...
                 eoparr(recnum + off2).dy,...
                 eoparr(recnum - off1).mjd, eoparr(recnum).mjd, eoparr(recnum + off1).mjd, eoparr(recnum + off2).mjd,...
                 eoparr(recnum).mjd + fixf);
@@ -143,8 +144,16 @@ function [dut1, dat, lod, xp, yp, ddpsi, ddeps, dx, dy] = findeopparam( jdtdb, j
         yp = 0.0;
         ddpsi = 0.0;
         ddeps = 0.0;
-        dx = 0.0;
-        dy = 0.0;
+        ddx = 0.0;
+        ddy = 0.0;
     end
 
-    %  findeopparam
+    % now convert units for use in operations
+    xp = xp * convrt;  % " to rad
+    yp = yp * convrt;
+    ddpsi = ddpsi * convrt;  % " to rad
+    ddeps = ddeps * convrt;
+    ddx = ddx * convrt;  % " to rad
+    ddy = ddy * convrt;
+
+end    %  findeopparam

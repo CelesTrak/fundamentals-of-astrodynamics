@@ -36,8 +36,7 @@ function [spwarr, updDate] = readspw(spwFileName)
     
     updDate = '';
     infile = fopen(spwFileName, 'r');
-    
-    
+
     while (~feof(infile))
         longstr = fgets(infile);
         while ( (longstr(1) == '#') && (feof(infile) == 0) )
@@ -97,17 +96,12 @@ function [spwarr, updDate] = readspw(spwFileName)
                     [jd, jdFrac] = jday(linearr(1), linearr(2), linearr(3), 0, 0, 0.0);
                     spwarr(ktr).mjd = jd + jdFrac - 2400000.5;
     
-                    % ---- find epoch date
-                    if (ktr == 1)
-                        mjdspwstart = spwarr(ktr).mjd;
-                    end
                 end  % for through observed
                 
-                ktrActObs = ktr;
             end
        
             % ---- process predicted records
-            if (contains(longstr, 'NUM_PREDICTED_POINTS'))
+            if (contains(longstr, 'NUM_DAILY_PREDICTED_POINTS'))
                 numrecsobs = str2double(longstr(20:end));
                 longstr = fgets(infile);
                 % ---- process predicted records only

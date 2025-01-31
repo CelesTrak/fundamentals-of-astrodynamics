@@ -1,10 +1,10 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 10 Oct 2019
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 from typing import Tuple
 
@@ -20,7 +20,7 @@ def trigpoly(
     """Computes accumulated Legendre polynomials and trigonometric terms.
 
     References:
-        Vallado: 2013, p. 597, Eq. 8-57
+        Vallado: 2022, p. 600-602
 
     Args:
         recef (array_like): ECEF satellite position vector in km
@@ -43,8 +43,8 @@ def trigpoly(
     w_arr = np.zeros((order + 2, order + 2))
 
     # Trigonometric terms (GTDS approach)
-    trig_arr[0, 0] = 0.0  # sin terms
-    trig_arr[0, 1] = 1.0  # cos terms
+    trig_arr[0, 0] = 0  # sin terms
+    trig_arr[0, 1] = 1  # cos terms
     tlon = np.tan(latgc)
     trig_arr[1, 0] = np.sin(lon)
     trig_arr[1, 1] = np.cos(lon)
@@ -52,9 +52,9 @@ def trigpoly(
 
     for m in range(2, order + 1):
         # Sine terms
-        trig_arr[m, 0] = 2.0 * clon * trig_arr[m - 1, 0] - trig_arr[m - 2, 0]
+        trig_arr[m, 0] = 2 * clon * trig_arr[m - 1, 0] - trig_arr[m - 2, 0]
         # Cosine terms
-        trig_arr[m, 1] = 2.0 * clon * trig_arr[m - 1, 1] - trig_arr[m - 2, 1]
+        trig_arr[m, 1] = 2 * clon * trig_arr[m - 1, 1] - trig_arr[m - 2, 1]
         # Tangent terms
         trig_arr[m, 2] = (m - 1) * tlon + tlon
 

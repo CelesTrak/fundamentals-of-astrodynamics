@@ -271,6 +271,8 @@ function [satrec, r, v] = sgp4(satrec, tsince);
    end
 
    % /* ------------- short period preliminary quantities ----------- */
+   sineo1 = sin(eo1);
+   coseo1 = cos(eo1);
    ecose = axnl*coseo1 + aynl*sineo1;
    esine = axnl*sineo1 - aynl*coseo1;
    el2   = axnl*axnl + aynl*aynl;

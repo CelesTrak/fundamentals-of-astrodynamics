@@ -5,14 +5,12 @@
 %  this function calculates the geocentric equatorial position vector
 %    the sun given the julian date. these are the jpl de ephemerides.
 %
-%  author        : david vallado           davallado@gmail.com   27 may 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%
-%  inputs          description                    range / units
+%  inputs          description                              range / units
 %    jdtdb         - epoch julian date              days from 4713 BC
 %    jdtdbF        - epoch julian date fraction     day fraction from jdutc
-%   interp        - interpolation                        n-none, l-linear, s-spline
+%    interp        - interpolation                        n-none, l-linear, s-spline
 %    jpldearr      - array of jplde data records
 %    jdjpldestart  - julian date of the start of the jpldearr data (set in initjplde)
 %
@@ -40,9 +38,9 @@
 %    none.
 %
 %  references    :
-%    vallado       2013, 279, alg 29, ex 5-1
+%    vallado       2022, 285, alg 29, ex 5-1
 %
-%  [rsun, rtascs, decls, rmoon, rtascm, declm] = sunmoonjpl(jdtdb, jdtdbF, interp, jpldearr)
+%  [rsun, rtascs, decls, rmoon, rtascm, declm] = sunmoonjpl(jdtdb, jdtdbF, interp, jpldearr);
 % ---------------------------------------------------------------------------
 
 function [rsun, rtascs, decls, rmoon, rtascm, declm] = sunmoonjpl(jdtdb, jdtdbF, interp, jpldearr)

@@ -1,47 +1,52 @@
-
 % ----------------------------------------------------------------------------
 %
-%                           function ecef2pef
+%                           function ecef_pef
 %
-%  this function transforms a vector from the earth fixed itrf frame
-%    (itrf), to the pseudo earth fixed frame (pef).
+%  this function transforms a vector from earth fixed (itrf) frame to
+%  pseudo earth fixed (pef).
 %
-%  author        : david vallado                  719-573-2600   27 may 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%
-%  inputs          description                    range / units
-%    recef       - position vector earth fixed    km
-%    vecef       - velocity vector earth fixed    km/s
-%    aecef       - acceleration vector earth fixedkm/s2
-%    xp          - polar motion coefficient       arc sec
-%    yp          - polar motion coefficient       arc sec
-%    ttt         - julian centuries of tt         centuries
+%  inputs          description                              range / units
+%    recef       - position vector earth fixed                   km
+%    vecef       - velocity vector earth fixed                   km/s
+%    direct      - direction of transfer                         eto, efrom
+%    opt         - method option                                 e80, e96, e06cio
+%    ttt         - julian centuries of tt                        centuries
+%    lod         - excess length of day                          sec
+%    xp          - polar motion coefficient                      rad
+%    yp          - polar motion coefficient                      rad
 %
 %  outputs       :
-%    rpef        - position pseudo earth fixed    km
-%    vpef        - velocity pseudo earth fixed    km/s
-%    apef        - acceleration pseudo earth fixedkm/s2
+%    rpef        - position vector pef                           km
+%    vpef        - velocity vector pef                           km/s
 %
 %  locals        :
+%    deltapsi    - nutation angle                                rad
+%    trueeps     - true obliquity of the ecliptic                rad
+%    meaneps     - mean obliquity of the ecliptic                rad
+%    nut         - matrix for tod - mod
+%    st          - matrix for pef - tod
+%    stdot       - matrix for pef - tod rate
+%    pm          - matrix for ecef - pef
 %
 %  coupling      :
-%   precess      - rotation for precession        mod - eci
+%   polarm       - rotation for polar motion
 %
 %  references    :
-%    vallado       2001, 219, eq 3-65 to 3-66
+%    vallado       2022, 224
 %
-% [rpef,vpef,apef] = ecef2pef  ( recef,vecef,aecef, opt, xp, yp, ttt )
+% [rpef,vpef,apef] = ecef2pef  ( recef,vecef,aecef, opt, xp, yp, ttt );
 % ----------------------------------------------------------------------------
 
 function [rpef,vpef,apef] = ecef2pef  ( recef, vecef, aecef, opt, ttt, xp, yp )
 
-        [pm] = polarm(xp, yp, ttt, opt);
- 
-        rpef = pm*recef;
+    [pm] = polarm(xp, yp, ttt, opt);
 
-        vpef = pm*vecef; 
+    rpef = pm*recef;
 
-        apef = pm*aecef;
+    vpef = pm*vecef;
 
+    apef = pm*aecef;
 
+end

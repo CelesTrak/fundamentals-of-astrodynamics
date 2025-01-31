@@ -1,4 +1,3 @@
-%
 % ------------------------------------------------------------------------------
 %
 %                           function cubic
@@ -48,22 +47,22 @@
 %  references    :
 %    vallado       2007, 975
 %
-% [r1r,r1i,r2r,r2i,r3r,r3i] = cubic ( a3,b2,c1,d0,opt );
+% [r1r,r1i,r2r,r2i,r3r,r3i] = cubic ( a3, b2, c1, d0, opt );
 % ------------------------------------------------------------------------------
 
-function [r1r,r1i,r2r,r2i,r3r,r3i] = cubic ( a3,b2,c1,d0,opt );
-        % --------------------  implementation   ----------------------
-        rad       = 180.0/pi;
-        onethird  = 1.0 /3.0;
-        small     = 0.0000000001;
-        r1r  = 0.0;
-        r1i  = 0.0;
-        r2r  = 0.0;
-        r2i  = 0.0;
-        r3r  = 0.0;
-        r3i  = 0.0;
+function [r1r,r1i,r2r,r2i,r3r,r3i] = cubic ( a3, b2, c1, d0, opt )
+    % --------------------  implementation   ----------------------
+    rad       = 180.0/pi;
+    onethird  = 1.0 /3.0;
+    small     = 0.0000000001;
+    r1r  = 0.0;
+    r1i  = 0.0;
+    r2r  = 0.0;
+    r2i  = 0.0;
+    r3r  = 0.0;
+    r3i  = 0.0;
 
-       if (abs(a3) > small)
+    if (abs(a3) > small)
         % ----------- force coefficients into std form ----------------
         p= b2/a3;
         q= c1/a3;
@@ -87,21 +86,21 @@ function [r1r,r1i,r2r,r2i,r3r,r3i] = cubic ( a3,b2,c1,d0,opt );
                 r2i= -0.5 *sqrt( 3.0  )*(temp1 - temp2);
                 r3r= -0.5 *(temp1 + temp2) - p*onethird;
                 r3i= -r2i;
-              else
+            else
                 r2r= 99999.9;
                 r3r= 99999.9;
-              end;
-          else
+            end
+        else
             % --------------- evaluate zero point ---------------------
             if ( abs( delta ) < small  )
                 r1r= -2.0*sign(b2)*abs(b2*0.5)^onethird - p*onethird;
                 r2r=      sign(b2)*abs(b2*0.5)^onethird - p*onethird;
-%                if (opt=='U')
-%                    r3r= 99999.9;
-%                  else
+                if (opt=='U')
+                    r3r= 99999.9;
+                else
                     r3r= r2r;
-%                  end;
-              else
+                end
+            else
                 % ------------ use trigonometric identities -----------
                 e0     = 2.0 *sqrt(-a3*onethird);
                 cosphi = (-b2/(2.0 *sqrt(-a3*a3*a3/27.0 )) );
@@ -109,15 +108,15 @@ function [r1r,r1i,r2r,r2i,r3r,r3i] = cubic ( a3,b2,c1,d0,opt );
                 phi    = atan2( sinphi,cosphi );
                 if (phi < 0.0)
                     phi = phi + 2.0*pi;
-                  end;
+                end
                 r1r= e0*cos( phi*onethird ) - p*onethird;
                 r2r= e0*cos( phi*onethird + 120.0 /rad ) - p*onethird;
                 r3r= e0*cos( phi*onethird + 240.0 /rad ) - p*onethird;
-              end;
-          end;
-        else
-          [r1r,r1i,r2r,r2i] =  quadric   ( b2,c1,d0,opt );
-          r3r  = 99999.9;
-          r3i  = 99999.9;
-        end;
+            end
+        end
+    else
+        [r1r,r1i,r2r,r2i] =  quadric   ( b2,c1,d0,opt );
+        r3r  = 99999.9;
+        r3i  = 99999.9;
+    end
 

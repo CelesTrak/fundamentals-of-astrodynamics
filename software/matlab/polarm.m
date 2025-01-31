@@ -1,41 +1,35 @@
-%
-% ----------------------------------------------------------------------------
+% -----------------------------------------------------------------------------
 %
 %                           function polarm
 %
-%  this function calulates the transformation matrix that accounts for polar
-%    motion. both the 1980 and 2000 theories are handled. note that the rotation
-%    order is different between 1980 and 2000 .
+%  this function calculates the transformation matrix that accounts for polar
+%    motion within the iau-76/fk5, iau-2000a, and iau2006/2000 equinox systems.
 %
-%  author        : david vallado                  719-573-2600   25 jun 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%    vallado     - consolidate with iau 2000                     14 feb 2005
-%
-%  inputs          description                    range / units
-%    xp          - polar motion coefficient       rad
-%    yp          - polar motion coefficient       rad
+%  inputs          description                              range / units
+%    xp          - polar motion coefficient                         rad
+%    yp          - polar motion coefficient                         rad
 %    ttt         - julian centuries of tt (00 theory only)
-%    opt         - method option                  '06', '80'
+%    opt         - method option                                   e80, e96, e06cio
 %
 %  outputs       :
-%    pm          - transformation matrix for ecef - pef
+%    polarm      - transformation matrix for itrf - pef
 %
 %  locals        :
 %    convrt      - conversion from arcsec to rad
-%    sp          - s prime value
+%    sp          - s prime value (00 theory only)
 %
 %  coupling      :
 %    none.
 %
 %  references    :
-%    vallado       2004, 207-209, 211, 223-224
+%    vallado       2022, 213, 224
 %
 % [pm] = polarm ( xp, yp, ttt, opt );
 % ----------------------------------------------------------------------------
 
 function [pm] = polarm ( xp, yp, ttt, opt )
-
     cosxp = cos(xp);
     sinxp = sin(xp);
     cosyp = cos(yp);
@@ -92,3 +86,4 @@ function [pm] = polarm ( xp, yp, ttt, opt )
         % pm = a3*a2*a1;
     end
 
+end

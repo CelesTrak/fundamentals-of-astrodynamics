@@ -18,13 +18,13 @@ def t():
     "r2, earth_model, los, tmin",
     [
         (
-            [0.0, 5740.323, 3189.068],
+            [0, 5740.323, 3189.068],
             utils.EarthModel.ELLIPSOIDAL,
             False,
             0.5082248650848982,
         ),
         (
-            [0.0, 5740.323, 3189.068],
+            [0, 5740.323, 3189.068],
             utils.EarthModel.SPHERICAL,
             False,
             0.5082352992389487,
@@ -45,7 +45,7 @@ def t():
 )
 def test_in_sight(r2, earth_model, los, tmin, caplog):
     # Vallado 2022, Example 5-6
-    r1 = [0.0, -4464.696, -5102.509]
+    r1 = [0, -4464.696, -5102.509]
 
     # Call function with logging
     with caplog.at_level(logging.DEBUG):

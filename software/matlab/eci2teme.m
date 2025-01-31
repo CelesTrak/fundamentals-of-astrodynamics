@@ -1,42 +1,40 @@
 % ----------------------------------------------------------------------------
 %
-%                           function eci2teme
+%                           function eci_teme
 %
-%  this function transforms a vector from the mean equator mean equinox (j2000)
-%    system (eci), to the true equator mean equinox (teme) system.
+%  this function transforms a vector from the true equator mean equinox system,
+%  (teme) to the mean equator mean equinox (j2000) system.
 %
-%  author        : david vallado                  719-573-2600   30 oct 2017
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  inputs          description                    range / units
-%    reci        - position vector eci            km
-%    veci        - velocity vector eci            km/s
-%    aeci        - acceleration vector eci        km/s2
-%    ttt         - julian centuries of tt         centuries
-%    ddpsi       - delta psi correction to gcrf   rad
-%    ddeps       - delta eps correction to gcrf   rad
+%  inputs          description                              range / units
+%    rteme       - position vector of date
+%                  true equator, mean equinox                     km
+%    vteme       - velocity vector of date
+%                  true equator, mean equinox                     km / s
+%    iau80arr     - iau80 array of values
+%    ttt         - julian centuries of tt                         centuries
+%    ddpsi       - delta psi correction to gcrf                   rad
+%    ddeps       - delta eps correction to gcrf                   rad
 %
 %  outputs       :
-%    rteme       - position vector of date
-%                    true equator, mean equinox   km
-%    vteme       - velocity vector of date
-%                    true equator, mean equinox   km/s
-%    ateme       - acceleration vector of date
-%                    true equator, mean equinox   km/s2
+%    reci        - position vector eci                            km
+%    veci        - velocity vector eci                            km / s
 %
-%  locals        :
+%  locals :
 %    prec        - matrix for eci - mod
 %    nutteme     - matrix for mod - teme - an approximation for nutation
-%    eqe         - rotation for equation of equinoxes (geometric terms only)
+%    eqeg        - rotation for equation of equinoxes(geometric terms only)
 %    tm          - combined matrix for teme2eci
 %
 %  coupling      :
-%   precess      - rotation for precession        eci - mod
-%   nutation     - rotation for nutation          eci - tod
+%   precess      - rotation for precession                        eci - mod
+%   nutation     - rotation for nutation                          eci - tod
 %
-%  references    :
-%    vallado       2013, 231-233
+%  references :
+%    vallado       2022, 233
 %
-% [rteme, vteme, ateme] = eci2teme  ( reci, veci, aeci, iau80arr, ttt, ddpsi, ddeps)
+% [rteme, vteme, ateme] = eci2teme  ( reci, veci, aeci, iau80arr, ttt, ddpsi, ddeps);
 % ----------------------------------------------------------------------------
 
 function [rteme, vteme, ateme] = eci2teme  ( reci, veci, aeci, iau80arr, ttt, ddpsi, ddeps)
@@ -70,3 +68,4 @@ function [rteme, vteme, ateme] = eci2teme  ( reci, veci, aeci, iau80arr, ttt, dd
     vteme = tm * veci;
     ateme = tm * aeci;
 
+end

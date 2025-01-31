@@ -1,20 +1,33 @@
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 # Author: David Vallado
 # Date: 27 May 2002
 #
 # Copyright (c) 2024
 # For license information, see LICENSE file
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------
 
 
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Literal, Tuple
+from typing import Tuple
 
 from . import iau_transform as iau
+from .data import IAU80Array, IAU06Array, IAU06xysArray
 from .sidereal import gstime, sidereal
 from .utils import precess, nutation, polarm
 from ... import constants as const
+
+
+def calc_omegaearth(lod: float) -> np.ndarray:
+    """Calculates the Earth's rotation vector.
+
+    Args:
+        lod (float): Excess length of day in seconds
+
+    Returns:
+        np.ndarray: Earth's rotation vector in rad/s
+    """
+    return np.array([0, 0, const.EARTHROT * (1 - lod / const.DAY2SEC)])
 
 
 def calc_orbit_effects(
@@ -25,12 +38,12 @@ def calc_orbit_effects(
     yp: float,
     ddpsi: float,
     ddeps: float,
-    opt: Literal["50", "80", "06"] = "80",
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
     use_iau80: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Calculates the orbit effects from precession, nutation, sidereal time,
-    and polar motion.
+    """Calculates the orbit effects from precession, nutation, sidereal time, and polar
+    motion.
 
     Args:
         ttt (float): Julian centuries of TT
@@ -40,8 +53,7 @@ def calc_orbit_effects(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
-        opt (Literal["50", "80", "06"], optional): Option for precession/nutation model
-                                                   (default "80")
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
         use_iau80 (bool, optional): Use IAU 1980 model for precession/nutation
                                     (default True)
@@ -55,21 +67,20 @@ def calc_orbit_effects(
             omegaearth (np.ndarray): Earth angular rotation vecctor
     """
     # Find matrices that account for various orbit effects
-    prec, *_ = precess(ttt, opt=opt)
-    deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps)
-    st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms)
+    prec, *_ = precess(ttt, opt="80")
+    deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
+    st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, use_iau80, eqeterms)
     pm = polarm(xp, yp, ttt, use_iau80=use_iau80)
 
     # Calculate the effects of Earth's rotation
-    thetasa = const.EARTHROT * (1.0 - lod / const.DAY2SEC)
-    omegaearth = np.array([0, 0, thetasa])
+    omegaearth = calc_omegaearth(lod)
 
     return prec, nut, st, pm, omegaearth
 
 
-###############################################################################
+########################################################################################
 # ECI <-> ECEF Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def compute_iau06_matrices(
@@ -78,12 +89,14 @@ def compute_iau06_matrices(
     lod: float,
     xp: float,
     yp: float,
-    option: Literal["06a", "06b", "06c"],
-    ddx: float = 0.0,
-    ddy: float = 0.0,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float,
+    ddy: float,
+    use_full_series: bool,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Computes the precession/nutation matrix, sidereal time matrix,
-    polar motion matrix, and Earth rotation vector.
+    """Computes the precession/nutation matrix, sidereal time matrix, polar motion
+    matrix, and Earth rotation vector.
 
     Args:
         ttt (float): Julian centuries of TT
@@ -91,9 +104,11 @@ def compute_iau06_matrices(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
-        option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians
+        ddy (float, optional): EOP correction for y in radians
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
 
     Returns:
         tuple: (pnb, st, pm, omegaearth)
@@ -102,23 +117,15 @@ def compute_iau06_matrices(
             pm (np.ndarray): Polar motion matrix
             omegaearth (np.ndarray): Earth rotation vector
     """
-    # Precession/nutation and sidereal time matrices
-    if option == "06c":
-        *_, pnb = iau.iau06xys(ttt, ddx, ddy)
-        st = iau.iau06era(jdut1)
-    elif option == "06a":
-        deltapsi, pnb, _, _, *_ = iau.iau06pna(ttt)
-        _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_)
-    elif option == "06b":
-        deltapsi, pnb, _, _, *_ = iau.iau06pnb(ttt)
-        _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_)
-    else:
-        raise ValueError("Invalid option. Use '06a', '06b', or '06c'.")
+    # Calculate precession-nutation and sidereal matrices
+    *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy, iau06xysarr, use_full_series)
+    st, _ = sidereal(jdut1, 0, 0, 0, lod, use_iau80=False)
 
-    # Polar motion matrix and Earth rotation vector
-    *_, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, 0, 0, use_iau80=False
-    )
+    # Earth rotation
+    omegaearth = calc_omegaearth(lod)
+
+    # Polar motion matrix
+    pm = polarm(xp, yp, ttt, use_iau80=False)
 
     return pnb, st, pm, omegaearth
 
@@ -134,13 +141,14 @@ def eci2ecef(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI mean equator, mean equinox frame
-    (J2000) to the Earth-fixed (ITRF) frame (ECEF).
+    """Transforms a vector from the ECI mean equator, mean equinox frame (J2000) to the
+    Earth-fixed frame (ECEF).
 
     References:
-        Vallado: 2013, p. 223-229
+        Vallado: 2022, p. 223-230
 
     Args:
         reci (array_like): ECi position vector in km
@@ -153,6 +161,7 @@ def eci2ecef(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -165,7 +174,7 @@ def eci2ecef(
     """
     # Find matrices that account for various orbit effects
     prec, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Position transformation
@@ -180,7 +189,7 @@ def eci2ecef(
     aecef = (
         pm.T @ (st.T @ nut.T @ prec.T @ aeci)
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
@@ -195,15 +204,17 @@ def eci2ecef06(
     lod: float,
     xp: float,
     yp: float,
-    option: Literal["06a", "06b", "06c"],
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
     ddx: float = 0.0,
     ddy: float = 0.0,
+    use_full_series: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI frame (GCRF) to the Earth-fixed frame (ITRF)
-    using IAU 2006 models.
+    """Transforms a vector from the ECI frame (J2000) to the Earth-fixed frame (ECEF)
+    using the IAU 2006 xys approach.
 
     References:
-        Vallado, 2004, pp. 205-219
+        Vallado, 2022, p. 223-230
 
     Args:
         reci (ArrayLike): ECI position vector in km
@@ -214,9 +225,12 @@ def eci2ecef06(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
-        option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+                                          (default True)
 
     Returns:
         tuple: (recef, vecef, aecef)
@@ -224,9 +238,9 @@ def eci2ecef06(
             vecef (np.ndarray): ECEF velocity vector in km/s
             aecef (np.ndarray): ECEF acceleration vector in km/s²
     """
-    # Compute the IAU 2006 matrices
+    # Compute the IAU06 matrices
     pnb, st, pm, omegaearth = compute_iau06_matrices(
-        ttt, jdut1, lod, xp, yp, option, ddx, ddy
+        ttt, jdut1, lod, xp, yp, iau06arr, iau06xysarr, ddx, ddy, use_full_series
     )
 
     # Transform position
@@ -241,7 +255,7 @@ def eci2ecef06(
     aecef = pm.T @ (
         st.T @ pnb.T @ aeci
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
@@ -258,13 +272,14 @@ def ecef2eci(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame (ECEF) to the ECI
-    mean equator, mean equinox (J2000) frame.
+    """Transforms a vector from the Earth-fixed frame (ECEF) to the ECI mean equator,
+    mean equinox (J2000) frame.
 
     References:
-        Vallado: 2013, p. 223-229
+        Vallado: 2022, p. 223-230
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -277,6 +292,7 @@ def ecef2eci(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -287,7 +303,7 @@ def ecef2eci(
     """
     # Find matrices that account for various orbit effects
     prec, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Position transformation
@@ -302,7 +318,7 @@ def ecef2eci(
     aeci = (
         np.dot(prec, np.dot(nut, np.dot(st, np.dot(pm, aecef))))
         + np.cross(omegaearth, np.cross(omegaearth, rpef))
-        + 2.0 * np.cross(omegaearth, vpef)
+        + 2 * np.cross(omegaearth, vpef)
     )
 
     return reci, veci, aeci
@@ -317,14 +333,16 @@ def ecef2eci06(
     lod: float,
     xp: float,
     yp: float,
-    option: Literal["06a", "06b", "06c"],
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
     ddx: float = 0.0,
     ddy: float = 0.0,
+    use_full_series: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed frame (ITRF) to the ECI frame (GCRF).
+    """Transforms a vector from the Earth-fixed frame (ECEF) to the ECI (J2000) frame.
 
     References:
-        Vallado, 2004, pp. 205-219
+        Vallado, 2022, p. 223-230
 
     Args:
         recef (ArrayLike): ECEF position vector in km
@@ -335,9 +353,11 @@ def ecef2eci06(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
-        option (Literal["06a", "06b", "06c"]): Option for precession/nutation model
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
 
     Returns:
         tuple: (reci, veci, aeci)
@@ -345,9 +365,9 @@ def ecef2eci06(
             veci (np.ndarray): ECI velocity vector in km/s
             aeci (np.ndarray): ECI acceleration vector in km/s²
     """
-    # Compute the IAU 2006 matrices
+    # Compute the IAU06 matrices
     pnb, st, pm, omegaearth = compute_iau06_matrices(
-        ttt, jdut1, lod, xp, yp, option, ddx, ddy
+        ttt, jdut1, lod, xp, yp, iau06arr, iau06xysarr, ddx, ddy, use_full_series
     )
 
     # Transform position
@@ -363,83 +383,15 @@ def ecef2eci06(
     aeci = (
         pnb
         @ st
-        @ (pm @ aecef + np.cross(omegaearth, temp) + 2.0 * np.cross(omegaearth, vpef))
+        @ (pm @ aecef + np.cross(omegaearth, temp) + 2 * np.cross(omegaearth, vpef))
     )
 
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECI <-> PEF Frame Conversions
-###############################################################################
-
-
-def compute_iau_matrices(
-    ttt: float,
-    jdut1: float,
-    lod: float,
-    ddpsi: float,
-    ddeps: float,
-    opt: Literal["80", "06a", "06b", "06c"],
-    ddx: float = 0.0,
-    ddy: float = 0.0,
-    eqeterms: bool = True,
-):
-    """Computes the precession/nutation matrix, sidereal time matrix,
-    polar motion matrix, and Earth rotation vector.
-
-    Args:
-        ttt (float): Julian centuries of TT
-        jdut1 (float): Julian date of UT1 (days from 4713 BC)
-        lod (float): Excess length of day in seconds
-        ddpsi (float): Nutation correction for delta psi in radians
-        ddeps (float): Nutation correction for delta epsilon in radians
-        opt (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation model
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
-        eqeterms (bool, optional): Add terms for ast calculation (default True)
-
-    Returns:
-        tuple: (prec, nut, st, pm, omegaearth)
-            prec (np.ndarray): Precession matrix
-            nut (np.ndarray): Nutation matrix
-            st (np.ndarray): Sidereal time matrix
-            pm (np.ndarray): Polar motion matrix
-            omegaearth (np.ndarray): Earth rotation vector
-    """
-    # Get the precession matrix and the Earth's rotation vector
-    iau_opt = "06" if "06" in opt else opt
-    prec, *_, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, 0.0, 0.0, ddpsi, ddeps, opt=iau_opt, eqeterms=eqeterms
-    )
-
-    # Get orbit effects based on the option
-    if opt == "80":
-        # IAU 1980 model
-        deltapsi, _, meaneps, omega, nut = nutation(ttt, ddpsi, ddeps)
-        st, _ = sidereal(jdut1, deltapsi, meaneps, omega, lod, eqeterms)
-    else:
-        if opt == "06c":
-            # CEO based, IAU 2006 precession/nutation model
-            *_, pnb = iau.iau06xys(ttt, ddx, ddy)
-            st = iau.iau06era(jdut1)
-        elif opt == "06a":
-            # Classical equinox-based IAU 2006A model
-            deltapsi, pnb, prec, nut, *_ = iau.iau06pna(ttt)
-            _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_)
-        elif opt == "06b":
-            # Classical equinox-based IAU 2006B model
-            deltapsi, pnb, prec, nut, *_ = iau.iau06pnb(ttt)
-            _, st = iau.iau06gst(jdut1, ttt, deltapsi, *_)
-        else:
-            # Invalid option
-            raise ValueError(
-                f"Invalid opt value: {opt}. Must be '80', '6a', '6b', or '6c'."
-            )
-        prec = np.eye(3)
-        nut = pnb
-
-    return prec, nut, st, omegaearth
+########################################################################################
 
 
 def eci2pef(
@@ -451,16 +403,14 @@ def eci2pef(
     lod: float,
     ddpsi: float,
     ddeps: float,
-    opt: Literal["80", "06a", "06b", "06c"],
-    ddx: float = 0.0,
-    ddy: float = 0.0,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the mean equator, mean equinox frame (J2000),
-    to the pseudo earth-fixed frame (PEF).
+    """Transforms a vector from the ECI mean equator, mean equinox frame (J2000), to the
+    pseudo Earth-fixed frame (PEF).
 
     References:
-        Vallado: 2001, p. 219, Eqs. 3-65 to 3-66
+        Vallado: 2022, p. 224
 
     Args:
         reci (array_like): ECI position vector in km
@@ -471,9 +421,7 @@ def eci2pef(
         lod (float): Excess length of day in seconds
         ddpsi (float): Nutation correction for delta psi in radians
         ddeps (float): Nutation correction for delta epsilon in radians
-        opt (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation model
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool): Add terms for ast calculation (default True)
 
     Returns:
@@ -483,8 +431,8 @@ def eci2pef(
             apef (np.ndarray): PEF acceleration vector in km/s²
     """
     # Compute the IAU matrices
-    prec, nut, st, omegaearth = compute_iau_matrices(
-        ttt, jdut1, lod, ddpsi, ddeps, opt, ddx, ddy, eqeterms=eqeterms
+    prec, nut, st, pm, omegaearth = calc_orbit_effects(
+        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform vectors
@@ -493,7 +441,7 @@ def eci2pef(
     apef = (
         st.T @ nut.T @ prec.T @ aeci
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return rpef, vpef, apef
@@ -508,13 +456,14 @@ def pef2eci(
     lod: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the pseudo Earth-fixed (PEF) frame to the ECI mean
     equator, mean equinox (J2000) frame using the IAU 1980 model.
 
     References:
-        Vallado: 2001, p. 219, Eq. 3-68
+        Vallado: 2022, p. 224
 
     Args:
         rpef (array_like): PEf position vector in km
@@ -525,6 +474,7 @@ def pef2eci(
         lod (float): Excess length of day in seconds
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -535,7 +485,7 @@ def pef2eci(
     """
     # Find matrices that account for various orbit effects
     prec, nut, st, _, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, 0, 0, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform vectors
@@ -548,16 +498,16 @@ def pef2eci(
         @ (
             np.asarray(apef)
             + np.cross(omegaearth, np.cross(omegaearth, rpef))
-            + 2.0 * np.cross(omegaearth, vpef)
+            + 2 * np.cross(omegaearth, vpef)
         )
     )
 
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECI <-> TOD Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def eci2tod(
@@ -567,15 +517,13 @@ def eci2tod(
     ttt: float,
     ddpsi: float,
     ddeps: float,
-    opt: Literal["80", "06a", "06b", "06c"],
-    ddx: float = 0.0,
-    ddy: float = 0.0,
+    iau80arr: IAU80Array,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI mean equator, mean equinox frame
-    (J2000) to the true equator, true equinox of date (TOD) frame.
+    """Transforms a vector from the ECI mean equator, mean equinox frame (J2000) to the
+    true equator, true equinox of date (TOD) frame.
 
     References:
-        Vallado: 2001, p. 216-219, Eq. 3-65
+        Vallado: 2022, p. 225
 
     Args:
         reci (array_like): ECI position vector in km
@@ -584,9 +532,7 @@ def eci2tod(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
-        opt (Literal["80", "06a", "06b", "06c"]): Option for precession/nutation model
-        ddx (float, optional): EOP correction for x in radians (default 0.0)
-        ddy (float, optional): EOP correction for y in radians (default 0.0)
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (rtod, vtod, atod)
@@ -594,10 +540,11 @@ def eci2tod(
             vtod (np.ndarray): TOD velocity vector in km/s
             atod (np.ndarray): TOD acceleration vector in km/s²
     """
-    # Compute the IAU matrices
-    prec, nut, *_ = compute_iau_matrices(
-        ttt, 0, 0, ddpsi, ddeps, opt, ddx, ddy, eqeterms=False
-    )
+    # Precession (IAU 1980 model)
+    prec, *_ = precess(ttt, opt="80")
+
+    # Nutation
+    *_, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
 
     # Transform vectors
     rtod = nut.T @ prec.T @ np.asarray(reci)
@@ -614,12 +561,13 @@ def tod2eci(
     ttt: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the true equator, true equinox of date (TOD) frame
-    to the ECI mean equator, mean equinox (J2000) frame.
+    """Transforms a vector from the true equator, true equinox of date (TOD) frame to
+    the ECI mean equator, mean equinox (J2000) frame.
 
     References:
-        Vallado: 2001, p. 219-220, Eq. 3-68
+        Vallado: 2022, p. 225
 
     Args:
         rtod (array_like): TOD position vector in km
@@ -628,6 +576,7 @@ def tod2eci(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (reci, veci, aeci)
@@ -639,7 +588,7 @@ def tod2eci(
     prec, *_ = precess(ttt, opt="80")
 
     # Nutation
-    *_, nut = nutation(ttt, ddpsi, ddeps)
+    *_, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
 
     # Transform vectors
     reci = prec @ nut @ np.asarray(rtod)
@@ -649,19 +598,19 @@ def tod2eci(
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECI <-> MOD Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def eci2mod(
     reci: ArrayLike, veci: ArrayLike, aeci: ArrayLike, ttt: float
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the ECI mean equator, mean equinox frame
-    (J2000) to the mean equator, mean equinox of date (MOD) frame.
+    """Transforms a vector from the ECI mean equator, mean equinox frame (J2000) to the
+    mean equator, mean equinox of date (MOD) frame.
 
     References:
-        Vallado: 2001, p. 214-215, Eq. 3-57
+        Vallado: 2022, p. 227
 
     Args:
         reci (array_like): ECI position vector in km
@@ -693,7 +642,7 @@ def mod2eci(
     to the ECI mean equator, mean equinox (J2000) frame.
 
     References:
-        Vallado: 2013, p. 219-220, Eq. 3-68
+        Vallado: 2022, p. 227
 
     Args:
         rmod (array_like): MOD position vector in km
@@ -718,13 +667,13 @@ def mod2eci(
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
 # ECI <-> TEME Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def _get_teme_eci_transform(
-    ttt: float, ddpsi: float, ddeps: float
+    ttt: float, ddpsi: float, ddeps: float, iau80arr: IAU80Array
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Generates the transformation matrices for TEME ↔ ECI.
 
@@ -732,6 +681,7 @@ def _get_teme_eci_transform(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (prec, nut, eqe)
@@ -743,19 +693,15 @@ def _get_teme_eci_transform(
     prec, *_ = precess(ttt, opt="80")
 
     # Nutation
-    deltapsi, _, meaneps, _, nut = nutation(ttt, ddpsi, ddeps)
+    deltapsi, _, meaneps, _, nut = nutation(ttt, ddpsi, ddeps, iau80arr)
 
     # Equation of equinoxes (geometric terms only)
     eqeg = deltapsi * np.cos(meaneps)
-    eqeg = np.remainder(eqeg, 2.0 * np.pi)
+    eqeg = np.remainder(eqeg, const.TWOPI)
 
     # Construct the rotation matrix for the equation of equinoxes
     eqe = np.array(
-        [
-            [np.cos(eqeg), np.sin(eqeg), 0.0],
-            [-np.sin(eqeg), np.cos(eqeg), 0.0],
-            [0.0, 0.0, 1.0],
-        ]
+        [[np.cos(eqeg), np.sin(eqeg), 0], [-np.sin(eqeg), np.cos(eqeg), 0], [0, 0, 1]]
     )
 
     return prec, nut, eqe
@@ -768,12 +714,13 @@ def eci2teme(
     ttt: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the ECI mean equator, mean equinox (J2000) frame to the
     true equator, mean equinox (TEME) frame.
 
     References:
-        Vallado: 2013, p. 231-233
+        Vallado: 2022, p. 232-234
 
     Args:
         reci (array_like): ECI position vector in km
@@ -782,6 +729,7 @@ def eci2teme(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (rteme, vteme, ateme)
@@ -790,7 +738,7 @@ def eci2teme(
             ateme (np.ndarray): TEME acceleration vector in km/s²
     """
     # Get the individual transformation matrices
-    prec, nut, eqe = _get_teme_eci_transform(ttt, ddpsi, ddeps)
+    prec, nut, eqe = _get_teme_eci_transform(ttt, ddpsi, ddeps, iau80arr)
 
     # Combined transformation matrix
     tm = eqe @ nut.T @ prec.T
@@ -810,12 +758,13 @@ def teme2eci(
     ttt: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the true equator, mean equinox (TEME) frame to the ECI
     mean equator, mean equinox (J2000) frame.
 
     References:
-        Vallado: 2013, p. 231-233
+        Vallado: 2022, p. 232-234
 
     Args:
         rteme (array_like): TEME position vector in km
@@ -825,6 +774,7 @@ def teme2eci(
         ttt (float): Julian centuries of TT
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
 
     Returns:
         tuple: (reci, veci, aeci)
@@ -833,7 +783,7 @@ def teme2eci(
             aeci (np.ndarray): ECI acceleration vector in km/s²
     """
     # Get the individual transformation matrices
-    prec, nut, eqe = _get_teme_eci_transform(ttt, ddpsi, ddeps)
+    prec, nut, eqe = _get_teme_eci_transform(ttt, ddpsi, ddeps, iau80arr)
 
     # Combined transformation matrix
     tm = prec @ nut @ eqe.T
@@ -846,9 +796,236 @@ def teme2eci(
     return reci, veci, aeci
 
 
-###############################################################################
+########################################################################################
+# ECI <-> CIRS Frame Conversions
+########################################################################################
+
+
+def eci2cirs(
+    reci: ArrayLike,
+    veci: ArrayLike,
+    aeci: ArrayLike,
+    ttt: float,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    use_full_series: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the ECI mean equator, mean equinox (J2000) frame to the
+    Celestial Intermediate Reference System (CIRS) frame using the XYS approach.
+
+    References:
+        Vallado: 2022, p. 214
+
+    Args:
+        reci (array_like): ECI position vector in km
+        veci (array_like): ECI velocity vector in km/s
+        aeci (array_like): ECI acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+
+    Returns:
+        tuple: (rcirs, vcirs, acirs)
+            rcirs (np.ndarray): CIRS position vector in km
+            vcirs (np.ndarray): CIRS velocity vector in km/s
+            acirs (np.ndarray): CIRS acceleration vector in km/s²
+    """
+    # Compute transformation matrix using XYS approach
+    *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy, iau06xysarr, use_full_series)
+
+    # Transform vectors
+    rcirs = pnb.T @ np.asarray(reci)
+    vcirs = pnb.T @ np.asarray(veci)
+    acirs = pnb.T @ np.asarray(aeci)
+
+    return rcirs, vcirs, acirs
+
+
+def cirs2eci(
+    rcirs: ArrayLike,
+    vcirs: ArrayLike,
+    acirs: ArrayLike,
+    ttt: float,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    use_full_series: bool = True,
+):
+    """Transforms a vector from the Celestial Intermediate Reference System (CIRS) frame
+    to the ECI mean equator, mean equinox (J2000) frame using the XYS approach.
+
+    References:
+        Vallado: 2022, p. 214
+
+    Args:
+        rcirs (array_like): CIRS position vector in km
+        vcirs (array_like): CIRS velocity vector in km/s
+        acirs (array_like): CIRS acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+
+    Returns:
+        tuple: (reci, veci, aeci)
+            reci (np.ndarray): ECI position vector in km
+            veci (np.ndarray): ECI velocity vector in km/s
+            aeci (np.ndarray): ECI acceleration vector in km/s²
+    """
+    # Compute transformation matrix using XYS approach
+    *_, pnb = iau.iau06xys(ttt, iau06arr, ddx, ddy, iau06xysarr, use_full_series)
+
+    # Transform vectors
+    reci = pnb @ np.asarray(rcirs)
+    veci = pnb @ np.asarray(vcirs)
+    aeci = pnb @ np.asarray(acirs)
+
+    return reci, veci, aeci
+
+
+########################################################################################
+# ECI <-> TIRS Frame Conversions
+########################################################################################
+
+
+def eci2tirs(
+    reci: ArrayLike,
+    veci: ArrayLike,
+    aeci: ArrayLike,
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    use_full_series: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the ECI mean equator, mean equinox (J2000) frame to the
+    Terrestrial Intermediate Reference System (TIRS) frame using the XYS approach.
+
+    References:
+        Vallado: 2022, p. 213
+
+    Args:
+        reci (array_like): ECI position vector in km
+        veci (array_like): ECI velocity vector in km/s
+        aeci (array_like): ECI acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        jdut1 (float): Julian date of UT1 (days from 4713 BC)
+        lod (float): Excess length of day in seconds
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+
+    Returns:
+        tuple: (rtirs, vtirs, atirs)
+            rtirs (np.ndarray): TIRS position vector in km
+            vtirs (np.ndarray): TIRS velocity vector in km/s
+            atirs (np.ndarray): TIRS acceleration vector in km/s²
+    """
+    # Compute transformation matrices using XYS approach
+    prec = np.eye(3)
+    nut, st, _, omegaearth = compute_iau06_matrices(
+        ttt, jdut1, lod, 0, 0, iau06arr, iau06xysarr, ddx, ddy, use_full_series
+    )
+
+    # Position transformation
+    rtirs = st.T @ nut.T @ prec.T @ reci
+
+    # Velocity transformation
+    vtirs = st.T @ nut.T @ prec.T @ veci - np.cross(omegaearth, rtirs)
+
+    # Acceleration transformation
+    atirs = (
+        st.T @ nut.T @ prec.T @ aeci
+        - np.cross(omegaearth, np.cross(omegaearth, rtirs))
+        - 2 * np.cross(omegaearth, vtirs)
+    )
+
+    return rtirs, vtirs, atirs
+
+
+def tirs2eci(
+    rtirs: ArrayLike,
+    vtirs: ArrayLike,
+    atirs: ArrayLike,
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    iau06arr: IAU06Array,
+    iau06xysarr: IAU06xysArray,
+    ddx: float = 0.0,
+    ddy: float = 0.0,
+    use_full_series: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Terrestrial Intermediate Reference System (TIRS)
+    frame to the ECI mean equator, mean equinox (J2000) frame using the XYS approach.
+
+    References:
+        Vallado: 2022, p. 213
+
+    Args:
+        rtirs (array_like): TIRS position vector in km
+        vtirs (array_like): TIRS velocity vector in km/s
+        atirs (array_like): TIRS acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        jdut1 (float): Julian date of UT1 (days from 4713 BC)
+        lod (float): Excess length of day in seconds
+        iau06arr (IAU06Array): IAU 2006 data
+        iau06xysarr (IAU06xysArray): IAU 2006 XYS data
+        ddx (float, optional): EOP correction for x in radians (default 0)
+        ddy (float, optional): EOP correction for y in radians (default 0)
+        use_full_series (bool, optional): Use full series for IAU 2006 XYS data
+
+    Returns:
+        tuple: (reci, veci, aeci)
+            reci (np.ndarray): ECI position vector in km
+            veci (np.ndarray): ECI velocity vector in km/s
+            aeci (np.ndarray): ECI acceleration vector in km/s²
+    """
+    # Compute transformation matrices using XYS approach
+    prec = np.eye(3)
+    nut, st, _, omegaearth = compute_iau06_matrices(
+        ttt, jdut1, lod, 0, 0, iau06arr, iau06xysarr, ddx, ddy, use_full_series
+    )
+
+    # Position transformation
+    reci = prec @ nut @ st @ np.asarray(rtirs)
+
+    # Velocity transformation
+    veci = (
+        prec @ nut @ st @ (np.asarray(vtirs) + np.cross(omegaearth, np.asarray(rtirs)))
+    )
+
+    # Acceleration transformation
+    aeci = (
+        prec
+        @ nut
+        @ st
+        @ (
+            np.asarray(atirs)
+            + np.cross(omegaearth, np.cross(omegaearth, np.asarray(rtirs)))
+            + 2 * np.cross(omegaearth, np.asarray(vtirs))
+        )
+    )
+
+    return reci, veci, aeci
+
+
+########################################################################################
 # ECEF <-> PEF Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def ecef2pef(
@@ -858,13 +1035,13 @@ def ecef2pef(
     xp: float,
     yp: float,
     ttt: float,
-    opt: Literal["80", "06"],
+    use_iau80: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame to the pseudo
-    Earth-fixed (PEF) frame.
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the pseudo Earth-fixed
+    (PEF) frame.
 
     References:
-        Vallado: 2001, p. 219, Eq. 3-65 to 3-66
+        Vallado: 2022, p. 224
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -873,18 +1050,15 @@ def ecef2pef(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         ttt (float): Julian centuries of TT
-        opt (Literal["80", "06"]): Polar motion model option ('80' or '06')
+        use_iau80 (bool, optional): Use IAU 1980 data for polar motion (default True)
 
     Returns:
         tuple: (rpef, vpef, apef)
             rpef (np.ndarray): PEF position vector in km
             vpef (np.ndarray): PEF velocity vector in km/s
             apef (np.ndarray): PEF acceleration vector in km/s²
-
-    TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Compute polar motion matrix
-    use_iau80 = True if opt == "80" else False
     pm = polarm(xp, yp, ttt, use_iau80)
 
     # Transform vectors
@@ -902,13 +1076,13 @@ def pef2ecef(
     xp: float,
     yp: float,
     ttt: float,
-    opt: Literal["80", "06"],
+    use_iau80: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the pseudo Earth-fixed (PEF) frame to the
-    Earth-fixed (ITRF) frame.
+    """Transforms a vector from the pseudo Earth-fixed (PEF) frame to the Earth-fixed
+    (ECEF) frame.
 
     References:
-        Vallado: 2001, p. 219, Eq. 3-65 to 3-66
+        Vallado: 2022, p. 224
 
     Args:
         rpef (array_like): PEF position vector in km
@@ -917,18 +1091,15 @@ def pef2ecef(
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
         ttt (float): Julian centuries of TT
-        opt (Literal["80", "06"]): Polar motion model option ('80' or '06')
+        use_iau80 (bool, optional): Use IAU 1980 data for polar motion (default True)
 
     Returns:
         tuple: (recef, vecef, aecef)
             recef (np.ndarray): ECEF position vector in km
             vecef (np.ndarray): ECEF velocity vector in km/s
             aecef (np.ndarray): ECEF acceleration vector in km/s²
-
-    TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Compute polar motion matrix
-    use_iau80 = True if opt == "80" else False
     pm = polarm(xp, yp, ttt, use_iau80)
 
     # Transform vectors
@@ -939,9 +1110,9 @@ def pef2ecef(
     return recef, vecef, aecef
 
 
-###############################################################################
+########################################################################################
 # ECEF <-> TOD Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def ecef2tod(
@@ -955,13 +1126,14 @@ def ecef2tod(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame to the true-of-date (TOD)
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the true-of-date (TOD)
     frame.
 
     References:
-        Vallado: 2013, p. 223-231
+        Vallado: 2022, p. 225
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -974,6 +1146,7 @@ def ecef2tod(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -981,12 +1154,10 @@ def ecef2tod(
             rtod (np.ndarray): TOD position vector in km
             vtod (np.ndarray): TOD velocity vector in km/s
             atod (np.ndarray): TOD acceleration vector in km/s²
-
-    TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Find matrices that account for various orbit effects
     _, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform position
@@ -1001,7 +1172,7 @@ def ecef2tod(
     atod = st @ (
         pm @ aecef
         + np.cross(omegaearth, np.cross(omegaearth, rpef))
-        + 2.0 * np.cross(omegaearth, vpef)
+        + 2 * np.cross(omegaearth, vpef)
     )
 
     return rtod, vtod, atod
@@ -1018,13 +1189,14 @@ def tod2ecef(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the true-of-date (TOD) frame to the Earth-fixed (ITRF)
+    """Transforms a vector from the true-of-date (TOD) frame to the Earth-fixed (ECEF)
     frame.
 
     References:
-        Vallado: 2013, p. 223-231
+        Vallado: 2022, p. 225
 
     Args:
         rtod (array_like): TOD position vector in km
@@ -1037,6 +1209,7 @@ def tod2ecef(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1044,12 +1217,10 @@ def tod2ecef(
             recef (np.ndarray): ECEF position vector in km
             vecef (np.ndarray): ECEF velocity vector in km/s
             aecef (np.ndarray): ECEF acceleration vector in km/s²
-
-    TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Find matrices that account for various orbit effects
     _, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform position
@@ -1062,17 +1233,17 @@ def tod2ecef(
 
     # Transform acceleration
     aecef = (
-        pm.T @ atod
+        pm.T @ (st.T @ atod)
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
 
 
-###############################################################################
+########################################################################################
 # ECEF <-> MOD Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def ecef2mod(
@@ -1086,13 +1257,14 @@ def ecef2mod(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame to the mean-of-date (MOD)
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the mean-of-date (MOD)
     frame.
 
     References:
-        Vallado: 2004, p. 219-228
+        Vallado: 2022, p. 227
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -1105,6 +1277,7 @@ def ecef2mod(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1112,12 +1285,10 @@ def ecef2mod(
             rmod (np.ndarray): MOD position vector in km
             vmod (np.ndarray): MOD velocity vector in km/s
             amod (np.ndarray): MOD acceleration vector in km/s²
-
-    TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Find matrices that account for various orbit effects
     _, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform position
@@ -1133,7 +1304,7 @@ def ecef2mod(
     amod = (
         nut
         @ st
-        @ (pm @ aecef + np.cross(omegaearth, temp) + 2.0 * np.cross(omegaearth, vpef))
+        @ (pm @ aecef + np.cross(omegaearth, temp) + 2 * np.cross(omegaearth, vpef))
     )
 
     return rmod, vmod, amod
@@ -1150,13 +1321,14 @@ def mod2ecef(
     yp: float,
     ddpsi: float,
     ddeps: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the mean-of-date (MOD) frame to the Earth-fixed (ITRF)
+    """Transforms a vector from the mean-of-date (MOD) frame to the Earth-fixed (ECEF)
     frame.
 
     References:
-        Vallado: 2004, p. 219-228
+        Vallado: 2022, p. 227
 
     Args:
         rmod (array_like): MOD position vector in km
@@ -1169,6 +1341,7 @@ def mod2ecef(
         yp (float): Polar motion coefficient in radians
         ddpsi (float): Delta psi correction to GCRF in radians
         ddeps (float): Delta epsilon correction to GCRF in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1176,12 +1349,10 @@ def mod2ecef(
             recef (np.ndarray): ECEF position vector in km
             vecef (np.ndarray): ECEF velocity vector in km/s
             aecef (np.ndarray): ECEF acceleration vector in km/s²
-
-    TODO: The acceleration transformation is not correct and needs to be fixed.
     """
     # Find matrices that account for various orbit effects
     _, nut, st, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, ddpsi, ddeps, iau80arr, eqeterms=eqeterms
     )
 
     # Transform position
@@ -1196,19 +1367,25 @@ def mod2ecef(
     aecef = (
         pm.T @ (st.T @ nut.T @ amod)
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
 
 
-###############################################################################
+########################################################################################
 # ECEF <-> TEME Frame Conversions
-###############################################################################
+########################################################################################
 
 
 def get_teme_transform_matrices(
-    ttt: float, jdut1: float, lod: float, xp: float, yp: float, eqeterms: bool
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    xp: float,
+    yp: float,
+    iau80arr: IAU80Array,
+    eqeterms: bool,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the matrices and Earth rotation vector for TEME transformations.
 
@@ -1218,7 +1395,8 @@ def get_teme_transform_matrices(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
-        eqeterms (bool): Add terms for ast calculation (True/False)
+        iau80arr (IAU80Array): IAU 1980 data for nutation
+        eqeterms (bool): Add terms for ast calculation
 
     Returns:
         tuple: (st, pm, omegaearth)
@@ -1232,7 +1410,7 @@ def get_teme_transform_matrices(
     # Compute omega from nutation theory
     omega = (
         125.04452222
-        + (-6962890.5390 * ttt + 7.455 * ttt**2 + 0.008 * ttt**3) / const.DEG2ARCSEC
+        + (-6962890.539 * ttt + 7.455 * ttt**2 + 0.008 * ttt**3) / const.DEG2ARCSEC
     )
     omega = np.remainder(np.radians(omega), const.TWOPI)
 
@@ -1241,7 +1419,7 @@ def get_teme_transform_matrices(
         gmstg = (
             gmst
             + 0.00264 * const.ARCSEC2RAD * np.sin(omega)
-            + 0.000063 * const.ARCSEC2RAD * np.sin(2.0 * omega)
+            + 0.000063 * const.ARCSEC2RAD * np.sin(2 * omega)
         )
     else:
         gmstg = gmst
@@ -1251,15 +1429,15 @@ def get_teme_transform_matrices(
     # Sidereal time matrix
     st = np.array(
         [
-            [np.cos(gmstg), -np.sin(gmstg), 0.0],
-            [np.sin(gmstg), np.cos(gmstg), 0.0],
-            [0.0, 0.0, 1.0],
+            [np.cos(gmstg), -np.sin(gmstg), 0],
+            [np.sin(gmstg), np.cos(gmstg), 0],
+            [0, 0, 1],
         ]
     )
 
     # Polar motion matrix and Earth's rotation vector
     *_, pm, omegaearth = calc_orbit_effects(
-        ttt, jdut1, lod, xp, yp, 0.0, 0.0, eqeterms=eqeterms
+        ttt, jdut1, lod, xp, yp, 0, 0, iau80arr, eqeterms=eqeterms
     )
 
     return st, pm, omegaearth
@@ -1274,15 +1452,16 @@ def ecef2teme(
     lod: float,
     xp: float,
     yp: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Transforms a vector from the Earth-fixed (ITRF) frame to the
-    true equator, mean equinox (TEME) frame.
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the true equator, mean
+    mean equinox (TEME) frame.
 
     Results take into account the effects of sidereal time and polar motion.
 
     References:
-        Vallado: 2013, p. 231-233
+        Vallado: 2022, p. 232-234
 
     Args:
         recef (array_like): ECEF position vector in km
@@ -1293,6 +1472,7 @@ def ecef2teme(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1302,7 +1482,9 @@ def ecef2teme(
             ateme (np.ndarray): TEME acceleration vector in km/s²
     """
     # Get common matrices and Earth rotation vector
-    st, pm, omegaearth = get_teme_transform_matrices(ttt, jdut1, lod, xp, yp, eqeterms)
+    st, pm, omegaearth = get_teme_transform_matrices(
+        ttt, jdut1, lod, xp, yp, iau80arr, eqeterms
+    )
 
     # Transform position
     rpef = pm @ recef
@@ -1316,7 +1498,7 @@ def ecef2teme(
     ateme = st @ (
         pm @ aecef
         + np.cross(omegaearth, np.cross(omegaearth, rpef))
-        + 2.0 * np.cross(omegaearth, vpef)
+        + 2 * np.cross(omegaearth, vpef)
     )
 
     return rteme, vteme, ateme
@@ -1331,15 +1513,16 @@ def teme2ecef(
     lod: float,
     xp: float,
     yp: float,
+    iau80arr: IAU80Array,
     eqeterms: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transforms a vector from the true equator, mean equinox (TEME) frame to the
-    Earth-fixed (ITRF) frame.
+    Earth-fixed (ECEF) frame.
 
     Results take into account the effects of sidereal time and polar motion.
 
     References:
-        Vallado: 2013, p. 231-233
+        Vallado: 2022, p. 232-234
 
     Args:
         rteme (array_like): TEME position vector in km
@@ -1350,6 +1533,7 @@ def teme2ecef(
         lod (float): Excess length of day in seconds
         xp (float): Polar motion coefficient in radians
         yp (float): Polar motion coefficient in radians
+        iau80arr (IAU80Array): IAU 1980 data for nutation
         eqeterms (bool, optional): Add terms for ast calculation (default True)
 
     Returns:
@@ -1359,7 +1543,9 @@ def teme2ecef(
             aecef (np.ndarray): ECEF acceleration vector in km/s²
     """
     # Get common matrices and Earth rotation vector
-    st, pm, omegaearth = get_teme_transform_matrices(ttt, jdut1, lod, xp, yp, eqeterms)
+    st, pm, omegaearth = get_teme_transform_matrices(
+        ttt, jdut1, lod, xp, yp, iau80arr, eqeterms
+    )
 
     # Transform position
     rpef = st.T @ rteme
@@ -1370,10 +1556,192 @@ def teme2ecef(
     vecef = pm.T @ vpef
 
     # Transform acceleration
-    aecef = (
-        pm.T @ ateme
+    aecef = pm.T @ (
+        st.T @ ateme
         - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2.0 * np.cross(omegaearth, vpef)
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
+
+
+########################################################################################
+# ECEF <-> CIRS Frame Conversions
+########################################################################################
+
+
+def ecef2cirs(
+    recef: ArrayLike,
+    vecef: ArrayLike,
+    aecef: ArrayLike,
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    xp: float,
+    yp: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the Celestial
+    Intermediate Reference System (CIRS) frame.
+
+    References:
+        Vallado: 2022, p. 214
+
+    Args:
+        recef (array_like): ECEF position vector in km
+        vecef (array_like): ECEF velocity vector in km/s
+        aecef (array_like): ECEF acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        jdut1 (float): Julian date of UT1 (days from 4713 BC)
+        lod (float): Excess length of day in seconds
+        xp (float): Polar motion coefficient in radians
+        yp (float): Polar motion coefficient in radians
+
+    Returns:
+        tuple: (rcirs, vcirs, acirs)
+            rcirs (np.ndarray): CIRS position vector in km
+            vcirs (np.ndarray): CIRS velocity vector in km/s
+            acirs (np.ndarray): CIRS acceleration vector in km/s²
+    """
+    # Compute transformation matrices
+    st, _ = sidereal(jdut1, 0, 0, 0, lod, use_iau80=False)
+    omegaearth = calc_omegaearth(lod)
+    pm = polarm(xp, yp, ttt, use_iau80=False)
+
+    # Transform position
+    rpef = pm @ np.asarray(recef)
+    rcirs = st @ rpef
+
+    # Transform velocity
+    vpef = pm @ np.asarray(vecef)
+    vcirs = st @ (vpef + np.cross(omegaearth, rpef))
+
+    # Transform acceleration
+    acirs = st @ (
+        pm @ np.asarray(aecef)
+        + np.cross(omegaearth, np.cross(omegaearth, rpef))
+        + 2 * np.cross(omegaearth, vpef)
+    )
+
+    return rcirs, vcirs, acirs
+
+
+def cirs2ecef(
+    rcirs: ArrayLike,
+    vcirs: ArrayLike,
+    acirs: ArrayLike,
+    ttt: float,
+    jdut1: float,
+    lod: float,
+    xp: float,
+    yp: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Celestial Intermediate Reference System (CIRS) frame
+    to the Earth-fixed (ECEF) frame.
+
+    References:
+        Vallado: 2022, p. 214
+
+    Args:
+        rcirs (array_like): CIRS position vector in km
+        vcirs (array_like): CIRS velocity vector in km/s
+        acirs (array_like): CIRS acceleration vector in km/s²
+        ttt (float): Julian centuries of TT
+        jdut1 (float): Julian date of UT1 (days from 4713 BC)
+        lod (float): Excess length of day in seconds
+        xp (float): Polar motion coefficient in radians
+        yp (float): Polar motion coefficient in radians
+
+    Returns:
+        tuple: (recef, vecef, aecef)
+            recef (np.ndarray): ECEF position vector in km
+            vecef (np.ndarray): ECEF velocity vector in km/s
+            aecef (np.ndarray): ECEF acceleration vector in km/s²
+    """
+    # Compute transformation matrices
+    st, _ = sidereal(jdut1, 0, 0, 0, lod, use_iau80=False)
+    omegaearth = calc_omegaearth(lod)
+    pm = polarm(xp, yp, ttt, use_iau80=False)
+
+    # Transform position
+    rpef = st.T @ rcirs
+    recef = pm.T @ rpef
+
+    # Transform velocity
+    vpef = st.T @ vcirs - np.cross(omegaearth, rpef)
+    vecef = pm.T @ vpef
+
+    # Transform acceleration
+    aecef = (
+        pm.T @ (st.T @ acirs)
+        - np.cross(omegaearth, np.cross(omegaearth, rpef))
+        - 2 * np.cross(omegaearth, vpef)
+    )
+
+    return recef, vecef, aecef
+
+
+########################################################################################
+# ECEF <-> TIRS Frame Conversions
+########################################################################################
+
+
+def ecef2tirs(
+    recef: ArrayLike,
+    vecef: ArrayLike,
+    aecef: ArrayLike,
+    xp: float,
+    yp: float,
+    ttt: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Earth-fixed (ECEF) frame to the Terrestrial
+    Intermediate Reference System (TIRS) frame.
+
+    References:
+        Vallado: 2022, p. 213
+
+    Args:
+        recef (array_like): ECEF position vector in km
+        vecef (array_like): ECEF velocity vector in km/s
+        aecef (array_like): ECEF acceleration vector in km/s²
+        xp (float): Polar motion coefficient in radians
+        yp (float): Polar motion coefficient in radians
+        ttt (float): Julian centuries of TT
+
+    Returns:
+        tuple: (rtirs, vtirs, atirs)
+            rtirs (np.ndarray): TIRS position vector in km
+            vtirs (np.ndarray): TIRS velocity vector in km/s
+            atirs (np.ndarray): TIRS acceleration vector in km/s²
+    """
+    return ecef2pef(recef, vecef, aecef, xp, yp, ttt, use_iau80=False)
+
+
+def tirs2ecef(
+    rtirs: ArrayLike,
+    vtirs: ArrayLike,
+    atirs: ArrayLike,
+    xp: float,
+    yp: float,
+    ttt: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transforms a vector from the Terrestrial Intermediate Reference System (TIRS)
+    frame to the Earth-fixed (ECEF) frame.
+
+    References:
+        Vallado: 2022, p. 213
+
+    Args:
+        rtirs (array_like): TIRS position vector in km
+        vtirs (array_like): TIRS velocity vector in km/s
+        atirs (array_like): TIRS acceleration vector in km/s²
+        xp (float): Polar motion coefficient in radians
+        yp (float): Polar motion coefficient in radians
+        ttt (float): Julian centuries of TT
+
+    Returns:
+        tuple: (recef, vecef, aecef)
+            recef (np.ndarray): ECEF position vector in km
+            vecef (np.ndarray): ECEF velocity vector in km/s
+            aecef (np.ndarray): ECEF acceleration vector in km/s²
+    """
+    return pef2ecef(rtirs, vtirs, atirs, xp, yp, ttt, use_iau80=False)

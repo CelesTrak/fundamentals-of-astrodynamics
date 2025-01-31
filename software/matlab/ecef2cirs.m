@@ -1,55 +1,61 @@
 % ----------------------------------------------------------------------------
 %
-%                           function ecef2cirs
+%                           function ecef_cirs
 %
-%  this function transforms a vector from the earth fixed (itrf) frame, to
-%    the cirs. Sidereal time and polar motion are taken into account.
+%  this function transforms a vector from earth fixed (itrf) frame to
+%  true of date (tod).
 %
-%  author        : david vallado                  719-573-2600   2 may 2020
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
+%  inputs          description                              range / units
+%    recef       - position vector earth fixed                   km
+%    vecef       - velocity vector earth fixed                   km/s
+%    direct      - direction of transfer                         eto, efrom
+%    iau06arr    - iau2006 eop constants
+%    ttt         - julian centuries of tt                        centuries
+%    jdut1       - julian date of ut1                            days from 4713 bc
+%    lod         - excess length of day                          sec
+%    xp          - polar motion coefficient                      rad
+%    yp          - polar motion coefficient                      rad
+%    ddx         - delta x correction to gcrf                    rad
+%    ddy         - delta y correction to gcrf                    rad
 %
-%  inputs          description                    range / units
-%    recef       - position vector earth fixed    km
-%    vecef       - velocity vector earth fixed    km/s
-%    aecef       - acceleration vector earth fixedkm/s2
-%    ttt         - julian centuries of tt         centuries
-%    jdut1       - julian date of ut1             days from 4713 bc
-%    lod         - excess length of day           sec
-%    xp          - polar motion coefficient       arc sec
-%    yp          - polar motion coefficient       arc sec
-%    option      - which approach to use          a-2000a, b-2000b, c-2000xys
 %  outputs       :
-%    rcirs       - position vector cirs            km
-%    vcirs       - velocity vector cirs            km/s
-%    acirs       - acceleration vector cirs        km/s2
+%    rcirs       - position vector eci                           km
+%    vcirs       - velocity vector eci                           km/s
 %
 %  locals        :
-%    pm          - transformation matrix for itrf-pef
-%    st          - transformation matrix for pef-ire
+%    deltapsi    - nutation angle                                rad
+%    trueeps     - true obliquity of the ecliptic                rad
+%    meaneps     - mean obliquity of the ecliptic                rad
+%    nut         - matrix for tod - mod
+%    st          - matrix for pef - tod
+%    stdot       - matrix for pef - tod rate
+%    pm          - matrix for ecef - pef
 %
 %  coupling      :
-%   iau00pm      - rotation for polar motion      itrf-pef
-%   iau00era     - rotation for earth rotyation   pef-ire
-%   iau00xys     - rotation for prec/nut          ire-gcrf
-
+%   nutation     - rotation for nutation
+%   sidereal     - rotation for sidereal time
+%   polarm       - rotation for polar motion
 %
 %  references    :
-%    vallado       2004, 205-219
+%    vallado       2022, 227
 %
-% [rcirs,vcirs,acirs] = ecef2cirs(recef, vecef, aecef, iau06arr, ttt, jdut1, lod, xp, yp,  ddx, ddy, opt1 )
+% [rcirs,vcirs,acirs] = ecef2cirs(recef, vecef, aecef, iau06arr, ttt, jdut1, ...
+%        lod, xp, yp,  ddx, ddy, opt1 );
 % ----------------------------------------------------------------------------
 
-function [rcirs, vcirs, acirs] = ecef2cirs(recef, vecef, aecef, iau06arr, ttt, jdut1, lod, xp, yp,  ddx, ddy, opt1 )
+function [rcirs, vcirs, acirs] = ecef2cirs(recef, vecef, aecef, iau06arr, ...
+        ttt, jdut1, lod, xp, yp,  ddx, ddy, opt1 )
     constastro;
     sethelp;
     st = zeros(3, 3);
-    
+
     [fArgs06] = fundarg(ttt, '06');
 
     % ---- ceo based, iau2006
     if contains(opt1, '06')
-        [st]  = iau06era (jdut1 );
+        [st, stdot] = sidereal(jdut1, 0.0, 0.0, 0.0, 0.0, 0, '06');
     end
 
     % ---- class equinox based, 2000a
@@ -80,5 +86,4 @@ function [rcirs, vcirs, acirs] = ecef2cirs(recef, vecef, aecef, iau06arr, ttt, j
     temp = cross(omegaearth,rpef);
     acirs = st*( pm*aecef + cross(omegaearth,temp) + 2.0*cross(omegaearth,vpef) );
 
-
-
+end

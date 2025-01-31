@@ -1,54 +1,51 @@
 % ----------------------------------------------------------------------------
 %
-%                           function tirs2eci
+%                           function tirs_eci
 %
-%  this function trsnforms a vector from the pseudo earth fixed frame (tirs),
-%    to the mean equator mean equinox (j2000) frame.
+%  this function transforms between the eci mean equator mean equinox (gcrf), and
+%    the pseudo earth fixed frame (pef).
 %
-%  author        : david vallado                  719-573-2600   25 jun 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%    vallado     - add terms for ast calculation                 30 sep 2002
-%    vallado     - consolidate with iau 2000                     14 feb 2005
-%
-%  inputs          description                    range / units
-%    rtirs        - position pseudo earth fixed    km
-%    vtirs        - velocity pseudo earth fixed    km/s
-%    atirs        - acceleration pseudo earth fixedkm/s2
-%    ttt         - julian centuries of tt         centuries
-%    jdut1       - julian date of ut1             days from 4713 bc
-%    lod         - excess length of day           sec
-%    terms       - number of terms for ast calculation 0,2
-%
-%
+%  inputs          description                              range / units
+%    reci        - position vector eci                           km
+%    veci        - velocity vector eci                           km/s
+%    direct      - direction                                     eto, efrom
+%    iau06arr    - iau2006 eop constants
+%    ttt         - julian centuries of tt                        centuries
+%    jdut1       - julian date of ut1                            days from 4713 bc
+%    lod         - excess length of day                          sec
+%    ddx         - delta x correction to gcrf                    rad
+%    ddy         - delta y correction to gcrf                    rad
 %
 %  outputs       :
-%    reci        - position vector eci            km
-%    veci        - velocity vector eci            km/s
-%    aeci        - acceleration vector eci        km/s2
+%    rpef       - position vector pef                            km
+%    vpef       - velocity vector pef                            km/s
 %
 %  locals        :
-%    prec        - matrix for eci - mod
-%    deltapsi    - nutation angle                 rad
-%    trueeps     - true obliquity of the ecliptic rad
-%    meaneps     - mean obliquity of the ecliptic rad
-%    omega       -                                rad
-%    nut         - matrix for mod - tod
-%    st          - matrix for tod - tirs
-%    stdot       - matrix for tod - tirs rate
+%    eqeterms    - terms for ast calculation                     0,2
+%    deltapsi    - nutation angle                                rad
+%    trueeps     - true obliquity of the ecliptic                rad
+%    meaneps     - mean obliquity of the ecliptic                rad
+%    prec        - matrix for mod - eci
+%    nut         - matrix for tod - mod
+%    st          - matrix for pef - tod
+%    stdot       - matrix for pef - tod rate
 %
 %  coupling      :
-%   precess      - rotation for precession        mod - eci
-%   nutation     - rotation for nutation          tod - mod
-%   sidereal     - rotation for sidereal time     tirs - tod
+%   precess      - rotation for precession
+%   nutation     - rotation for nutation
+%   sidereal     - rotation for sidereal time
 %
 %  references    :
-%    vallado       2001, 219-220, eq 3-68
+%    vallado       2022, 213
 %
-% [reci, veci, aeci] = tirs2eci(rtirs, vtirs, atirs, iau06arr, xysarr, ttt, jdut1, lod, ddx, ddy, opt1 )
+% [reci, veci, aeci] = tirs2eci(rtirs, vtirs, atirs, iau06arr, xysarr, ttt,
+%            jdut1, lod, ddx, ddy, opt1 );
 % ----------------------------------------------------------------------------
 
-function [reci, veci, aeci] = tirs2eci(rtirs, vtirs, atirs, iau06arr, xysarr, ttt, jdut1, lod, ddx, ddy, opt1 )
+function [reci, veci, aeci] = tirs2eci(rtirs, vtirs, atirs, iau06arr, xysarr, ...
+        ttt, jdut1, lod, ddx, ddy, opt1 )
     constastro;
     pnb = zeros(3,3);
     st = zeros(3,3);
@@ -60,7 +57,7 @@ function [reci, veci, aeci] = tirs2eci(rtirs, vtirs, atirs, iau06arr, xysarr, tt
     % ---- ceo based, iau2006
     if not(contains(opt1, 'a')) || not(contains(opt1, 'b'))
         [x, y, s, pnb] = iau06xys (iau06arr, fArgs06, xysarr, ttt, ddx, ddy, opt1);
-        [st]  = iau06era (jdut1 );
+        [st, stdot] = sidereal(jdut1, 0.0, 0.0, 0.0, 0.0, 0, '06' );
     end
 
     % ---- class equinox based, 2000a
@@ -95,3 +92,4 @@ function [reci, veci, aeci] = tirs2eci(rtirs, vtirs, atirs, iau06arr, xysarr, tt
     aeci = prec*nut*st*(atirs + cross(omegaearth,temp) ...
         + 2.0*cross(omegaearth,vtirs));
 
+end

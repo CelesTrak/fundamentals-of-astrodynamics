@@ -1,44 +1,45 @@
-
 % ----------------------------------------------------------------------------
 %
-%                           function pef2eci
+%                           function eci_pef
 %
-%  this function trsnforms a vector from the pseudo earth fixed frame (pef),
-%    to the mean equator mean equinox (j2000) frame.
+%  this function transforms between the eci mean equator mean equinox (gcrf), and
+%    the pseudo earth fixed frame (pef).
 %
-%  author        : david vallado                  719-573-2600   25 jun 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  inputs          description                    range / units
-%    rpef        - position pseudo earth fixed    km
-%    vpef        - velocity pseudo earth fixed    km/s
-%    apef        - acceleration pseudo earth fixedkm/s2
-%    ttt         - julian centuries of tt         centuries
-%    jdut1       - julian date of ut1             days from 4713 bc
-%    lod         - excess length of day           sec
-%    terms       - number of terms for ast calculation 0,2
+%  inputs          description                              range / units
+%    reci        - position vector eci                           km
+%    veci        - velocity vector eci                           km/s
+%    direct      - direction                                     eto, efrom
+%    iau80arr    - iau76/fk5 eop constants
+%    jdtt        - julian date of tt                             days from 4713 bc
+%    jdftt       - fractional julian centuries of tt             days
+%    jdut1       - julian date of ut1                            days from 4713 bc
+%    lod         - excess length of day                          sec
+%    ddpsi       - delta psi correction to gcrf                  rad
+%    ddeps       - delta eps correction to gcrf                  rad
 %
 %  outputs       :
-%    reci        - position vector eci            km
-%    veci        - velocity vector eci            km/s
-%    aeci        - acceleration vector eci        km/s2
+%    rpef       - position vector pef                            km
+%    vpef       - velocity vector pef                            km/s
 %
 %  locals        :
-%    prec        - matrix for eci - mod
-%    deltapsi    - nutation angle                 rad
-%    trueeps     - true obliquity of the ecliptic rad
-%    meaneps     - mean obliquity of the ecliptic rad
-%    omega       -                                rad
-%    nut         - matrix for mod - tod
-%    st          - matrix for tod - pef
-%    stdot       - matrix for tod - pef rate
+%    eqeterms    - terms for ast calculation                     0,2
+%    deltapsi    - nutation angle                                rad
+%    trueeps     - true obliquity of the ecliptic                rad
+%    meaneps     - mean obliquity of the ecliptic                rad
+%    prec        - matrix for mod - eci
+%    nut         - matrix for tod - mod
+%    st          - matrix for pef - tod
+%    stdot       - matrix for pef - tod rate
 %
 %  coupling      :
-%   precess      - rotation for precession        mod - eci
-%   nutation     - rotation for nutation          tod - mod
-%   sidereal     - rotation for sidereal time     pef - tod
+%   precess      - rotation for precession
+%   nutation     - rotation for nutation
+%   sidereal     - rotation for sidereal time
 %
 %  references    :
-%    vallado       2001, 219-220, eq 3-68
+%    vallado       2022, 224
 %
 % [reci, veci, aeci] = pef2eci(rpef, vpef, apef, iau80arr, ttt, jdut1, lod, eqeterms, ddpsi, ddeps)
 % ----------------------------------------------------------------------------
@@ -53,7 +54,7 @@ function [reci, veci, aeci] = pef2eci(rpef, vpef, apef, iau80arr, ttt, jdut1, lo
     [prec, psia, wa, ea, xa] = precess ( ttt, '80' );
 
     [deltapsi, trueeps, meaneps, nut] = nutation  (ttt, ddpsi, ddeps, iau80arr, fArgs);
-    [st, stdot] = sidereal(jdut1, deltapsi, meaneps, fArgs(5), lod, eqeterms );
+    [st, stdot] = sidereal(jdut1, deltapsi, meaneps, fArgs(5), lod, eqeterms, '80' );
 
     thetasa= earthrot * (1.0  - lod/86400.0 );
     omegaearth = [0; 0; thetasa;];
@@ -66,3 +67,4 @@ function [reci, veci, aeci] = pef2eci(rpef, vpef, apef, iau80arr, ttt, jdut1, lo
     aeci = prec*nut*st*(apef + cross(omegaearth,temp) ...
         + 2.0*cross(omegaearth,vpef));
 
+end

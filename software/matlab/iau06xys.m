@@ -2,57 +2,40 @@
 %
 %                           function iau06xys
 %
-%  this function calulates the transformation matrix that accounts for the
-%    effects of precession-nutation in the iau2006 theory.
+%  this function calculates the transformation matrix that accounts for the
+%    effects of precession-nutation in the iau2006 cio theory.
 %
-%  author        : david vallado                  719-573-2600   16 jul 2004
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%    vallado     - consolidate with iau 2000                     14 feb 2005
-%
-%  inputs          description                    range / units
-%    ttt         - julian centuries of tt
-%    ddx         - eop correction for x           rad
-%    ddy         - eop correction for y           rad
+%  inputs          description                              range / units
+%    jdtt        - julian date in tt                           days from 4713 bc
+%    jdftt       - fractional julian date in tt                     days
+%    ddx         - delta x correction to gcrf                       rad
+%    ddy         - delta y correction to gcrf                       rad
+%    interp      - interpolation type (x for full series)           x, n, l, s
+%                  none, linear, spline
+%    fArgs06     - fundamental arguments in an array
+%    iau06arr    - iau06 array of values
+%    xysarr      - iau06 array of xys values for interpolation
 %
 %  outputs       :
-%    nut         - transformation matrix for tirs-gcrf
-%    x           - coordinate of cip              rad
-%    y           - coordinate of cip              rad
-%    s           - coordinate                     rad
+%    iau06xys    - transformation matrix for itrf-gcrf
+%    x           - coordinate of cip                                rad
+%    y           - coordinate of cip                                rad
+%    s           - coordinate                                       rad
 %
 %  locals        :
-%    axs0        - real coefficients for x        rad
-%    a0xi        - integer coefficients for x
-%    ays0        - real coefficients for y        rad
-%    a0yi        - integer coefficients for y
-%    ass0        - real coefficients for s        rad
-%    a0si        - integer coefficients for s
-%    apn         - real coefficients for nutation rad
-%    apni        - integer coefficients for nutation
-%    appl        - real coefficients for planetary nutation rad
-%    appli       - integer coefficients for planetary nutation
-%    ttt2,ttt3,  - powers of ttt
-%    l           - delaunay element               rad
-%    ll          - delaunay element               rad
-%    f           - delaunay element               rad
-%    d           - delaunay element               rad
-%    omega       - delaunay element               rad
-%    deltaeps    - change in obliquity            rad
-%    many others
+%    ttt         - julian centuries of tt
 %
 %  coupling      :
-%    iau00in     - initialize the arrays
-%    fundarg     - find the fundamental arguments
 %
 %  references    :
 %    vallado       2022, 214, 221
 %
-% [x, y, s, pn] = iau06xys (iau06arr, fArgs, ttt, ddx, ddy, opt1)
+% [x, y, s, pn] = iau06xys (iau06arr, fArgs, ttt, ddx, ddy, opt1);
 % ----------------------------------------------------------------------------
 
 function [x, y, s, pn] = iau06xys (iau06arr, fArgs06, xys06table, ttt, ddx, ddy, opt1)
-
     sethelp;
 
     rad = 180.0 / pi;
@@ -65,7 +48,7 @@ function [x, y, s, pn] = iau06xys (iau06arr, fArgs06, xys06table, ttt, ddx, ddy,
         [x, y, s] = findxysparam(jdtt, 0.0, 's', xys06table);
     end
 
-    x =  0.000390429583103574; y =3.52648563069063E-05; s =-1.4673151940162E-08;
+    %x =  0.000390429583103574; y =3.52648563069063E-05; s =-1.4673151940162E-08;
 
     % add corrections if available
     x = x + ddx;
@@ -109,4 +92,4 @@ function [x, y, s, pn] = iau06xys (iau06arr, fArgs06, xys06table, ttt, ddx, ddy,
     %        d = atan( sqrt((x^2 + y^2) / (1.0-x^2-y^2)) );
     %        nut1 = rot3mat(-e)*rot2mat(-d)*rot3mat(e+s)
 
-
+end

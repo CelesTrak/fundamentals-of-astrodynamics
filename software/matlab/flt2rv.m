@@ -40,44 +40,43 @@
 %    escobal            397
 %    chobotov            67
 %
-% [reci, veci] = flt2rv ( rmag,vmag,latgc,lon,fpa,az,ttt,jdut1,lod,xp,yp,terms,ddpsi,ddeps );
+% [reci, veci] = flt2rv ( rmag,vmag,latgc,lon,fpa,az,iau80arr,ttt,jdut1,lod,xp,yp,ddpsi,ddeps );
 % ----------------------------------------------------------------------------
 
-function [reci, veci] = flt2rv ( rmag,vmag,latgc,lon,fpa,az,ttt,jdut1,lod,xp,yp,terms,ddpsi,ddeps );
+function [reci, veci] = flt2rv ( rmag,vmag,latgc,lon,fpa,az,iau80arr, ttt,jdut1,lod,xp,yp,ddpsi,ddeps )
 
-        twopi = 2.0*pi;
-        small        = 0.00000001;
+    twopi = 2.0*pi;
+    small        = 0.00000001;
 
-        % -------- form position vector
-        recef(1) = rmag*cos(latgc)*cos(lon);
-        recef(2) = rmag*cos(latgc)*sin(lon);
-        recef(3) = rmag*sin(latgc);
-        recef=recef';
+    % -------- form position vector
+    recef(1) = rmag*cos(latgc)*cos(lon);
+    recef(2) = rmag*cos(latgc)*sin(lon);
+    recef(3) = rmag*sin(latgc);
+    recef=recef';
 
-        % -------- convert r to eci
-        vecef = [0;0;0];  % this is a dummy for now
-        aecef = [0;0;0];
-        [reci,veci,aeci] = ecef2eci(recef,vecef,aecef,ttt,jdut1,lod,xp,yp,terms,ddpsi,ddeps);
+    % -------- convert r to eci
+    vecef = [0.0; 0.0; 0.0];  % this is a dummy for now
+    aecef = [0.0; 0.0; 0.0];
+    [reci, veci, aeci] = ecef2eci(recef, vecef, aecef, iau80arr, ttt, ...
+        jdut1, lod, xp, yp, 2, ddpsi, ddeps );
 
-        % ------------- calculate rtasc and decl ------------------
-        temp= sqrt( reci(1)*reci(1) + reci(2)*reci(2) );
+    % ------------- calculate rtasc and decl ------------------
+    temp= sqrt( reci(1)*reci(1) + reci(2)*reci(2) );
 
-        if ( temp < small )
-            % v needs to be defined herexxxxxxxxx
-            rtasc= atan2( veci(2) , veci(1) );
-          else
-            rtasc= atan2( reci(2) , reci(1) );
-          end
-        decl= asin( reci(3)/rmag );
+    if ( temp < small )
+        % v needs to be defined herexxxxxxxxx
+        rtasc= atan2( veci(2) , veci(1) );
+    else
+        rtasc= atan2( reci(2) , reci(1) );
+    end
+    decl= asin( reci(3)/rmag );
 
-        % -------- form velocity vector
-        fpav = pi*0.5 - fpa;
-        veci(1)= vmag*( -cos(rtasc)*sin(decl)*(cos(az)*cos(fpav) - ...
-                      sin(rtasc)*sin(az)*cos(fpav)) + cos(rtasc)*sin(decl)*sin(fpav) );
-        veci(2)= vmag*( -sin(rtasc)*sin(decl)*(cos(az)*cos(fpav) + ...
-                      cos(rtasc)*sin(az)*cos(fpav)) + sin(rtasc)*cos(decl)*sin(fpav) );
-        veci(3)= vmag*(  sin(decl)*sin(fpav) + cos(decl)*cos(az)*cos(fpav) );
+    % -------- form velocity vector
+    fpav = pi*0.5 - fpa;
+    veci(1)= vmag*( -cos(rtasc)*sin(decl)*(cos(az)*cos(fpav) - ...
+        sin(rtasc)*sin(az)*cos(fpav)) + cos(rtasc)*sin(decl)*sin(fpav) );
+    veci(2)= vmag*( -sin(rtasc)*sin(decl)*(cos(az)*cos(fpav) + ...
+        cos(rtasc)*sin(az)*cos(fpav)) + sin(rtasc)*cos(decl)*sin(fpav) );
+    veci(3)= vmag*(  sin(decl)*sin(fpav) + cos(decl)*cos(az)*cos(fpav) );
 
-        reci = reci';
-        veci = veci';
-
+end

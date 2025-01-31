@@ -75,6 +75,7 @@ function [utmoonrise,utmoonset,moonphaseang,error] = moonrise( jd,latgd,lon, sho
 
     twopi    =  2.0*pi;
     deg2rad  =  pi/180.0;
+    rad2deg =   180.0/pi;
 
     % ------------------------  implementation   ------------------
     error    = 'ok';
@@ -95,9 +96,9 @@ function [utmoonrise,utmoonset,moonphaseang,error] = moonrise( jd,latgd,lon, sho
         [jdtemp,jdtempf] = jday(year,month,day,0,0,0.0);
 
         if ( opt == 1 )
-            uttemp = (6.0 - lon/15.0)/24.0;
+            uttemp = (6.0 - lon*rad2deg/15.0)/24.0;
         else
-            uttemp = (18.0 + lon/15.0)/24.0;
+            uttemp = (18.0 + lon*rad2deg/15.0)/24.0;
         end
 
         if ( try1 == 2 ) % only set if a problem

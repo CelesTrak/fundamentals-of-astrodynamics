@@ -4,3 +4,11 @@
 __pycache__/
 .coverage
 /venv
+
+# Ignore Visual Studio generated files
+.vs/
+FileContentIndex/
+v17/
+*.vsidx
+*.suo
+

@@ -49,7 +49,7 @@
     fprintf(1,'tt  %8.6f ttt  %16.12f jdtt  %18.11f \n',tt,ttt,jdtt + jdttfrac );
     fprintf(1,'tut1  %8.6f tut1  %16.12f jdut1  %18.11f \n',tut1,tut1,jdut1 + jdut1frac );
 
-    [rmoon,rtasc,decl] = moon ( jdtt + jdttfrac, 'y' );
+    [rmoon, rtasc, decl] = moon ( jd );
     
     fprintf(1,'rmoon  rtasc %14.6f deg decl %14.6f deg\n',rtasc*rad,decl*rad );
     fprintf(1,'rmoon new      %11.9f%11.9f%11.9f er\n',rmoon );

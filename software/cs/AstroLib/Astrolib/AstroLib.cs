@@ -15,7 +15,7 @@
 //              20 jan 2025  david vallado
 //                           original baseline
 //                           
-//    changes :
+//   changes :
 //           
 //   uses
 //           MathTimeMethods;  // Edirection, globals
@@ -38,7 +38,12 @@ using System.Text.RegularExpressions;
 
 using MathTimeMethods;  // Edirection, globals
 using EOPSPWMethods;    // EOPDataClass, SPWDataClass, iau80Class, iau06Class
-
+using static MathTimeMethods.MathTimeLib;
+using System.Security.Cryptography;
+using System.Security.Policy;
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using System.Net.Sockets;
 
 namespace AstroLibMethods
 {
@@ -57,13 +62,10 @@ namespace AstroLibMethods
         // ------------------------ reduction options -------------------------
         public enum EOpt
         {
-            e80,     // IAU76/FK5
-            e96,     // 1996
-            e00a,    // IAU2000a approx, not used
-            e00b,    // IAU2000b approx, not used
-            e06cio,  // IAU2006/2000 cio full series
-            e06cioint,  // IAU2006/2000 cio full series interpolated
-            e06eq    // IAU2006/2000 cio classical
+            e80,       // IAU76/FK5
+            e96,       // 1996
+            e06cio,    // IAU2006/2000 cio full series
+            e06cioint  // IAU2006/2000 cio full series interpolated
         };
 
         // ------------------- class for gravity and astro constants -------------------
@@ -73,15 +75,15 @@ namespace AstroLibMethods
             public string name;
             public double[,] c = new double[2200, 2200];
             public double[,] s = new double[2200, 2200];
-            public double[,] cNor = new double[2200, 2200];  // unnormalized constants
+            public double[,] cNor = new double[2200, 2200];  // normalized coefficients
             public double[,] sNor = new double[2200, 2200];
-            public double[,] cSig = new double[2200, 2200];  // normalized constants
+            public double[,] cSig = new double[2200, 2200];  // sigmas
             public double[,] sSig = new double[2200, 2200];
             public double mum = 3.986004415e14; // m^3/s^2 stk uses .4415 
             public double mu = 398600.4415;     // km^3/s^2 stk uses .4415
             public double re = 6378.1363;       // km  stk uses .1363
             public double rem = 6378136.3;      // default equatorial radius[m], set with each model
-            public int maxsize = 2160;         // default max size gravity model data
+            public int maxsize = 2160;          // default max size gravity model data
             public double velkmps = 7.905366149846074;
             public double earthrot = 7.292115e-05;  // 7.29211514670698e-05 older rad/s        
         };
@@ -105,7 +107,7 @@ namespace AstroLibMethods
             public double x;
             public double y;
             public double s;
-            public double jdxysstart, jdfxysstart, mjd;
+            public double mjd;
         };
         // use a class for all the xys data so it can be processed quickly
         public xysdataClass[] xysarr = new xysdataClass[xyssize];
@@ -132,7 +134,7 @@ namespace AstroLibMethods
 
         // -----------------------------------------------------------------------------
         //
-        //                           function gstime00
+        //                           function iau06gst
         //
         //  this function finds the greenwich sidereal time (iau-2006/2000).
         //
@@ -140,14 +142,13 @@ namespace AstroLibMethods
         //
         //  inputs          description                              range / units
         //    jdut1       - julian date in ut1                       days from 4713 bc
+        //    deltapsi    - nutation angle                           rad
+        //    ttt         - julian centuries  
+        //    iau06arr    - array of iau06 values
+        //    fArgs06     - fundamental arguments                    rad
         //
         //  outputs       :
-        //    gstime      - greenwich sidereal time                  0 to 2pi rad
-        //
-        //  locals        :
-        //    temp        - temporary variable for doubles           rad
-        //    tut1        - julian centuries from the
-        //                  jan 1, 2000 12 h epoch (ut1)
+        //    gst         - greenwich sidereal time                  0 to 2pi rad
         //
         //  coupling      :
         //    none
@@ -156,9 +157,9 @@ namespace AstroLibMethods
         //    vallado       2022, 217, eq 3-71
         // -----------------------------------------------------------------------------
 
-        public double[,] gstime00
+        public double[,] iau06gst
             (
-            double jdut1, double deltapsi, double ttt, EOPSPWLib.iau06Class iau06arr, double[] fArgs,
+            double jdut1, double deltapsi, double ttt, EOPSPWLib.iau06Class iau06arr, double[] fArgs06,
             out double gst
             )
         {
@@ -189,11 +190,11 @@ namespace AstroLibMethods
             // data file is not reversed
             for (i = 32; i >= 0; i--)
             {
-                tempval = iau06arr.ag0i[i, 0] * fArgs[0] + iau06arr.ag0i[i, 1] * fArgs[1] + iau06arr.ag0i[i, 2] * fArgs[2]
-                    + iau06arr.ag0i[i, 3] * fArgs[3] + iau06arr.ag0i[i, 4] * fArgs[4] + iau06arr.ag0i[i, 5] * fArgs[5]
-                    + iau06arr.ag0i[i, 6] * fArgs[6] + iau06arr.ag0i[i, 7] * fArgs[7] + iau06arr.ag0i[i, 8] * fArgs[8]
-                    + iau06arr.ag0i[i, 9] * fArgs[9] + iau06arr.ag0i[i, 10] * fArgs[10] + iau06arr.ag0i[i, 11] * fArgs[11]
-                    + iau06arr.ag0i[i, 12] * fArgs[12] + iau06arr.ag0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ag0i[i, 0] * fArgs06[0] + iau06arr.ag0i[i, 1] * fArgs06[1] + iau06arr.ag0i[i, 2] * fArgs06[2]
+                    + iau06arr.ag0i[i, 3] * fArgs06[3] + iau06arr.ag0i[i, 4] * fArgs06[4] + iau06arr.ag0i[i, 5] * fArgs06[5]
+                    + iau06arr.ag0i[i, 6] * fArgs06[6] + iau06arr.ag0i[i, 7] * fArgs06[7] + iau06arr.ag0i[i, 8] * fArgs06[8]
+                    + iau06arr.ag0i[i, 9] * fArgs06[9] + iau06arr.ag0i[i, 10] * fArgs06[10] + iau06arr.ag0i[i, 11] * fArgs06[11]
+                    + iau06arr.ag0i[i, 12] * fArgs06[12] + iau06arr.ag0i[i, 13] * fArgs06[13];
                 gstsum0 = gstsum0 + iau06arr.ag0[i, 0] * Math.Sin(tempval) + iau06arr.ag0[i, 1] * Math.Cos(tempval);
             }
 
@@ -202,11 +203,11 @@ namespace AstroLibMethods
             for (j = 0; j >= 0; j--)
             {
                 i = 32 + j;
-                tempval = iau06arr.ag0i[i, 0] * fArgs[0] + iau06arr.ag0i[i, 1] * fArgs[1] + iau06arr.ag0i[i, 2] * fArgs[2]
-                    + iau06arr.ag0i[i, 3] * fArgs[3] + iau06arr.ag0i[i, 4] * fArgs[4] + iau06arr.ag0i[i, 5] * fArgs[5]
-                    + iau06arr.ag0i[i, 6] * fArgs[6] + iau06arr.ag0i[i, 7] * fArgs[7] + iau06arr.ag0i[i, 8] * fArgs[8]
-                    + iau06arr.ag0i[i, 9] * fArgs[9] + iau06arr.ag0i[i, 10] * fArgs[10] + iau06arr.ag0i[i, 11] * fArgs[11]
-                    + iau06arr.ag0i[i, 12] * fArgs[12] + iau06arr.ag0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ag0i[i, 0] * fArgs06[0] + iau06arr.ag0i[i, 1] * fArgs06[1] + iau06arr.ag0i[i, 2] * fArgs06[2]
+                    + iau06arr.ag0i[i, 3] * fArgs06[3] + iau06arr.ag0i[i, 4] * fArgs06[4] + iau06arr.ag0i[i, 5] * fArgs06[5]
+                    + iau06arr.ag0i[i, 6] * fArgs06[6] + iau06arr.ag0i[i, 7] * fArgs06[7] + iau06arr.ag0i[i, 8] * fArgs06[8]
+                    + iau06arr.ag0i[i, 9] * fArgs06[9] + iau06arr.ag0i[i, 10] * fArgs06[10] + iau06arr.ag0i[i, 11] * fArgs06[11]
+                    + iau06arr.ag0i[i, 12] * fArgs06[12] + iau06arr.ag0i[i, 13] * fArgs06[13];
                 gstsum1 = gstsum1 + (iau06arr.ag0[i, 0] * Math.Sin(tempval) + iau06arr.ag0[i, 1] * Math.Cos(tempval)) * ttt;
             }
 
@@ -236,7 +237,7 @@ namespace AstroLibMethods
             st[2, 2] = 1.0;
 
             return st;
-        }  // gstime00 
+        }  // iau06gst 
 
 
         // -----------------------------------------------------------------------------
@@ -248,13 +249,13 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    jdut1       - julian date in ut1             days from 4713 bc
+        //    jdut1       - julian date in ut1                       days from 4713 bc
         //
         //  outputs       :
-        //    gstime      - greenwich sidereal time        0 to 2pi rad
+        //    gstime      - greenwich sidereal time                  0 to 2pi rad
         //
         //  locals        :
-        //    temp        - temporary variable for doubles   rad
+        //    temp        - temporary variable for doubles           rad
         //    tut1        - julian centuries from the
         //                  jan 1, 2000 12 h epoch (ut1)
         //
@@ -296,12 +297,12 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    lon         - site longitude (west -)        -2pi to 2pi rad
-        //    jdut1       - julian date in ut1             days from 4713 bc
+        //    lon         - site longitude (west -)                  -2pi to 2pi rad
+        //    jdut1       - julian date in ut1                       days from 4713 bc
         //
         //  outputs       :
-        //    lst         - local sidereal time            0.0 to 2pi rad
-        //    gst         - greenwich sidereal time        0.0 to 2pi rad
+        //    lst         - local sidereal time                      0.0 to 2pi rad
+        //    gst         - greenwich sidereal time                  0.0 to 2pi rad
         //
         //  locals        :
         //    none.
@@ -341,10 +342,10 @@ namespace AstroLibMethods
         //
         //  inputs          description                              range / units
         //    ttt         - julian centuries of tt   
-        //    opt         - method option                                  e00cio, e00a, e96, e80
+        //    opt         - method option                            e00cio, e80, e96
         //
         //  outputs       :
-        //    fArgs       - fundamental arguments in an array[14]                 
+        //    fArgs06       - fundamental arguments in an array[14]                 
         //    1  l        - mean anomaly of the moon                              rad
         //    2  l1       - mean anomaly of the Sun                               rad
         //    3  f        - mean longitude of the Moon minus that of asc node     rad
@@ -360,9 +361,6 @@ namespace AstroLibMethods
         //    13 lonnep   - longitude of neptune                                  rad
         //    14 precrate - prescession rate                                      rad
         //
-        //  locals        :
-        //    ttt2,ttt3,  - powers of ttt
-        //  
         //  coupling      :
         //    none        -
         //
@@ -372,10 +370,10 @@ namespace AstroLibMethods
 
         public void fundarg
             (
-            double ttt, EOpt opt, out double[] fArgs
+            double ttt, EOpt opt, out double[] fArgs06
             )
         {
-            fArgs = new double[14];
+            fArgs06 = new double[14];
             double l, l1, f, d, omega, lonmer, lonven, lonear, lonmar,
                    lonjup, lonsat, lonurn, lonnep, precrate;
             double deg2rad, oo3600, twopi;
@@ -389,7 +387,7 @@ namespace AstroLibMethods
 
             // ---- determine coefficients for various iers nutation theories ----
             // ----  iau-2006/2000 CIO and nutation theory and iau-2000a theory
-            if (opt.Equals(EOpt.e06cio) || opt.Equals(EOpt.e06eq) || opt.Equals(EOpt.e00a))
+            if (opt.Equals(EOpt.e06cio) )
             {
                 // ------ form the delaunay fundamental arguments in ", converted to deg
                 l = ((((-0.00024470 * ttt + 0.051635) * ttt + 31.8792) * ttt + 1717915923.2178) * ttt
@@ -481,31 +479,6 @@ namespace AstroLibMethods
                 precrate = 0.0;
             }
 
-            // ---- iau-2000b theory
-            if (opt.Equals(EOpt.e00b))
-            {
-                // ------ form the delaunay fundamental arguments in deg
-                l = (1717915923.2178 * ttt + 485868.249036) * oo3600;
-                l1 = (129596581.0481 * ttt + 1287104.79305) * oo3600;
-                f = (1739527262.8478 * ttt + 335779.526232) * oo3600;
-                d = (1602961601.2090 * ttt + 1072260.70369) * oo3600;
-                omega = (-6962890.5431 * ttt + 450160.398036) * oo3600;
-
-                // ------ form the planetary arguments in deg
-                lonmer = 0.0;
-                lonven = 0.0;
-                lonear = 0.0;
-                lonmar = 0.0;
-                lonjup = 0.0;
-                lonsat = 0.0;
-                lonurn = 0.0;
-                lonnep = 0.0;
-                precrate = 0.0;
-                // instead uses a constant rate
-                // dplan = -0.135 * oo3600 * deg2rad;
-                // deplan = 0.388 * oo3600 * deg2rad;
-            }
-
             // ---- convert units from deg to rad 
             l = (l % 360.0) * deg2rad;
             l1 = (l1 % 360.0) * deg2rad;
@@ -514,7 +487,7 @@ namespace AstroLibMethods
             omega = (omega % 360.0) * deg2rad;
 
             // convert all but the cio etc values which are already in rad
-            if (!opt.Equals(EOpt.e06cio) && !opt.Equals(EOpt.e06eq) && !opt.Equals(EOpt.e00a))
+            if (!opt.Equals(EOpt.e06cio) )
             {
                 lonmer = (lonmer % 360.0) * deg2rad;
                 lonven = (lonven % 360.0) * deg2rad;
@@ -527,20 +500,20 @@ namespace AstroLibMethods
                 precrate = (precrate % 360.0) * deg2rad;
             }
 
-            fArgs[0] = l;   // delaunay variables
-            fArgs[1] = l1;
-            fArgs[2] = f;
-            fArgs[3] = d;
-            fArgs[4] = omega;
-            fArgs[5] = lonmer;  // begin planetary longitudes
-            fArgs[6] = lonven;
-            fArgs[7] = lonear;
-            fArgs[8] = lonmar;
-            fArgs[9] = lonjup;
-            fArgs[10] = lonsat;
-            fArgs[11] = lonurn;
-            fArgs[12] = lonnep;
-            fArgs[13] = precrate;
+            fArgs06[0] = l;   // delaunay variables
+            fArgs06[1] = l1;
+            fArgs06[2] = f;
+            fArgs06[3] = d;
+            fArgs06[4] = omega;
+            fArgs06[5] = lonmer;  // begin planetary longitudes
+            fArgs06[6] = lonven;
+            fArgs06[7] = lonear;
+            fArgs06[8] = lonmar;
+            fArgs06[9] = lonjup;
+            fArgs06[10] = lonsat;
+            fArgs06[11] = lonurn;
+            fArgs06[12] = lonnep;
+            fArgs06[13] = precrate;
 
         }  //  fundarg 
 
@@ -550,42 +523,26 @@ namespace AstroLibMethods
         //
         //                           function iau06xysS
         //
-        //  this function calculates the XYS parameters for the iau2006 cio theory.
+        //  this function calculates the XYS parameters for the iau2006 cio theory directly
+        //  from the summations.
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
         //    ttt         - julian centuries of tt
-        //    fArgs       - fundamental arguments in an array                 
-        //      l           - mean anomaly of the moon                          rad
-        //      l1          - mean anomaly of the Sun                           rad
-        //      f           - mean longitude of the Moon minus that of asc node rad
-        //      d           - mean elongation of the Moon from the Sun          rad
-        //      omega       - mean longitude of the ascending node of the Moon  rad
-        //      planetary longitudes                                            rad
+        //    iau06arr    - iau06 array of values
+        //    fArgs06       - fundamental arguments in an array                 
+        //    1  l        - mean anomaly of the moon                              rad
+        //    2  l1       - mean anomaly of the Sun                               rad
+        //    3  f        - mean longitude of the Moon minus that of asc node     rad
+        //    4  d        - mean elongation of the Moon from the Sun              rad
+        //    5  omega    - mean longitude of the ascending node of the Moon      rad
+        //    6-14  planetary longitudes                                          rad
         //
         //  outputs       :
-        //    x           - coordinate of cip                                rad
-        //    y           - coordinate of cip                                rad
-        //    s           - coordinate                                       rad
-        //
-        //  locals        :
-        //    axs0        - real coefficients for x                          rad
-        //    ax0i        - integer coefficients for x
-        //    ays0        - real coefficients for y                          rad
-        //    ay0i        - integer coefficients for y
-        //    ass0        - real coefficients for s                          rad
-        //    as0i        - integer coefficients for s
-        //    apn0         - real coefficients for nutation                  rad
-        //    apn0i        - integer coefficients for nutation
-        //    appl        - real coefficients for planetary nutation rad
-        //    appli       - integer coefficients for planetary nutation
-        //    ttt2,ttt3,  - powers of ttt
-        //    deltaeps    - change in obliquity                              rad
-        //    many others
-        //
-        //  coupling      :
-        //    iau06in     - initialize the arrays
+        //    x           - coordinate of cio                                     rad
+        //    y           - coordinate of cio                                     rad
+        //    s           - coordinate                                            rad
         //
         //  references    : 
         //    vallado       2022, 214-216
@@ -593,7 +550,7 @@ namespace AstroLibMethods
 
         public void iau06xysS
             (
-            double ttt, EOPSPWLib.iau06Class iau06arr, double[] fArgs,
+            double ttt, EOPSPWLib.iau06Class iau06arr, double[] fArgs06,
             out double x, out double y, out double s
             )
         {
@@ -616,11 +573,11 @@ namespace AstroLibMethods
             sum0 = 0.0;
             for (i = 1305; i >= 0; i--)
             {
-                tempval = iau06arr.ax0i[i, 0] * fArgs[0] + iau06arr.ax0i[i, 1] * fArgs[1] + iau06arr.ax0i[i, 2] * fArgs[2]
-                    + iau06arr.ax0i[i, 3] * fArgs[3] + iau06arr.ax0i[i, 4] * fArgs[4] + iau06arr.ax0i[i, 5] * fArgs[5]
-                    + iau06arr.ax0i[i, 6] * fArgs[6] + iau06arr.ax0i[i, 7] * fArgs[7] + iau06arr.ax0i[i, 8] * fArgs[8]
-                    + iau06arr.ax0i[i, 9] * fArgs[9] + iau06arr.ax0i[i, 10] * fArgs[10] + iau06arr.ax0i[i, 11] * fArgs[11]
-                    + iau06arr.ax0i[i, 12] * fArgs[12] + iau06arr.ax0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ax0i[i, 0] * fArgs06[0] + iau06arr.ax0i[i, 1] * fArgs06[1] + iau06arr.ax0i[i, 2] * fArgs06[2]
+                    + iau06arr.ax0i[i, 3] * fArgs06[3] + iau06arr.ax0i[i, 4] * fArgs06[4] + iau06arr.ax0i[i, 5] * fArgs06[5]
+                    + iau06arr.ax0i[i, 6] * fArgs06[6] + iau06arr.ax0i[i, 7] * fArgs06[7] + iau06arr.ax0i[i, 8] * fArgs06[8]
+                    + iau06arr.ax0i[i, 9] * fArgs06[9] + iau06arr.ax0i[i, 10] * fArgs06[10] + iau06arr.ax0i[i, 11] * fArgs06[11]
+                    + iau06arr.ax0i[i, 12] * fArgs06[12] + iau06arr.ax0i[i, 13] * fArgs06[13];
                 sum0 = sum0 + iau06arr.ax0[i, 0] * Math.Sin(tempval) + iau06arr.ax0[i, 1] * Math.Cos(tempval);
             }
             sum1 = 0.0;
@@ -631,44 +588,44 @@ namespace AstroLibMethods
             for (j = 252; j >= 0; j--)
             {
                 i = 1306 + j;
-                tempval = iau06arr.ax0i[i, 0] * fArgs[0] + iau06arr.ax0i[i, 1] * fArgs[1] + iau06arr.ax0i[i, 2] * fArgs[2]
-                    + iau06arr.ax0i[i, 3] * fArgs[3] + iau06arr.ax0i[i, 4] * fArgs[4] + iau06arr.ax0i[i, 5] * fArgs[5]
-                    + iau06arr.ax0i[i, 6] * fArgs[6] + iau06arr.ax0i[i, 7] * fArgs[7] + iau06arr.ax0i[i, 8] * fArgs[8]
-                    + iau06arr.ax0i[i, 9] * fArgs[9] + iau06arr.ax0i[i, 10] * fArgs[10] + iau06arr.ax0i[i, 11] * fArgs[11]
-                    + iau06arr.ax0i[i, 12] * fArgs[12] + iau06arr.ax0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ax0i[i, 0] * fArgs06[0] + iau06arr.ax0i[i, 1] * fArgs06[1] + iau06arr.ax0i[i, 2] * fArgs06[2]
+                    + iau06arr.ax0i[i, 3] * fArgs06[3] + iau06arr.ax0i[i, 4] * fArgs06[4] + iau06arr.ax0i[i, 5] * fArgs06[5]
+                    + iau06arr.ax0i[i, 6] * fArgs06[6] + iau06arr.ax0i[i, 7] * fArgs06[7] + iau06arr.ax0i[i, 8] * fArgs06[8]
+                    + iau06arr.ax0i[i, 9] * fArgs06[9] + iau06arr.ax0i[i, 10] * fArgs06[10] + iau06arr.ax0i[i, 11] * fArgs06[11]
+                    + iau06arr.ax0i[i, 12] * fArgs06[12] + iau06arr.ax0i[i, 13] * fArgs06[13];
                 sum1 = sum1 + iau06arr.ax0[i, 0] * Math.Sin(tempval) + iau06arr.ax0[i, 1] * Math.Cos(tempval);
             }
             sum2 = 0.0;
             for (j = 35; j >= 0; j--)
             {
                 i = 1306 + 253 + j;
-                tempval = iau06arr.ax0i[i, 0] * fArgs[0] + iau06arr.ax0i[i, 1] * fArgs[1] + iau06arr.ax0i[i, 2] * fArgs[2]
-                    + iau06arr.ax0i[i, 3] * fArgs[3] + iau06arr.ax0i[i, 4] * fArgs[4] + iau06arr.ax0i[i, 5] * fArgs[5]
-                    + iau06arr.ax0i[i, 6] * fArgs[6] + iau06arr.ax0i[i, 7] * fArgs[7] + iau06arr.ax0i[i, 8] * fArgs[8]
-                    + iau06arr.ax0i[i, 9] * fArgs[9] + iau06arr.ax0i[i, 10] * fArgs[10] + iau06arr.ax0i[i, 11] * fArgs[11]
-                    + iau06arr.ax0i[i, 12] * fArgs[12] + iau06arr.ax0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ax0i[i, 0] * fArgs06[0] + iau06arr.ax0i[i, 1] * fArgs06[1] + iau06arr.ax0i[i, 2] * fArgs06[2]
+                    + iau06arr.ax0i[i, 3] * fArgs06[3] + iau06arr.ax0i[i, 4] * fArgs06[4] + iau06arr.ax0i[i, 5] * fArgs06[5]
+                    + iau06arr.ax0i[i, 6] * fArgs06[6] + iau06arr.ax0i[i, 7] * fArgs06[7] + iau06arr.ax0i[i, 8] * fArgs06[8]
+                    + iau06arr.ax0i[i, 9] * fArgs06[9] + iau06arr.ax0i[i, 10] * fArgs06[10] + iau06arr.ax0i[i, 11] * fArgs06[11]
+                    + iau06arr.ax0i[i, 12] * fArgs06[12] + iau06arr.ax0i[i, 13] * fArgs06[13];
                 sum2 = sum2 + iau06arr.ax0[i, 0] * Math.Sin(tempval) + iau06arr.ax0[i, 1] * Math.Cos(tempval);
             }
             sum3 = 0.0;
             for (j = 3; j >= 0; j--)
             {
                 i = 1306 + 253 + 36 + j;
-                tempval = iau06arr.ax0i[i, 0] * fArgs[0] + iau06arr.ax0i[i, 1] * fArgs[1] + iau06arr.ax0i[i, 2] * fArgs[2]
-                    + iau06arr.ax0i[i, 3] * fArgs[3] + iau06arr.ax0i[i, 4] * fArgs[4] + iau06arr.ax0i[i, 5] * fArgs[5]
-                    + iau06arr.ax0i[i, 6] * fArgs[6] + iau06arr.ax0i[i, 7] * fArgs[7] + iau06arr.ax0i[i, 8] * fArgs[8]
-                    + iau06arr.ax0i[i, 9] * fArgs[9] + iau06arr.ax0i[i, 10] * fArgs[10] + iau06arr.ax0i[i, 11] * fArgs[11]
-                    + iau06arr.ax0i[i, 12] * fArgs[12] + iau06arr.ax0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ax0i[i, 0] * fArgs06[0] + iau06arr.ax0i[i, 1] * fArgs06[1] + iau06arr.ax0i[i, 2] * fArgs06[2]
+                    + iau06arr.ax0i[i, 3] * fArgs06[3] + iau06arr.ax0i[i, 4] * fArgs06[4] + iau06arr.ax0i[i, 5] * fArgs06[5]
+                    + iau06arr.ax0i[i, 6] * fArgs06[6] + iau06arr.ax0i[i, 7] * fArgs06[7] + iau06arr.ax0i[i, 8] * fArgs06[8]
+                    + iau06arr.ax0i[i, 9] * fArgs06[9] + iau06arr.ax0i[i, 10] * fArgs06[10] + iau06arr.ax0i[i, 11] * fArgs06[11]
+                    + iau06arr.ax0i[i, 12] * fArgs06[12] + iau06arr.ax0i[i, 13] * fArgs06[13];
                 sum3 = sum3 + iau06arr.ax0[i, 0] * Math.Sin(tempval) + iau06arr.ax0[i, 1] * Math.Cos(tempval);
             }
             sum4 = 0.0;
             for (j = 0; j >= 0; j--)
             {
                 i = 1306 + 253 + 36 + 4 + j;
-                tempval = iau06arr.ax0i[i, 0] * fArgs[0] + iau06arr.ax0i[i, 1] * fArgs[1] + iau06arr.ax0i[i, 2] * fArgs[2]
-                    + iau06arr.ax0i[i, 3] * fArgs[3] + iau06arr.ax0i[i, 4] * fArgs[4] + iau06arr.ax0i[i, 5] * fArgs[5]
-                    + iau06arr.ax0i[i, 6] * fArgs[6] + iau06arr.ax0i[i, 7] * fArgs[7] + iau06arr.ax0i[i, 8] * fArgs[8]
-                    + iau06arr.ax0i[i, 9] * fArgs[9] + iau06arr.ax0i[i, 10] * fArgs[10] + iau06arr.ax0i[i, 11] * fArgs[11]
-                    + iau06arr.ax0i[i, 12] * fArgs[12] + iau06arr.ax0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ax0i[i, 0] * fArgs06[0] + iau06arr.ax0i[i, 1] * fArgs06[1] + iau06arr.ax0i[i, 2] * fArgs06[2]
+                    + iau06arr.ax0i[i, 3] * fArgs06[3] + iau06arr.ax0i[i, 4] * fArgs06[4] + iau06arr.ax0i[i, 5] * fArgs06[5]
+                    + iau06arr.ax0i[i, 6] * fArgs06[6] + iau06arr.ax0i[i, 7] * fArgs06[7] + iau06arr.ax0i[i, 8] * fArgs06[8]
+                    + iau06arr.ax0i[i, 9] * fArgs06[9] + iau06arr.ax0i[i, 10] * fArgs06[10] + iau06arr.ax0i[i, 11] * fArgs06[11]
+                    + iau06arr.ax0i[i, 12] * fArgs06[12] + iau06arr.ax0i[i, 13] * fArgs06[13];
                 sum4 = sum4 + iau06arr.ax0[i, 0] * Math.Sin(tempval) + iau06arr.ax0[i, 1] * Math.Cos(tempval);
             }
 
@@ -680,11 +637,11 @@ namespace AstroLibMethods
             sum0 = 0.0;
             for (i = 961; i >= 0; i--)
             {
-                tempval = iau06arr.ay0i[i, 0] * fArgs[0] + iau06arr.ay0i[i, 1] * fArgs[1] + iau06arr.ay0i[i, 2] * fArgs[2]
-                    + iau06arr.ay0i[i, 3] * fArgs[3] + iau06arr.ay0i[i, 4] * fArgs[4] + iau06arr.ay0i[i, 5] * fArgs[5]
-                    + iau06arr.ay0i[i, 6] * fArgs[6] + iau06arr.ay0i[i, 7] * fArgs[7] + iau06arr.ay0i[i, 8] * fArgs[8]
-                    + iau06arr.ay0i[i, 9] * fArgs[9] + iau06arr.ay0i[i, 10] * fArgs[10] + iau06arr.ay0i[i, 11] * fArgs[11]
-                    + iau06arr.ay0i[i, 12] * fArgs[12] + iau06arr.ay0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ay0i[i, 0] * fArgs06[0] + iau06arr.ay0i[i, 1] * fArgs06[1] + iau06arr.ay0i[i, 2] * fArgs06[2]
+                    + iau06arr.ay0i[i, 3] * fArgs06[3] + iau06arr.ay0i[i, 4] * fArgs06[4] + iau06arr.ay0i[i, 5] * fArgs06[5]
+                    + iau06arr.ay0i[i, 6] * fArgs06[6] + iau06arr.ay0i[i, 7] * fArgs06[7] + iau06arr.ay0i[i, 8] * fArgs06[8]
+                    + iau06arr.ay0i[i, 9] * fArgs06[9] + iau06arr.ay0i[i, 10] * fArgs06[10] + iau06arr.ay0i[i, 11] * fArgs06[11]
+                    + iau06arr.ay0i[i, 12] * fArgs06[12] + iau06arr.ay0i[i, 13] * fArgs06[13];
                 sum0 = sum0 + iau06arr.ay0[i, 0] * Math.Sin(tempval) + iau06arr.ay0[i, 1] * Math.Cos(tempval);
             }
 
@@ -692,44 +649,44 @@ namespace AstroLibMethods
             for (j = 276; j >= 0; j--)
             {
                 i = 962 + j;
-                tempval = iau06arr.ay0i[i, 0] * fArgs[0] + iau06arr.ay0i[i, 1] * fArgs[1] + iau06arr.ay0i[i, 2] * fArgs[2]
-                    + iau06arr.ay0i[i, 3] * fArgs[3] + iau06arr.ay0i[i, 4] * fArgs[4] + iau06arr.ay0i[i, 5] * fArgs[5]
-                    + iau06arr.ay0i[i, 6] * fArgs[6] + iau06arr.ay0i[i, 7] * fArgs[7] + iau06arr.ay0i[i, 8] * fArgs[8]
-                    + iau06arr.ay0i[i, 9] * fArgs[9] + iau06arr.ay0i[i, 10] * fArgs[10] + iau06arr.ay0i[i, 11] * fArgs[11]
-                    + iau06arr.ay0i[i, 12] * fArgs[12] + iau06arr.ay0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ay0i[i, 0] * fArgs06[0] + iau06arr.ay0i[i, 1] * fArgs06[1] + iau06arr.ay0i[i, 2] * fArgs06[2]
+                    + iau06arr.ay0i[i, 3] * fArgs06[3] + iau06arr.ay0i[i, 4] * fArgs06[4] + iau06arr.ay0i[i, 5] * fArgs06[5]
+                    + iau06arr.ay0i[i, 6] * fArgs06[6] + iau06arr.ay0i[i, 7] * fArgs06[7] + iau06arr.ay0i[i, 8] * fArgs06[8]
+                    + iau06arr.ay0i[i, 9] * fArgs06[9] + iau06arr.ay0i[i, 10] * fArgs06[10] + iau06arr.ay0i[i, 11] * fArgs06[11]
+                    + iau06arr.ay0i[i, 12] * fArgs06[12] + iau06arr.ay0i[i, 13] * fArgs06[13];
                 sum1 = sum1 + iau06arr.ay0[i, 0] * Math.Sin(tempval) + iau06arr.ay0[i, 1] * Math.Cos(tempval);
             }
             sum2 = 0.0;
             for (j = 29; j >= 0; j--)
             {
                 i = 962 + 277 + j;
-                tempval = iau06arr.ay0i[i, 0] * fArgs[0] + iau06arr.ay0i[i, 1] * fArgs[1] + iau06arr.ay0i[i, 2] * fArgs[2]
-                    + iau06arr.ay0i[i, 3] * fArgs[3] + iau06arr.ay0i[i, 4] * fArgs[4] + iau06arr.ay0i[i, 5] * fArgs[5]
-                    + iau06arr.ay0i[i, 6] * fArgs[6] + iau06arr.ay0i[i, 7] * fArgs[7] + iau06arr.ay0i[i, 8] * fArgs[8]
-                    + iau06arr.ay0i[i, 9] * fArgs[9] + iau06arr.ay0i[i, 10] * fArgs[10] + iau06arr.ay0i[i, 11] * fArgs[11]
-                    + iau06arr.ay0i[i, 12] * fArgs[12] + iau06arr.ay0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ay0i[i, 0] * fArgs06[0] + iau06arr.ay0i[i, 1] * fArgs06[1] + iau06arr.ay0i[i, 2] * fArgs06[2]
+                    + iau06arr.ay0i[i, 3] * fArgs06[3] + iau06arr.ay0i[i, 4] * fArgs06[4] + iau06arr.ay0i[i, 5] * fArgs06[5]
+                    + iau06arr.ay0i[i, 6] * fArgs06[6] + iau06arr.ay0i[i, 7] * fArgs06[7] + iau06arr.ay0i[i, 8] * fArgs06[8]
+                    + iau06arr.ay0i[i, 9] * fArgs06[9] + iau06arr.ay0i[i, 10] * fArgs06[10] + iau06arr.ay0i[i, 11] * fArgs06[11]
+                    + iau06arr.ay0i[i, 12] * fArgs06[12] + iau06arr.ay0i[i, 13] * fArgs06[13];
                 sum2 = sum2 + iau06arr.ay0[i, 0] * Math.Sin(tempval) + iau06arr.ay0[i, 1] * Math.Cos(tempval);
             }
             sum3 = 0.0;
             for (j = 4; j >= 0; j--)
             {
                 i = 962 + 277 + 30 + j;
-                tempval = iau06arr.ay0i[i, 0] * fArgs[0] + iau06arr.ay0i[i, 1] * fArgs[1] + iau06arr.ay0i[i, 2] * fArgs[2]
-                    + iau06arr.ay0i[i, 3] * fArgs[3] + iau06arr.ay0i[i, 4] * fArgs[4] + iau06arr.ay0i[i, 5] * fArgs[5]
-                    + iau06arr.ay0i[i, 6] * fArgs[6] + iau06arr.ay0i[i, 7] * fArgs[7] + iau06arr.ay0i[i, 8] * fArgs[8]
-                    + iau06arr.ay0i[i, 9] * fArgs[9] + iau06arr.ay0i[i, 10] * fArgs[10] + iau06arr.ay0i[i, 11] * fArgs[11]
-                    + iau06arr.ay0i[i, 12] * fArgs[12] + iau06arr.ay0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ay0i[i, 0] * fArgs06[0] + iau06arr.ay0i[i, 1] * fArgs06[1] + iau06arr.ay0i[i, 2] * fArgs06[2]
+                    + iau06arr.ay0i[i, 3] * fArgs06[3] + iau06arr.ay0i[i, 4] * fArgs06[4] + iau06arr.ay0i[i, 5] * fArgs06[5]
+                    + iau06arr.ay0i[i, 6] * fArgs06[6] + iau06arr.ay0i[i, 7] * fArgs06[7] + iau06arr.ay0i[i, 8] * fArgs06[8]
+                    + iau06arr.ay0i[i, 9] * fArgs06[9] + iau06arr.ay0i[i, 10] * fArgs06[10] + iau06arr.ay0i[i, 11] * fArgs06[11]
+                    + iau06arr.ay0i[i, 12] * fArgs06[12] + iau06arr.ay0i[i, 13] * fArgs06[13];
                 sum3 = sum3 + iau06arr.ay0[i, 0] * Math.Sin(tempval) + iau06arr.ay0[i, 1] * Math.Cos(tempval);
             }
             sum4 = 0.0;
             for (j = 0; j >= 0; j--)
             {
                 i = 962 + 277 + 30 + 5 + j;
-                tempval = iau06arr.ay0i[i, 0] * fArgs[0] + iau06arr.ay0i[i, 1] * fArgs[1] + iau06arr.ay0i[i, 2] * fArgs[2]
-                    + iau06arr.ay0i[i, 3] * fArgs[3] + iau06arr.ay0i[i, 4] * fArgs[4] + iau06arr.ay0i[i, 5] * fArgs[5]
-                    + iau06arr.ay0i[i, 6] * fArgs[6] + iau06arr.ay0i[i, 7] * fArgs[7] + iau06arr.ay0i[i, 8] * fArgs[8]
-                    + iau06arr.ay0i[i, 9] * fArgs[9] + iau06arr.ay0i[i, 10] * fArgs[10] + iau06arr.ay0i[i, 11] * fArgs[11]
-                    + iau06arr.ay0i[i, 12] * fArgs[12] + iau06arr.ay0i[i, 13] * fArgs[13];
+                tempval = iau06arr.ay0i[i, 0] * fArgs06[0] + iau06arr.ay0i[i, 1] * fArgs06[1] + iau06arr.ay0i[i, 2] * fArgs06[2]
+                    + iau06arr.ay0i[i, 3] * fArgs06[3] + iau06arr.ay0i[i, 4] * fArgs06[4] + iau06arr.ay0i[i, 5] * fArgs06[5]
+                    + iau06arr.ay0i[i, 6] * fArgs06[6] + iau06arr.ay0i[i, 7] * fArgs06[7] + iau06arr.ay0i[i, 8] * fArgs06[8]
+                    + iau06arr.ay0i[i, 9] * fArgs06[9] + iau06arr.ay0i[i, 10] * fArgs06[10] + iau06arr.ay0i[i, 11] * fArgs06[11]
+                    + iau06arr.ay0i[i, 12] * fArgs06[12] + iau06arr.ay0i[i, 13] * fArgs06[13];
                 sum4 = sum4 + iau06arr.ay0[i, 0] * Math.Sin(tempval) + iau06arr.ay0[i, 1] * Math.Cos(tempval);
             }
 
@@ -741,63 +698,63 @@ namespace AstroLibMethods
             sum0 = 0.0;
             for (i = 32; i >= 0; i--)
             {
-                tempval = iau06arr.as0i[i, 0] * fArgs[0] + iau06arr.as0i[i, 1] * fArgs[1] + iau06arr.as0i[i, 2] * fArgs[2]
-                    + iau06arr.as0i[i, 3] * fArgs[3] + iau06arr.as0i[i, 4] * fArgs[4] + iau06arr.as0i[i, 5] * fArgs[5]
-                    + iau06arr.as0i[i, 6] * fArgs[6] + iau06arr.as0i[i, 7] * fArgs[7] + iau06arr.as0i[i, 8] * fArgs[8]
-                    + iau06arr.as0i[i, 9] * fArgs[9] + iau06arr.as0i[i, 10] * fArgs[10] + iau06arr.as0i[i, 11] * fArgs[11]
-                    + iau06arr.as0i[i, 12] * fArgs[12] + iau06arr.as0i[i, 13] * fArgs[13];
+                tempval = iau06arr.as0i[i, 0] * fArgs06[0] + iau06arr.as0i[i, 1] * fArgs06[1] + iau06arr.as0i[i, 2] * fArgs06[2]
+                    + iau06arr.as0i[i, 3] * fArgs06[3] + iau06arr.as0i[i, 4] * fArgs06[4] + iau06arr.as0i[i, 5] * fArgs06[5]
+                    + iau06arr.as0i[i, 6] * fArgs06[6] + iau06arr.as0i[i, 7] * fArgs06[7] + iau06arr.as0i[i, 8] * fArgs06[8]
+                    + iau06arr.as0i[i, 9] * fArgs06[9] + iau06arr.as0i[i, 10] * fArgs06[10] + iau06arr.as0i[i, 11] * fArgs06[11]
+                    + iau06arr.as0i[i, 12] * fArgs06[12] + iau06arr.as0i[i, 13] * fArgs06[13];
                 sum0 = sum0 + iau06arr.as0[i, 0] * Math.Sin(tempval) + iau06arr.as0[i, 1] * Math.Cos(tempval);
             }
             sum1 = 0.0;
             for (j = 2; j >= 0; j--)
             {
                 i = 33 + j;
-                tempval = iau06arr.as0i[i, 0] * fArgs[0] + iau06arr.as0i[i, 1] * fArgs[1] + iau06arr.as0i[i, 2] * fArgs[2]
-                    + iau06arr.as0i[i, 3] * fArgs[3] + iau06arr.as0i[i, 4] * fArgs[4] + iau06arr.as0i[i, 5] * fArgs[5]
-                    + iau06arr.as0i[i, 6] * fArgs[6] + iau06arr.as0i[i, 7] * fArgs[7] + iau06arr.as0i[i, 8] * fArgs[8]
-                    + iau06arr.as0i[i, 9] * fArgs[9] + iau06arr.as0i[i, 10] * fArgs[10] + iau06arr.as0i[i, 11] * fArgs[11]
-                    + iau06arr.as0i[i, 12] * fArgs[12] + iau06arr.as0i[i, 13] * fArgs[13];
+                tempval = iau06arr.as0i[i, 0] * fArgs06[0] + iau06arr.as0i[i, 1] * fArgs06[1] + iau06arr.as0i[i, 2] * fArgs06[2]
+                    + iau06arr.as0i[i, 3] * fArgs06[3] + iau06arr.as0i[i, 4] * fArgs06[4] + iau06arr.as0i[i, 5] * fArgs06[5]
+                    + iau06arr.as0i[i, 6] * fArgs06[6] + iau06arr.as0i[i, 7] * fArgs06[7] + iau06arr.as0i[i, 8] * fArgs06[8]
+                    + iau06arr.as0i[i, 9] * fArgs06[9] + iau06arr.as0i[i, 10] * fArgs06[10] + iau06arr.as0i[i, 11] * fArgs06[11]
+                    + iau06arr.as0i[i, 12] * fArgs06[12] + iau06arr.as0i[i, 13] * fArgs06[13];
                 sum1 = sum1 + iau06arr.as0[i, 0] * Math.Sin(tempval) + iau06arr.as0[i, 1] * Math.Cos(tempval);
             }
             sum2 = 0.0;
             for (j = 24; j >= 0; j--)
             {
                 i = 33 + 3 + j;
-                tempval = iau06arr.as0i[i, 0] * fArgs[0] + iau06arr.as0i[i, 1] * fArgs[1] + iau06arr.as0i[i, 2] * fArgs[2]
-                    + iau06arr.as0i[i, 3] * fArgs[3] + iau06arr.as0i[i, 4] * fArgs[4] + iau06arr.as0i[i, 5] * fArgs[5]
-                    + iau06arr.as0i[i, 6] * fArgs[6] + iau06arr.as0i[i, 7] * fArgs[7] + iau06arr.as0i[i, 8] * fArgs[8]
-                    + iau06arr.as0i[i, 9] * fArgs[9] + iau06arr.as0i[i, 10] * fArgs[10] + iau06arr.as0i[i, 11] * fArgs[11]
-                    + iau06arr.as0i[i, 12] * fArgs[12] + iau06arr.as0i[i, 13] * fArgs[13];
+                tempval = iau06arr.as0i[i, 0] * fArgs06[0] + iau06arr.as0i[i, 1] * fArgs06[1] + iau06arr.as0i[i, 2] * fArgs06[2]
+                    + iau06arr.as0i[i, 3] * fArgs06[3] + iau06arr.as0i[i, 4] * fArgs06[4] + iau06arr.as0i[i, 5] * fArgs06[5]
+                    + iau06arr.as0i[i, 6] * fArgs06[6] + iau06arr.as0i[i, 7] * fArgs06[7] + iau06arr.as0i[i, 8] * fArgs06[8]
+                    + iau06arr.as0i[i, 9] * fArgs06[9] + iau06arr.as0i[i, 10] * fArgs06[10] + iau06arr.as0i[i, 11] * fArgs06[11]
+                    + iau06arr.as0i[i, 12] * fArgs06[12] + iau06arr.as0i[i, 13] * fArgs06[13];
                 sum2 = sum2 + iau06arr.as0[i, 0] * Math.Sin(tempval) + iau06arr.as0[i, 1] * Math.Cos(tempval);
             }
             sum3 = 0.0;
             for (j = 3; j >= 0; j--)
             {
                 i = 33 + 3 + 25 + j;
-                tempval = iau06arr.as0i[i, 0] * fArgs[0] + iau06arr.as0i[i, 1] * fArgs[1] + iau06arr.as0i[i, 2] * fArgs[2]
-                    + iau06arr.as0i[i, 3] * fArgs[3] + iau06arr.as0i[i, 4] * fArgs[4] + iau06arr.as0i[i, 5] * fArgs[5]
-                    + iau06arr.as0i[i, 6] * fArgs[6] + iau06arr.as0i[i, 7] * fArgs[7] + iau06arr.as0i[i, 8] * fArgs[8]
-                    + iau06arr.as0i[i, 9] * fArgs[9] + iau06arr.as0i[i, 10] * fArgs[10] + iau06arr.as0i[i, 11] * fArgs[11]
-                    + iau06arr.as0i[i, 12] * fArgs[12] + iau06arr.as0i[i, 13] * fArgs[13];
+                tempval = iau06arr.as0i[i, 0] * fArgs06[0] + iau06arr.as0i[i, 1] * fArgs06[1] + iau06arr.as0i[i, 2] * fArgs06[2]
+                    + iau06arr.as0i[i, 3] * fArgs06[3] + iau06arr.as0i[i, 4] * fArgs06[4] + iau06arr.as0i[i, 5] * fArgs06[5]
+                    + iau06arr.as0i[i, 6] * fArgs06[6] + iau06arr.as0i[i, 7] * fArgs06[7] + iau06arr.as0i[i, 8] * fArgs06[8]
+                    + iau06arr.as0i[i, 9] * fArgs06[9] + iau06arr.as0i[i, 10] * fArgs06[10] + iau06arr.as0i[i, 11] * fArgs06[11]
+                    + iau06arr.as0i[i, 12] * fArgs06[12] + iau06arr.as0i[i, 13] * fArgs06[13];
                 sum3 = sum3 + iau06arr.as0[i, 0] * Math.Sin(tempval) + iau06arr.as0[i, 1] * Math.Cos(tempval);
             }
             sum4 = 0.0;
             for (j = 0; j >= 0; j--)
             {
                 i = 33 + 3 + 25 + 4 + j;
-                tempval = iau06arr.as0i[i, 0] * fArgs[0] + iau06arr.as0i[i, 1] * fArgs[1] + iau06arr.as0i[i, 2] * fArgs[2]
-                    + iau06arr.as0i[i, 3] * fArgs[3] + iau06arr.as0i[i, 4] * fArgs[4] + iau06arr.as0i[i, 5] * fArgs[5]
-                    + iau06arr.as0i[i, 6] * fArgs[6] + iau06arr.as0i[i, 7] * fArgs[7] + iau06arr.as0i[i, 8] * fArgs[8]
-                    + iau06arr.as0i[i, 9] * fArgs[9] + iau06arr.as0i[i, 10] * fArgs[10] + iau06arr.as0i[i, 11] * fArgs[11]
-                    + iau06arr.as0i[i, 12] * fArgs[12] + iau06arr.as0i[i, 13] * fArgs[13];
+                tempval = iau06arr.as0i[i, 0] * fArgs06[0] + iau06arr.as0i[i, 1] * fArgs06[1] + iau06arr.as0i[i, 2] * fArgs06[2]
+                    + iau06arr.as0i[i, 3] * fArgs06[3] + iau06arr.as0i[i, 4] * fArgs06[4] + iau06arr.as0i[i, 5] * fArgs06[5]
+                    + iau06arr.as0i[i, 6] * fArgs06[6] + iau06arr.as0i[i, 7] * fArgs06[7] + iau06arr.as0i[i, 8] * fArgs06[8]
+                    + iau06arr.as0i[i, 9] * fArgs06[9] + iau06arr.as0i[i, 10] * fArgs06[10] + iau06arr.as0i[i, 11] * fArgs06[11]
+                    + iau06arr.as0i[i, 12] * fArgs06[12] + iau06arr.as0i[i, 13] * fArgs06[13];
                 sum4 = sum4 + iau06arr.as0[i, 0] * Math.Sin(tempval) + iau06arr.as0[i, 1] * Math.Cos(tempval);
             }
 
             s = 0.000094 + 0.00380865 * ttt - 0.00012268 * ttt2
                 - 0.07257411 * ttt3 + 0.00002798 * ttt4 + 0.00001562 * ttt5;   // "
-            //            + 0.00000171*ttt* Math.Sin(fArgs[4]) + 0.00000357*ttt* Math.Cos(2.0*fArgs[4])  
-            //            + 0.00074353*ttt2* Math.Sin(fArgs[4]) + 0.00005691*ttt2* Math.Sin(2.0*(fArgs[2]-fArgs[3]+fArgs[4]))  
-            //            + 0.00000984*ttt2* Math.Sin(2.0*(fArgs[2]+fArgs[4])) - 0.00000885*ttt2* Math.Sin(2.0*fArgs[4]);
+            //            + 0.00000171*ttt* Math.Sin(fArgs06[4]) + 0.00000357*ttt* Math.Cos(2.0*fArgs06[4])  
+            //            + 0.00074353*ttt2* Math.Sin(fArgs06[4]) + 0.00005691*ttt2* Math.Sin(2.0*(fArgs06[2]-fArgs06[3]+fArgs06[4]))  
+            //            + 0.00000984*ttt2* Math.Sin(2.0*(fArgs06[2]+fArgs06[4])) - 0.00000885*ttt2* Math.Sin(2.0*fArgs06[4]);
             s = -x * y * 0.5 + s * convrt + sum0 + sum1 * ttt + sum2 * ttt2 + sum3 * ttt3 + sum4 * ttt4;  // rad
         }  // iau06xysS
 
@@ -813,23 +770,25 @@ namespace AstroLibMethods
         //
         //  inputs          description                              range / units
         //    jdtt        - julian date in tt                           days from 4713 bc
-        //    ttt         - julian centuries of tt
+        //    jdftt       - fractional julian date in tt                     days
         //    ddx         - delta x correction to gcrf                       rad
         //    ddy         - delta y correction to gcrf                       rad
         //    interp      - interpolation type (x for full series)           x, n, l, s
         //                  none, linear, spline
+        //    fArgs06     - fundamental arguments in an array                 
+        //    iau06arr    - iau06 array of values
+        //    xysarr      - iau06 array of xys values for interpolation
         //
         //  outputs       :
-        //    nut         - transformation matrix for ire-gcrf
+        //    iau06xys    - transformation matrix for itrf-gcrf
         //    x           - coordinate of cip                                rad
         //    y           - coordinate of cip                                rad
         //    s           - coordinate                                       rad
         //
         //  locals        :
-        //    a           - 
+        //    ttt         - julian centuries of tt
         //
         //  coupling      :
-        //    iau06in     - initialize the arrays
         //
         //  references    : 
         //    vallado       2022, 214, 221
@@ -887,8 +846,8 @@ namespace AstroLibMethods
             //    e = Math.Atan2(y, x);
             //else
             //    e = 0.0;
-            //fArgs[3] = Math.Atan(Math.Sqrt((x * x + y * y) / (1.0 - x * x - y * y)));
-            //nut1 = rot3mat(-e)*rot2mat(-fArgs[3])*rot3mat(e+s)
+            //fArgs06[3] = Math.Atan(Math.Sqrt((x * x + y * y) / (1.0 - x * x - y * y)));
+            //nut1 = rot3mat(-e)*rot2mat(-fArgs06[3])*rot3mat(e+s)
         }  // iau06xys
 
 
@@ -903,34 +862,27 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    xysLoc      - location for xys data file  
-        //    infilename  - file name
+        //    outLoc      - location for xys data file  
+        //    iau06arr    - iau06 array of values
         //
         //  outputs       :
-        //    xysarr      - array of xys data records
-        //    jdxysstart  - julian date of the start of the xysarr data
-        //    jdfxysstart - julian date fraction of the start of the xysarr data
-        //
-        //  locals        :
-        //                -
-        //
-        //  coupling      :
+        //                - file of xys data records                
         //
         //  references    :
         //
         //  ----------------------------------------------------------------------------
 
-        // create a file of XYS values for interpolation
         public void createXYS
             (
                string outLoc,
-               EOPSPWLib.iau06Class iau06arr, double[] fArgs06
+               EOPSPWLib.iau06Class iau06arr
             )
         {
-            fArgs06 = new double[14];
+            double[] fArgs06 = new double[14];
 
             Int32 i;
             double dt, jdtt, jdftt, ttt, x, y, s;
+            
             StringBuilder strbuild = new StringBuilder();
             // 000. gives leading 0's
             // ;+00.;-00. gives signs in front
@@ -963,23 +915,21 @@ namespace AstroLibMethods
         //
         //                           function readXYS
         //
-        //  this function initializes the xys iau2006 iau data. the input data files
+        //  this function initializes the xys iau2006 data. the input data files
         //  are from processing the ascii files into a text file of xys calcualtion over
         //  many years.
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
+        //    xysarr      - array of xys data records                rad
         //    xysLoc      - location for xys data file  
         //    infilename  - file name
         //
         //  outputs       :
-        //    xysarr      - array of xys data records
-        //    jdxysstart  - julian date of the start of the xysarr data
-        //    jdfxysstart - julian date fraction of the start of the xysarr data
+        //    xysarr      - array of xys data records                rad
         //
         //  locals        :
-        //    pattern     - regex expression format
         //
         //  references    :
         //
@@ -1016,13 +966,13 @@ namespace AstroLibMethods
 
                 xysarr[i].mjd = Convert.ToDouble(linedata[1]) + Convert.ToDouble(linedata[2]) - 2400000.5;
 
-                // ---- find epoch date
-                if (i == 0)
-                {
-                    xysarr[0].jdxysstart = Convert.ToDouble(linedata[1]);
-                    xysarr[0].jdfxysstart = Convert.ToDouble(linedata[2]);
-                    xysarr[i].mjd = xysarr[0].jdxysstart + xysarr[0].jdfxysstart;
-                }
+                //// ---- find epoch date
+                //if (i == 0)
+                //{
+                //    xysarr[0].jdxysstart = Convert.ToDouble(linedata[1]);
+                //    xysarr[0].jdfxysstart = Convert.ToDouble(linedata[2]);
+                //    xysarr[i].mjd = xysarr[0].jdxysstart + xysarr[0].jdfxysstart;
+                //}
             }
 
         }  // readXYS
@@ -1039,24 +989,21 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    jdttt         - epoch julian date                     days from 4713 BC
-        //    jdftt         - epoch julian date fraction            day fraction from jdtt
-        //    interp        - interpolation                        n-none, l-linear, s-spline
-        //    xysarr        - array of xys data records
+        //    jdttt         - epoch julian date                      days from 4713 BC
+        //    jdftt         - epoch julian date fraction             day fraction from jdtt
+        //    interp        - interpolation                          n-none, l-linear, s-spline
+        //    xysarr        - array of xys data records              rad
         //
         //  outputs       :
-        //    x           - x component of cio                         rad
-        //    y           - y component of cio                         rad
-        //    s           -                                            rad
-        //
-        //  locals        :
-        //                -
+        //    x           - x component of cio                       rad
+        //    y           - y component of cio                       rad
+        //    s           -                                          rad
         //
         //  coupling      :
         //    none        -
         //
         //  references    :
-        //    vallado       2013,
+        //
         // -----------------------------------------------------------------------------
 
         public void findxysparam
@@ -1079,7 +1026,7 @@ namespace AstroLibMethods
                 mfme = 1440.0 + mfme;
 
             // ---- read data for day of interest
-            jdxysstarto = Math.Floor(jdtt + jdftt - xysarr[0].jdxysstart - xysarr[0].jdfxysstart);
+            jdxysstarto = Math.Floor(jdtt + jdftt - xysarr[0].mjd - 2400000.5);
             recnum = Convert.ToInt32(jdxysstarto);
 
             // check for out of bound values
@@ -1142,44 +1089,27 @@ namespace AstroLibMethods
         //                           function iau06pn
         //
         //  this function calculates the transformation matrix that accounts for the
-        //    effects of precession-nutation in the iau2010 theory.
+        //    effects of precession-nutation in the iau2006 theory.
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
         //    ttt         - julian centuries of tt
+        //    ddx         - delta x correction to gcrf                       rad
+        //    ddy         - delta y correction to gcrf                       rad
+        //    iau06arr    - array of iau06 values
+        //    fArgs06     - fundamental arguments in an array                 
         //
         //  outputs       :
-        //    nut         - transformation matrix for ire-gcrf
-        //    x           - coordinate of cip                                rad
-        //    y           - coordinate of cip                                rad
+        //    iau06pn     - transformation matrix for itrf-gcrf
+        //    x           - coordinate of cio                                rad
+        //    y           - coordinate of cio                                rad
         //    s           - coordinate                                       rad
         //
-        //  locals        :
-        //    axs0        - real coefficients for x                          rad
-        //    ax0i        - integer coefficients for x
-        //    ays0        - real coefficients for y                          rad
-        //    ay0i        - integer coefficients for y
-        //    ass0        - real coefficients for s                          rad
-        //    as0i        - integer coefficients for s
-        //    apn0        - real coefficients for nutation                   rad
-        //    apn0i       - integer coefficients for nutation
-        //    appl        - real coefficients for planetary nutation         rad
-        //    appli       - integer coefficients for planetary nutation
-        //    ttt2,ttt3,  - powers of ttt
-        //    fArgs[0]    - delaunay element                                 rad
-        //    fArgs[1]    - delaunay element                                 rad
-        //    fArgs[2]    - delaunay element                                 rad
-        //    fArgs[3]    - delaunay element                                 rad
-        //    fArgs[4]    - delaunay element                                 rad
-        //    deltaeps    - change in obliquity                              rad
-        //    many others
-        //
         //  coupling      :
-        //    iau06in     - initialize the arrays
         //
         //  references    : 
-        //    vallado       2013, 212-214
+        //    vallado       2022, 214
         // ------------------------------------------------------------------------------
 
         public double[,] iau06pn  // may not be needed now
@@ -1235,10 +1165,9 @@ namespace AstroLibMethods
             //    else
             //      e = 0.0;
             //  end;
-            //  fArgs[3] = atan(sqrt((x^2 + y^2) / (1.0-x^2-y^2)) );
-            //  nut1 = rot3mat(-e)*rot2mat(-fArgs[3])*rot3mat(e+s)
+            //  fArgs06[3] = atan(sqrt((x^2 + y^2) / (1.0-x^2-y^2)) );
+            //  nut1 = rot3mat(-e)*rot2mat(-fArgs06[3])*rot3mat(e+s)
         }  // iau06pn
-
 
 
 
@@ -1254,20 +1183,20 @@ namespace AstroLibMethods
         //
         //  inputs          description                              range / units
         //    ttt         - julian centuries of tt
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    opt         - method option                           e80, e96, e06cio
         //
         //  outputs       :
         //    psia        - cannonical precession angle                    rad    (00 only)
         //    wa          - cannonical precession angle                    rad    (00 only)
         //    epsa        - cannonical precession angle                    rad    (00 only)
         //    chia        - cannonical precession angle                    rad    (00 only)
-        //    prec        - matrix converting from "mod" to gcrf
+        //    precess     - matrix converting from "mod" to gcrf
         //
         //  locals        :
         //    zeta        - precession angle                               rad
         //    z           - precession angle                               rad
         //    theta       - precession angle                               rad
-        //    oblo        - obliquity value at j2000 epoch                  "
+        //    oblo        - obliquity value at j2000 epoch                 rad
         //
         //  coupling      :
         //    none        -
@@ -1413,35 +1342,26 @@ namespace AstroLibMethods
         //    ttt         - julian centuries of tt
         //    ddpsi       - delta psi correction to gcrf                      rad
         //    ddeps       - delta eps correction to gcrf                      rad
-        //    iau80arr    - record containing the iau80 constants rad
-        //    opt         - method option                                 e00cio, e00a, e96, e80
+        //    iau80arr    - array of iau80 values
+        //    fArgs06       - fundamental arguments in an array                 
         //
         //  outputs       :
         //    deltapsi    - nutation in longitude angle                       rad
+        //    deltaeps    - nutation in obliquity angle                       rad
         //    trueeps     - true obliquity of the ecliptic                    rad
         //    meaneps     - mean obliquity of the ecliptic                    rad
-        //    nut         - transform matrix for tod - mod
-        //
-        //  locals        :
-        //    iar80       - integers for fk5 1980
-        //    rar80       - reals for fk5 1980                                rad
-        //    fArgs[0]    - delaunay element                                 rad
-        //    fArgs[1]    - delaunay element                                 rad
-        //    fArgs[2]    - delaunay element                                 rad
-        //    fArgs[3]    - delaunay element                                 rad
-        //    fArgs[4]    - delaunay element                                 rad
-        //    deltaeps    - change in obliquity                               rad
+        //    nutation    - transform matrix for tod - mod
         //
         //  coupling      :
         //
         //  references    :
-        //    vallado       2013, 213, 224
+        //    vallado       2022, 214, 225
         // -----------------------------------------------------------------------------
 
         public double[,] nutation
             (
             double ttt, double ddpsi, double ddeps,
-            EOPSPWLib.iau80Class iau80arr, double[] fArgs,
+            EOPSPWLib.iau80Class iau80arr, double[] fArgs06,
             out double deltapsi, out double deltaeps, out double trueeps, out double meaneps
             )
         {
@@ -1461,8 +1381,8 @@ namespace AstroLibMethods
             deltaeps = 0.0;
             for (i = 105; i >= 0; i--)
             {
-                tempval = iau80arr.iar80[i, 0] * fArgs[0] + iau80arr.iar80[i, 1] * fArgs[1] + iau80arr.iar80[i, 2] * fArgs[2]
-                    + iau80arr.iar80[i, 3] * fArgs[3] + iau80arr.iar80[i, 4] * fArgs[4];
+                tempval = iau80arr.iar80[i, 0] * fArgs06[0] + iau80arr.iar80[i, 1] * fArgs06[1] + iau80arr.iar80[i, 2] * fArgs06[2]
+                    + iau80arr.iar80[i, 3] * fArgs06[3] + iau80arr.iar80[i, 4] * fArgs06[4];
                 deltapsi = deltapsi + (iau80arr.rar80[i, 0] + iau80arr.rar80[i, 1] * ttt) * Math.Sin(tempval);
                 deltaeps = deltaeps + (iau80arr.rar80[i, 2] + iau80arr.rar80[i, 3] * ttt) * Math.Cos(tempval);
             }
@@ -1501,256 +1421,6 @@ namespace AstroLibMethods
         }  //  nutation 
 
 
-        // ----------------------------------------------------------------------------
-        //
-        //                        function precnutbias06a
-        //
-        //  this function calculates the transformation matrix that accounts for the
-        //    effects of precession-nutation-bias in the iau2006a equinox theory.
-        //
-        //  author        : david vallado             davallado@gmail.com      20 jan 2025
-        //
-        //  inputs          description                              range / units
-        //    ttt         - julian centuries of tt
-        //
-        //  outputs       :
-        //    nut         - transformation matrix for ire-gcrf
-        //    deltapsi    - change in longitude rad
-        //    fArgs[0]    - delaunay element                                 rad
-        //    fArgs[1]    - delaunay element                                 rad
-        //    fArgs[2]    - delaunay element                                 rad
-        //    fArgs[3]    - delaunay element                                 rad
-        //    fArgs[4]    - delaunay element                                 rad
-        //    many others for planetary values             rad
-        //
-        //  locals        :
-        //    x           - coordinate rad
-        //    y           - coordinate rad
-        //    s           - coordinate rad
-        //    ax0         - real coefficients for x rad
-        //    ax0i        - integer coefficients for x
-        //    ay0         - real coefficients for y rad
-        //    ay0i        - integer coefficients for y
-        //    as0         - real coefficients for s rad
-        //    as0i        - integer coefficients for s
-        //    apn0         - real coefficients for nutation rad
-        //    apn0i        - integer coefficients for nutation
-        //    appl        - real coefficients for planetary nutation rad
-        //    appli       - integer coefficients for planetary nutation
-        //    ttt2,ttt3,  - powers of ttt
-        //    deltaeps    - change in obliquity rad
-        //
-        //  coupling      :
-        //    precess     - find the precession quantities
-        //
-        //  references    :
-        //    vallado       2004, 212-214
-        // ------------------------------------------------------------------------------
-
-        public double[,] precnutbias00a
-            (
-            double ttt, double ddpsi, double ddeps,
-            EOPSPWLib.iau06Class iau06arr, EOpt opt, double[] fArgs
-            )
-        {
-            double[,] pnb = new double[3, 3];
-            double[,] prec = new double[3, 3];
-            double[,] nut = new double[3, 3];
-            double[,] a1 = new double[3, 3];
-            double[,] a2 = new double[3, 3];
-            double[,] a3 = new double[3, 3];
-            double[,] a4 = new double[3, 3];
-            double[,] a5 = new double[3, 3];
-            double[,] a6 = new double[3, 3];
-            double[,] a7 = new double[3, 3];
-            double[,] a8 = new double[3, 3];
-            double[,] a9 = new double[3, 3];
-            double[,] a10 = new double[3, 3];
-            double[,] tr1 = new double[3, 3];
-            double[,] tr2 = new double[3, 3];
-            double psia, wa, epsa, chia, deltapsi, deltaeps, zeta, theta, z;
-            int i;
-            double tempval, convrt, ttt2, ttt3, ttt4, ttt5, j2d;
-            double pnsum, ensum, pplnsum, eplnsum, oblo;
-
-            deltapsi = deltaeps = 0.0;
-
-            // " to rad
-            convrt = Math.PI / (180.0 * 3600.0);
-
-            ttt2 = ttt * ttt;
-            ttt3 = ttt2 * ttt;
-            ttt4 = ttt2 * ttt2;
-            ttt5 = ttt3 * ttt2;
-
-            // ---- obtain data coefficients
-            // note the prec matrix is not used in this approach, but the angles are
-            prec = precess(ttt, opt, out psia, out wa, out epsa, out chia);
-
-
-            // iau2006 approach 
-            // if (opt.Equals(EOpt.e06eq))
-            {
-                // looks like they still use the iau2000a method and adjust
-                pnsum = 0.0;
-                // data file is not reversed
-                for (i = 1357; i >= 0; i--)
-                {
-                    tempval = iau06arr.apn0i[i, 0] * fArgs[0] + iau06arr.apn0i[i, 1] * fArgs[1] + iau06arr.apn0i[i, 2] * fArgs[2]
-                        + iau06arr.apn0i[i, 3] * fArgs[3] + iau06arr.apn0i[i, 4] * fArgs[4] + iau06arr.apn0i[i, 5] * fArgs[5]
-                        + iau06arr.apn0i[i, 6] * fArgs[6] + iau06arr.apn0i[i, 7] * fArgs[7] + iau06arr.apn0i[i, 8] * fArgs[8]
-                        + iau06arr.apn0i[i, 9] * fArgs[9] + iau06arr.apn0i[i, 10] * fArgs[10] + iau06arr.apn0i[i, 11] * fArgs[11] + iau06arr.apn0i[i, 12] * fArgs[12] + iau06arr.apn0i[i, 13] * fArgs[13];
-                    if (i > 1319)
-                        pnsum = pnsum + (iau06arr.apn0[i, 0] * Math.Sin(tempval) + iau06arr.apn0[i, 1] * Math.Cos(tempval)) * ttt;  //note that Math.Sin and Math.Cos are reveresed between n and e
-                    else
-                        pnsum = pnsum + iau06arr.apn0[i, 0] * Math.Sin(tempval) + iau06arr.apn0[i, 1] * Math.Cos(tempval);
-                }
-
-                ensum = 0.0;
-                // data file is not reversed
-                for (i = 1055; i >= 0; i--)
-                {
-                    tempval = iau06arr.apl0i[i, 0] * fArgs[0] + iau06arr.apl0i[i, 1] * fArgs[1] + iau06arr.apl0i[i, 2] * fArgs[2]
-                        + iau06arr.apl0i[i, 3] * fArgs[3] + iau06arr.apl0i[i, 4] * fArgs[4] + iau06arr.apl0i[i, 5] * fArgs[5]
-                        + iau06arr.apl0i[i, 6] * fArgs[6] + iau06arr.apl0i[i, 7] * fArgs[7] + iau06arr.apl0i[i, 8] * fArgs[8]
-                        + iau06arr.apl0i[i, 9] * fArgs[9] + iau06arr.apl0i[i, 10] * fArgs[10] + iau06arr.apl0i[i, 11] * fArgs[11]
-                        + iau06arr.apl0i[i, 12] * fArgs[12] + iau06arr.apl0i[i, 13] * fArgs[13];
-                    if (i > 1036)
-                        ensum = ensum + (iau06arr.apl0[i, 0] * Math.Cos(tempval) + iau06arr.apl0[i, 1] * Math.Sin(tempval)) * ttt;
-                    else
-                        ensum = ensum + iau06arr.apl0[i, 0] * Math.Cos(tempval) + iau06arr.apl0[i, 1] * Math.Sin(tempval);
-                }
-                //  add planetary and luni-solar components.
-                deltapsi = pnsum;  // rad
-                deltaeps = ensum;
-
-                // iau2006 corrections to the iau2000a
-                j2d = -2.7774e-6 * ttt;  // rad
-                deltapsi = deltapsi + deltapsi * (0.4697e-6 + j2d);  // rad
-                deltaeps = deltaeps + deltaeps * j2d;
-                if (printopt == 'y')
-                {
-                    Console.WriteLine("dpsi 1320 " + deltapsi.ToString() + " deps " + deltaeps.ToString());
-                    double rad = 180.0 / Math.PI;
-                    Console.WriteLine("dpsi 1320 " + (deltapsi * rad).ToString() + " deps " + (deltaeps * rad).ToString());
-                }
-            }
-
-            // the coefficients have changed from tn32, it seems inconsistent. 
-            // use cio series or classical approach
-            //  if (opt.Equals(EOpt.e00a))
-            {
-                pnsum = 0.0;
-                ensum = 0.0;
-                for (i = 677; i >= 0; i--)
-                {
-                    tempval = iau06arr.aapn0i[i, 0] * fArgs[0] + iau06arr.aapn0i[i, 1] * fArgs[1] + iau06arr.aapn0i[i, 2] * fArgs[2]
-                        + iau06arr.aapn0i[i, 3] * fArgs[3] + iau06arr.aapn0i[i, 4] * fArgs[4];
-                    // rad
-                    tempval = tempval % (2.0 * Math.PI);
-                    //            pnsum = pnsum + (apn0[i,1) + apn0[i,2)*ttt) * Math.Sin(tempval) 
-                    //                          + (apn0[i,5) + apn0[i,6)*ttt) * Math.Cos(tempval);
-                    //            ensum = ensum + (apn0[i,3) + apn0[i,4)*ttt) * Math.Cos(tempval) 
-                    //                          + (apn0[i,7) + apn0[i,8)*ttt) * Math.Sin(tempval);
-                    // iers doesn't include the last few terms
-                    pnsum = pnsum + (iau06arr.aapn0[i, 0] + iau06arr.aapn0[i, 1] * ttt) * Math.Sin(tempval)
-                                      + (iau06arr.aapn0[i, 4]) * Math.Cos(tempval);
-                    ensum = ensum + (iau06arr.aapn0[i, 2] + iau06arr.aapn0[i, 3] * ttt) * Math.Cos(tempval)
-                                      + (iau06arr.aapn0[i, 6]) * Math.Sin(tempval);
-                }
-
-                pplnsum = 0.0;
-                eplnsum = 0.0;
-                // data file is already reversed, if so, do i++
-                for (i = 686; i >= 0; i--)
-                {
-                    tempval = iau06arr.aapl0i[i, 0] * fArgs[0] + iau06arr.aapl0i[i, 1] * fArgs[1] + iau06arr.aapl0i[i, 2] * fArgs[2]
-                        + iau06arr.aapl0i[i, 3] * fArgs[3] + iau06arr.aapl0i[i, 4] * fArgs[4] + iau06arr.aapl0i[i, 5] * fArgs[5]
-                        + iau06arr.aapl0i[i, 6] * fArgs[6] + iau06arr.aapl0i[i, 7] * fArgs[7] + iau06arr.aapl0i[i, 8] * fArgs[8]
-                        + iau06arr.aapl0i[i, 9] * fArgs[9] + iau06arr.aapl0i[i, 10] * fArgs[10] + iau06arr.aapl0i[i, 11] * fArgs[11]
-                        + iau06arr.aapl0i[i, 12] * fArgs[12] + iau06arr.aapl0i[i, 13] * fArgs[13];
-                    pplnsum = pplnsum + iau06arr.aapl0[i, 0] * Math.Sin(tempval) + iau06arr.aapl0[i, 1] * Math.Cos(tempval);
-                    eplnsum = eplnsum + iau06arr.aapl0[i, 2] * Math.Sin(tempval) + iau06arr.aapl0[i, 3] * Math.Cos(tempval);
-                }
-
-                // add planetary and luni-solar components.
-                deltapsi = pnsum + pplnsum;  // rad
-                deltaeps = ensum + eplnsum;
-                if (printopt == 'y')
-                {
-                    Console.WriteLine("dpsi 678 " + deltapsi.ToString() + " deps " + deltaeps.ToString());
-                    double rad = 180.0 / Math.PI;
-                    Console.WriteLine("dpsi 678 " + (deltapsi * rad).ToString() + " deps " + (deltaeps * rad).ToString());
-                }
-            }
-
-            // add in j2d corrections
-            deltapsi = deltapsi - deltapsi * (0.4697e-6 * 2.7774e-6);
-            deltaeps = deltaeps - deltaeps * 2.7774e-6;
-
-            //zeta = ((((-0.0000003173 * ttt - 0.000005971) * ttt + 0.01801828) * ttt + 0.2988499) * ttt + 2306.083227) * ttt + 2.650545; // "
-            //theta = ((((-0.0000001274 * ttt - 0.000007089) * ttt - 0.04182264) * ttt - 0.4294934) * ttt + 2004.191903) * ttt;
-            //z = ((((0.0000002904 * ttt - 0.000028596) * ttt + 0.01826837) * ttt + 1.0927348) * ttt + 2306.077181) * ttt - 2.650545;
-            // prec 2006 fwm approach
-            //gamb
-            zeta = ((((0.0000000260 * ttt - 0.000002788) * ttt - 0.00031238) * ttt + 0.4932044) * ttt + 10.556378) * ttt + -0.052928; // "
-                                                                                                                                      // phib
-            theta = ((((-0.0000000176 * ttt - 0.000000440) * ttt + 0.00053289) * ttt + 0.0511268) * ttt + -46.811016) * ttt + 84381.412819;
-            //psib
-            z = ((((-0.0000000148 * ttt - 0.000026452) * ttt - 0.00018522) * ttt + 1.5584175) * ttt + 5038.481484) * ttt - 0.041775;
-
-            convrt = Math.PI / (180.0 * 3600.0);  // " to rad
-            zeta = zeta * convrt;
-            theta = theta * convrt;
-            z = z * convrt;
-
-            if (printopt == 'y')
-                Console.WriteLine("zeta " + zeta.ToString() + " theta " + theta.ToString() + " z "
-                    + z.ToString());
-
-            oblo = 84381.406 * convrt; // " to rad or 448 - 406 for iau2006????
-
-            // ----------------- find nutation matrix ----------------------
-            // mean to true
-            //a1 = MathTimeLibr.rot1mat(epsa + deltaeps);
-            //a2 = MathTimeLibr.rot3mat(deltapsi);
-            //a3 = MathTimeLibr.rot1mat(-epsa);
-
-            // j2000 to date(precession - nutation - bias)
-            // check signs on this, direction, etc.
-            a4 = MathTimeLibr.rot3mat(-zeta);  // gamb
-            a5 = MathTimeLibr.rot1mat(-theta);  // 
-            a6 = MathTimeLibr.rot3mat(-deltapsi - z);  // psib
-            a7 = MathTimeLibr.rot1mat(-deltaeps - epsa);
-
-            // icrs to j2000 (bias)
-            //a8 = MathTimeLibr.rot1mat(-0.0068192 * convrt);
-            //a9 = MathTimeLibr.rot2mat(0.0417750 * Math.Sin(oblo) * convrt);
-            ////      a9  = rot2mat(0.0166170*convrt);
-            //a10 = MathTimeLibr.rot3mat(0.0146 * convrt);
-
-            tr1 = MathTimeLibr.matmult(a5, a4, 3, 3, 3);
-            tr2 = MathTimeLibr.matmult(a6, tr1, 3, 3, 3);
-            //pnb = MathTimeLibr.matmult(a7, tr2, 3, 3, 3);
-            pnb = MathTimeLibr.matmult(a7, tr2, 3, 3, 3);
-
-            //tr1 = MathTimeLibr.matmult(a2, a1, 3, 3, 3);
-            //nut = MathTimeLibr.matmult(a3, tr1, 3, 3, 3);
-
-            //forget prec by a4567
-            // prec = precess(ttt, opt, out psia, out wa, out epsa, out chia);
-
-            //pnb = MathTimeLibr.matmult(prec, nut, 3, 3, 3);
-            //tr2 = MathTimeLibr.matmult(a8, tr1, 3, 3, 3);
-            //tr1 = MathTimeLibr.matmult(a9, tr2, 3, 3, 3);
-            //pnb = MathTimeLibr.matmult(a10, tr1, 3, 3, 3);
-
-            //return MathTimeLibr.matmult(a10, tr1, 3, 3, 3);
-            return pnb;
-        }   // precnutbias00a
-
-
-
         // -----------------------------------------------------------------------------
         //
         //                           function nutationqmod
@@ -1763,8 +1433,8 @@ namespace AstroLibMethods
         //
         //  inputs          description                              range / units
         //    ttt         - julian centuries of tt
-        //    iau80arr    - record containing the iau80 constants rad
-        //    opt         - method option                               e00a, e00cio, e96, e80
+        //    iau80arr    - array of iau80 values
+        //    fArgs06       - fundamental arguments in an array                 
         //
         //  outputs       :
         //    deltapsi    - nutation in longiotude angle                   rad
@@ -1775,23 +1445,23 @@ namespace AstroLibMethods
         //  locals        :
         //    iar80       - integers for fk5 1980
         //    rar80       - reals for fk5 1980                             rad
-        //    fArgs[0]    - delaunay element                                 rad
-        //    fArgs[1]    - delaunay element                                 rad
-        //    fArgs[2]    - delaunay element                                 rad
-        //    fArgs[3]    - delaunay element                                 rad
-        //    fArgs[4]    - delaunay element                                 rad
+        //    fArgs06[0]    - delaunay element                               rad
+        //    fArgs06[1]    - delaunay element                               rad
+        //    fArgs06[2]    - delaunay element                               rad
+        //    fArgs06[3]    - delaunay element                               rad
+        //    fArgs06[4]    - delaunay element                               rad
         //    deltaeps    - change in obliquity                            rad
         //
         //  coupling      :
         //
         //  references    :
-        //    vallado       2013, 213, 224
+        //    vallado       2022, 224
         // -----------------------------------------------------------------------------
 
         public double[,] nutationqmod
             (
             double ttt,
-            EOPSPWLib.iau80Class iau80arr, double[] fArgs,
+            EOPSPWLib.iau80Class iau80arr, double[] fArgs06,
             out double deltapsi, out double deltaeps, out double meaneps
             )
         {
@@ -1816,9 +1486,9 @@ namespace AstroLibMethods
             //  assumption that only largest 9 terms are used
             for (i = 8; i >= 0; i--)
             {
-                tempval = EOPSPWLibr.iau80arr.iar80[i, 0] * fArgs[0] + EOPSPWLibr.iau80arr.iar80[i, 1] * fArgs[1]
-                    + EOPSPWLibr.iau80arr.iar80[i, 2] * fArgs[2] + EOPSPWLibr.iau80arr.iar80[i, 3] * fArgs[3]
-                    + EOPSPWLibr.iau80arr.iar80[i, 4] * fArgs[4];
+                tempval = EOPSPWLibr.iau80arr.iar80[i, 0] * fArgs06[0] + EOPSPWLibr.iau80arr.iar80[i, 1] * fArgs06[1]
+                    + EOPSPWLibr.iau80arr.iar80[i, 2] * fArgs06[2] + EOPSPWLibr.iau80arr.iar80[i, 3] * fArgs06[3]
+                    + EOPSPWLibr.iau80arr.iar80[i, 4] * fArgs06[4];
                 deltapsi = deltapsi + (EOPSPWLibr.iau80arr.rar80[i, 0]
                     + EOPSPWLibr.iau80arr.rar80[i, 1] * ttt) * Math.Sin(tempval);
                 deltaeps = deltaeps + (EOPSPWLibr.iau80arr.rar80[i, 2]
@@ -1864,31 +1534,27 @@ namespace AstroLibMethods
         //    jdut1       - julian centuries of ut1                           days
         //    deltapsi    - nutation angle                                    rad
         //    meaneps     - mean obliquity of the ecliptic                    rad
+        //    fArgs06       - fundamental arguments in an array                 
         //    lod         - length of day                                     sec
         //    eqeterms    - terms for ast calculation                         0,2
+        //    opt         - method option                               e00cio, e96, e80
         //
         //  outputs       :
-        //    st          - transformation matrix for pef - tod
-        //    stdot       - transformation matrix for pef - tod rate
+        //    sidereal    - transformation matrix for pef - tod
         //
         //  locals        :
         //    gmst         - mean greenwich sidereal time                 0 to 2pi rad
         //    ast         - apparent gmst                                 0 to 2pi rad
-        //    hr          - hour                                              hr
-        //    min         - minutes                                           min
-        //    sec         - seconds                                           sec
-        //    temp        - temporary vector
-        //    tempval     - temporary variable
         //
         //  coupling      :
         //
         //  references    :
-        //    vallado       2013, 212, 223
+        //    vallado       2022, 214, 225
         // -----------------------------------------------------------------------------
 
         public double[,] sidereal
             (
-            double jdut1, double deltapsi, double meaneps, double[] fArgs,
+            double jdut1, double deltapsi, double meaneps, double[] fArgs06,
             double lod, int eqeterms, EOpt opt
             )
         {
@@ -1908,8 +1574,8 @@ namespace AstroLibMethods
                 // ------------------------ find mean ast ----------------------
                 if ((jdut1 > 2450449.5) && (eqeterms > 0))
                 {
-                    ast = gmst + deltapsi * Math.Cos(meaneps) + 0.00264 * Math.PI / (3600.0 * 180.0) * Math.Sin(fArgs[4])
-                               + 0.000063 * Math.PI / (3600.0 * 180.0) * Math.Sin(2.0 * fArgs[4]);
+                    ast = gmst + deltapsi * Math.Cos(meaneps) + 0.00264 * Math.PI / (3600.0 * 180.0) * Math.Sin(fArgs06[4])
+                               + 0.000063 * Math.PI / (3600.0 * 180.0) * Math.Sin(2.0 * fArgs06[4]);
                 }
                 else
                     ast = gmst + deltapsi * Math.Cos(meaneps);
@@ -1971,10 +1637,10 @@ namespace AstroLibMethods
         //    xp          - polar motion coefficient                         rad
         //    yp          - polar motion coefficient                         rad
         //    ttt         - julian centuries of tt (00 theory only)
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    opt         - method option                                   e80, e96, e06cio
         //
         //  outputs       :
-        //    pm          - transformation matrix for itrf - pef
+        //    polarm      - transformation matrix for itrf - pef
         //
         //  locals        :
         //    convrt      - conversion from arcsec to rad
@@ -1984,7 +1650,7 @@ namespace AstroLibMethods
         //    none.
         //
         //  references    :
-        //    vallado       2013, 212, 223
+        //    vallado       2022, 213, 224
         // -----------------------------------------------------------------------------
 
         public double[,] polarm
@@ -2020,7 +1686,7 @@ namespace AstroLibMethods
                 //astMathr.MathTimeLibr.matmult(a2, a1, pm, 3, 3, 3);
             }
             else
-            // iau-2006/2000 eq or iau2000a approach
+            // iau-2006/2000 
             {
                 // approximate sp value in rad
                 sp = -47.0e-6 * ttt * Math.PI / (180.0 * 3600.0);
@@ -2066,7 +1732,7 @@ namespace AstroLibMethods
         //    term1       - alpha delta o                                rad
         //    term2       - psi deltab Math.Sin(eps deltao)                   rad
         //    term3       - eps delta b                                  rad
-        //    fb          - frame bias matrix                            rad
+        //    framebias   - frame bias matrix                            rad
         //
         //  locals        :
         //    convrt      - conversion from arcsec to rad
@@ -2075,14 +1741,14 @@ namespace AstroLibMethods
         //    none.
         //
         //  references    :
-        //    vallado       2013, 217
+        //    vallado       2022, 219
         // -----------------------------------------------------------------------------
 
         public double[,] framebias
             (
             char opt,
             out double term1, out double term2, out double term3
-                )
+            )
         {
             double[,] fb = new double[3, 3];
             double convrt;
@@ -2138,13 +1804,13 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    recef       - position vector earth fixed                   km
-        //    vecef       - velocity vector earth fixed                   km/s
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    reci        - position vector eci                           km
+        //    veci        - velocity vector eci                           km/s
+        //    aeci        - acceleration vector eci                       km/s2
+        //    direct      - direction                                     eto, efrom
         //    iau80arr    - iau76/fk5 eop constants
-        //    iau06arr    - iau2006 eop constants
         //    jdtt        - julian date of tt                             days from 4713 bc
-        //    ttt         - julian centuries of tt                        centuries
+        //    jdftt       - fractional julian centuries of tt             days
         //    jdut1       - julian date of ut1                            days from 4713 bc
         //    lod         - excess length of day                          sec
         //    xp          - polar motion coefficient                      rad
@@ -2153,8 +1819,9 @@ namespace AstroLibMethods
         //    ddeps       - delta eps correction to gcrf                  rad
         //
         //  outputs       :
-        //    reci        - position vector eci                           km
-        //    veci        - velocity vector eci                           km/s
+        //    recef       - position vector earth fixed                   km
+        //    vecef       - velocity vector earth fixed                   km/s
+        //    aecef       - acceleration vector ecef                      km/s2
         //
         //  locals        :
         //    eqeterms    - terms for ast calculation                     0,2
@@ -2174,29 +1841,32 @@ namespace AstroLibMethods
         //   polarm       - rotation for polar motion      
         //
         //  references    :
-        //    vallado       2013, 223-231
+        //    vallado       2022, 223-231
         // ------------------------------------------------------------------------------
 
         public void eci_ecef
             (
-            ref double[] reci, ref double[] veci,
+            ref double[] reci, ref double[] veci, ref double[] aeci,
             Enum direct,
-            ref double[] recef, ref double[] vecef,
+            ref double[] recef, ref double[] vecef, ref double[] aecef,
             EOPSPWLib.iau80Class iau80arr,
-            double jdtt, double jdftt, double jdut1, double lod,
+            double ttt, double jdut1, double lod,
             double xp, double yp, double ddpsi, double ddeps
             )
         {
-            double[] fArgs = new double[14];
-            double psia, wa, epsa, chia, ttt;
+            double[] fArgs06 = new double[14];
+            double psia, wa, epsa, chia;
             double meaneps, deltapsi, deltaeps, trueeps;
             double[] omegaearth = new double[3];
             double[] rpef = new double[3];
             double[] vpef = new double[3];
+            double[] apef = new double[3];
             double[] rtod = new double[3];
             double[] vtod = new double[3];
-            double[] crossr = new double[3];
+            double[] omgxr = new double[3];
             double[] tempvec1 = new double[3];
+            double[] omgxomgxr = new double[3];
+            double[] omgxv = new double[3];
             double[,] a1 = new double[3, 3];
             double[,] a2 = new double[3, 3];
             double[,] a3 = new double[3, 3];
@@ -2213,21 +1883,19 @@ namespace AstroLibMethods
             double[,] pmp = new double[3, 3];
             double[,] temp = new double[3, 3];
             double[,] trans = new double[3, 3];
+            double[,] transp = new double[3, 3];
 
             int eqeterms = 2;
             deltapsi = 0.0;
             meaneps = 0.0;
 
-            ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
+            fundarg(ttt, EOpt.e80, out fArgs06);
 
-            fundarg(ttt, EOpt.e80, out fArgs);
-
-            //Console.WriteLine( "ttt " + ttt.ToString() + " jdut1 " + jdut1.ToString());
             // IAU-76/FK5 approach
             prec = precess(ttt, EOpt.e80, out psia, out wa, out epsa, out chia);
-            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs,
+            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs06,
                 out deltapsi, out deltaeps, out trueeps, out meaneps);
-            st = sidereal(jdut1, deltapsi, meaneps, fArgs, lod, eqeterms, EOpt.e80);
+            st = sidereal(jdut1, deltapsi, meaneps, fArgs06, lod, eqeterms, EOpt.e80);
 
             pm = polarm(xp, yp, ttt, EOpt.e80);
 
@@ -2242,7 +1910,6 @@ namespace AstroLibMethods
                 stp = MathTimeLibr.mattrans(st, 3);
                 nutp = MathTimeLibr.mattrans(nut, 3);
                 precp = MathTimeLibr.mattrans(prec, 3);
-                //pnp = MathTimeLibr.mattrans(pn, 3);
 
                 temp = MathTimeLibr.matmult(stp, nutp, 3, 3, 3);
                 //trans = MathTimeLibr.matmult(stp, pnp, 3, 3, 3);
@@ -2251,11 +1918,21 @@ namespace AstroLibMethods
                 recef = MathTimeLibr.matvecmult(pmp, rpef, 3);
 
                 tempvec1 = MathTimeLibr.matvecmult(trans, veci, 3);
-                MathTimeLibr.cross(omegaearth, rpef, out crossr);
-                vpef[0] = tempvec1[0] - crossr[0];
-                vpef[1] = tempvec1[1] - crossr[1];
-                vpef[2] = tempvec1[2] - crossr[2];
+                MathTimeLibr.cross(omegaearth, rpef, out omgxr);
+                vpef[0] = tempvec1[0] - omgxr[0];
+                vpef[1] = tempvec1[1] - omgxr[1];
+                vpef[2] = tempvec1[2] - omgxr[2];
                 vecef = MathTimeLibr.matvecmult(pmp, vpef, 3);
+
+                // two additional terms not needed if satellite is not on surface of the Earth
+                transp = MathTimeLibr.mattrans(trans, 3);
+                MathTimeLibr.cross(omegaearth, omgxr, out omgxomgxr);
+                MathTimeLibr.cross(omegaearth, vpef, out omgxv);
+                tempvec1 = MathTimeLibr.matvecmult(transp, aeci, 3);
+                apef[0] = tempvec1[0] - omgxomgxr[0] - 2.0 * omgxv[0];
+                apef[1] = tempvec1[1] - omgxomgxr[1] - 2.0 * omgxv[1];
+                apef[2] = tempvec1[2] - omgxomgxr[2] - 2.0 * omgxv[2];
+                aecef = MathTimeLibr.matvecmult(pmp, apef, 3);
             }
             else
             {
@@ -2267,12 +1944,20 @@ namespace AstroLibMethods
                 reci = MathTimeLibr.matvecmult(trans, rpef, 3);
 
                 vpef = MathTimeLibr.matvecmult(pm, vecef, 3);
-                MathTimeLibr.cross(omegaearth, rpef, out crossr);
-                tempvec1[0] = vpef[0] + crossr[0];
-                tempvec1[1] = vpef[1] + crossr[1];
-                tempvec1[2] = vpef[2] + crossr[2];
+                MathTimeLibr.cross(omegaearth, rpef, out omgxr);
+                tempvec1[0] = vpef[0] + omgxr[0];
+                tempvec1[1] = vpef[1] + omgxr[1];
+                tempvec1[2] = vpef[2] + omgxr[2];
                 veci = MathTimeLibr.matvecmult(trans, tempvec1, 3);
 
+                // two additional terms not needed if satellite is not on surface of the Earth
+                apef = MathTimeLibr.matvecmult(pm, aecef, 3);
+                MathTimeLibr.cross(omegaearth, omgxr, out omgxomgxr);
+                MathTimeLibr.cross(omegaearth, vpef, out omgxv);
+                aeci[0] = apef[0] + omgxomgxr[0] + 2.0 * omgxv[0];
+                aeci[1] = apef[1] + omgxomgxr[1] + 2.0 * omgxv[1];
+                aeci[2] = apef[2] + omgxomgxr[2] + 2.0 * omgxv[2];
+                aeci = MathTimeLibr.matvecmult(trans, apef, 3);
             }
         }//  eci_ecef 
 
@@ -2289,16 +1974,14 @@ namespace AstroLibMethods
         //  inputs          description                              range / units
         //    reci        - position vector eci                           km
         //    veci        - velocity vector eci                           km/s
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    direct      - direction                                     eto, efrom
         //    iau80arr    - iau76/fk5 eop constants
-        //    iau06arr    - iau2006 eop constants
-        //    ttt         - julian centuries of tt                        centuries
+        //    jdtt        - julian date of tt                             days from 4713 bc
+        //    jdftt       - fractional julian centuries of tt             days
         //    jdut1       - julian date of ut1                            days from 4713 bc
         //    lod         - excess length of day                          sec
         //    ddpsi       - delta psi correction to gcrf                  rad
         //    ddeps       - delta eps correction to gcrf                  rad
-        //    ddx         - delta x correction to gcrf                    rad
-        //    ddy         - delta y correction to gcrf                    rad
         //
         //  outputs       :
         //    rpef       - position vector pef                            km
@@ -2320,7 +2003,7 @@ namespace AstroLibMethods
         //   sidereal     - rotation for sidereal time     
         //
         //  references    :
-        //    vallado       2013, 223-231
+        //    vallado       2022, 224
         // ------------------------------------------------------------------------------
 
         public void eci_pef
@@ -2333,7 +2016,7 @@ namespace AstroLibMethods
         double lod, double ddpsi, double ddeps
         )
         {
-            double[] fArgs = new double[14];
+            double[] fArgs06 = new double[14];
             double psia, wa, epsa, chia, ttt;
             double meaneps, deltapsi, deltaeps, trueeps;
             double[] omegaearth = new double[3];
@@ -2355,13 +2038,12 @@ namespace AstroLibMethods
             meaneps = 0.0;
 
             ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
-
-            fundarg(ttt, EOpt.e80, out fArgs);
+            fundarg(ttt, EOpt.e80, out fArgs06);
 
             prec = precess(ttt, EOpt.e80, out psia, out wa, out epsa, out chia);
-            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs,
+            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs06,
                 out deltapsi, out deltaeps, out trueeps, out meaneps);
-            st = sidereal(jdut1, deltapsi, meaneps, fArgs, lod, eqeterms, EOpt.e80);
+            st = sidereal(jdut1, deltapsi, meaneps, fArgs06, lod, eqeterms, EOpt.e80);
 
             omegaearth[0] = 0.0;
             omegaearth[1] = 0.0;
@@ -2412,15 +2094,14 @@ namespace AstroLibMethods
         //  inputs          description                              range / units
         //    reci        - position vector eci                           km
         //    veci        - velocity vector eci                           km/s
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    direct      - direction                                     eto, efrom
         //    iau80arr    - iau76/fk5 eop constants
-        //    ttt         - julian centuries of tt                        centuries
+        //    jdtt        - julian date of tt                             days from 4713 bc
+        //    jdftt       - fractional julian centuries of tt             days
         //    jdut1       - julian date of ut1                            days from 4713 bc
         //    lod         - excess length of day                          sec
-        //    ddpsi       - delta psi correction to eci                  rad
-        //    ddeps       - delta eps correction to eci                  rad
-        //    ddx         - delta x correction to eci                    rad
-        //    ddy         - delta y correction to eci                    rad
+        //    ddpsi       - delta psi correction to eci                   rad
+        //    ddeps       - delta eps correction to eci                   rad
         //
         //  outputs       :
         //    rtod       - position vector tod                            km
@@ -2438,7 +2119,7 @@ namespace AstroLibMethods
         //   nutation     - rotation for nutation          
         //
         //  references    :
-        //    vallado       2013, 223-231
+        //    vallado       2022, 225
         // ------------------------------------------------------------------------------
 
         public void eci_tod
@@ -2451,7 +2132,7 @@ namespace AstroLibMethods
             double lod, double ddpsi, double ddeps
             )
         {
-            double[] fArgs = new double[14];
+            double[] fArgs06 = new double[14];
             double psia, wa, epsa, chia, ttt;
             double meaneps, deltapsi, deltaeps, trueeps;
             double[,] tm = new double[3, 3];
@@ -2466,10 +2147,10 @@ namespace AstroLibMethods
             meaneps = 0.0;
 
             ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
-            fundarg(ttt, EOpt.e80, out fArgs);
+            fundarg(ttt, EOpt.e80, out fArgs06);
 
             prec = precess(ttt, EOpt.e80, out psia, out wa, out epsa, out chia);
-            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs,
+            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs06,
                 out deltapsi, out deltaeps, out trueeps, out meaneps);
 
             if (direct.Equals(MathTimeLib.Edirection.eto))
@@ -2503,11 +2184,9 @@ namespace AstroLibMethods
         //  inputs          description                              range / units
         //    reci        - position vector eci                           km
         //    veci        - velocity vector eci                           km/s
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    direct      - direction                                     eto, efrom
         //    iau80arr    - iau76/fk5 eop constants
-        //    iau06arr    - iau2006 eop constants
         //    ttt         - julian centuries of tt                        centuries
-        //    jdut1       - julian date of ut1                            days from 4713 bc
         //
         //  outputs       :
         //    rmod       - position vector mod                            km
@@ -2520,7 +2199,7 @@ namespace AstroLibMethods
         //   precess      - rotation for precession       
         //
         //  references    :
-        //    vallado       2013, 223-231
+        //    vallado       2022, 226
         // ------------------------------------------------------------------------------
 
         public void eci_mod
@@ -2568,21 +2247,23 @@ namespace AstroLibMethods
         //  inputs          description                              range / units
         //    recef       - position vector earth fixed                   km
         //    vecef       - velocity vector earth fixed                   km/s
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
-        //    iau80arr    - iau76/fk5 eop constants
+        //    aecef       - acceleration vector earth fixed               km/s2
+        //    enum        - direction                                     eto, efrom
         //    iau06arr    - iau2006 eop constants
+        //    xysarr      - array of xys data records                     rad
         //    jdtt        - julian date of tt                             days from 4713 bc
         //    ttt         - julian centuries of tt                        centuries
         //    jdut1       - julian date of ut1                            days from 4713 bc
         //    lod         - excess length of day                          sec
         //    xp          - polar motion coefficient                      rad
         //    yp          - polar motion coefficient                      rad
-        //    ddpsi       - delta psi correction to gcrf                  rad
-        //    ddeps       - delta eps correction to gcrf                  rad
+        //    ddx         - delta x correction to gcrf                    rad
+        //    ddy         - delta y correction to gcrf                    rad
         //
         //  outputs       :
         //    reci        - position vector eci                           km
         //    veci        - velocity vector eci                           km/s
+        //    aeci        - acceleration vector earth inertial            km/s2
         //
         //  locals        :
         //    eqeterms    - terms for ast calculation                     0,2
@@ -2602,7 +2283,7 @@ namespace AstroLibMethods
         //   polarm       - rotation for polar motion      
         //
         //  references    :
-        //    vallado       2013, 223-231
+        //    vallado       2022, 211
         // ------------------------------------------------------------------------------
 
         public void eci_ecef06
@@ -2617,8 +2298,7 @@ namespace AstroLibMethods
             )
         {
             double[] fArgs06 = new double[14];
-            double x, y, s, gst, ttt;
-            double deltapsi;
+            double x, y, s, ttt;
             double[] omegaearth = new double[3];
             double[] rpef = new double[3];
             double[] vpef = new double[3];
@@ -2643,9 +2323,6 @@ namespace AstroLibMethods
             double[,] temp = new double[3, 3];
             double[,] trans = new double[3, 3];
 
-            char interp = 's';
-            deltapsi = 0.0;
-
             ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
 
             fundarg(ttt, opt, out fArgs06);
@@ -2662,60 +2339,6 @@ namespace AstroLibMethods
 
                 if (printopt == 'y')
                     Console.WriteLine(String.Format("xys cl {0}  {1}  {2} ", x, y, s));
-            }
-            else
-            // IAU2006nut or IAU-2000a pna approach  EOpt.e00a
-            // this is incorrect, but sofa and iers are so confusing, just use the series approach
-            {
-                prec = new double[3, 3];
-                prec[0, 0] = 1.0;
-                prec[1, 1] = 1.0;
-                prec[2, 2] = 1.0;
-                // only needed for s
-                // probably just need the abbreivated form
-                nut = iau06xys(jdtt, jdftt, ddx, ddy, interp, iau06arr, fArgs06, xysarr, out x, out y, out s);
-                //double conv = 180.0 / Math.PI * 3600.0;
-                //Console.WriteLine( "xys " + (x * conv).ToString() + " " + (y * conv).ToString() + " "
-                //   + (s*conv).ToString());
-
-                // x and y come from the pnb matrix
-                // sofa does 687 terms and the adds corretion
-                // "probably" should do 1320 terms as in TN-36?
-                // this is actually pnb coming back
-                nut = precnutbias00a(ttt, ddx, ddy, iau06arr, opt, fArgs06);
-                if (printopt == 'y')
-                {
-                    Console.WriteLine(String.Format("xys eq {0}  {1}  {2} ", x, y, s));
-                    Console.WriteLine(String.Format("pn = {0}  {1}  {2}", pn[0, 0], pn[0, 1], pn[0, 2]));
-                    Console.WriteLine(String.Format("pn = {0}  {1}  {2}", pn[1, 0], pn[1, 1], pn[1, 2]));
-                    Console.WriteLine(String.Format("pn = {0}  {1}  {2}", pn[2, 0], pn[2, 1], pn[2, 2]));
-                }
-
-                x = pn[2, 0];
-                y = pn[1, 2]; // transposed from sofa
-                if (printopt == 'y')
-                    Console.WriteLine(String.Format("x  {0} y  {1} ", x, y));
-                // seems like a lot of math where you could find a and then the matrix direct?
-                double e, d;
-                if (x != 0.0 && y != 0.0)
-                    e = Math.Atan2(y, x);
-                else
-                    e = 0.0;
-                d = Math.Atan(Math.Sqrt((x * x + y * y) / (1.0 - x * x - y * y)));
-                if (printopt == 'y')
-                    Console.WriteLine(String.Format("e {0} d {1} ", e, fArgs06[3]));
-
-                a1 = MathTimeLibr.rot3mat(-e);
-                a2 = MathTimeLibr.rot2mat(-fArgs06[3]);
-                a3 = MathTimeLibr.rot3mat(e + s);
-                temp = MathTimeLibr.matmult(a2, a3, 3, 3, 3);
-                pn = MathTimeLibr.matmult(a1, temp, 3, 3, 3);
-
-                st = gstime00(jdut1, deltapsi, ttt, iau06arr, fArgs06, out gst);
-                //sofa seems to use this??
-                st = sidereal(jdut1, 0.0, 0.0, fArgs06, lod, 2, opt);
-                if (printopt == 'y')
-                    Console.WriteLine(String.Format("gst  {0} ", gst));
             }
 
             pm = polarm(xp, yp, ttt, EOpt.e06cio);
@@ -2776,14 +2399,11 @@ namespace AstroLibMethods
         //  inputs          description                              range / units
         //    reci        - position vector eci                           km
         //    veci        - velocity vector eci                           km/s
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
-        //    iau80arr    - iau76/fk5 eop constants
+        //    direct      - direction                                     eto, efrom
         //    iau06arr    - iau2006 eop constants
         //    ttt         - julian centuries of tt                        centuries
         //    jdut1       - julian date of ut1                            days from 4713 bc
         //    lod         - excess length of day                          sec
-        //    ddpsi       - delta psi correction to gcrf                  rad
-        //    ddeps       - delta eps correction to gcrf                  rad
         //    ddx         - delta x correction to gcrf                    rad
         //    ddy         - delta y correction to gcrf                    rad
         //
@@ -2807,7 +2427,7 @@ namespace AstroLibMethods
         //   sidereal     - rotation for sidereal time     
         //
         //  references    :
-        //    vallado       2013, 223-231
+        //    vallado       2022, 213
         // ------------------------------------------------------------------------------
 
         public void eci_tirs
@@ -2822,8 +2442,7 @@ namespace AstroLibMethods
         )
         {
             double[] fArgs06 = new double[14];
-            double x, y, s, gst, ttt;
-            double meaneps, deltapsi;
+            double x, y, s, ttt;
             double[] omegaearth = new double[3];
             double[] crossr = new double[3];
             double[] tempvec1 = new double[3];
@@ -2837,8 +2456,6 @@ namespace AstroLibMethods
             double[,] temp = new double[3, 3];
             double[,] trans = new double[3, 3];
 
-            deltapsi = 0.0;
-            meaneps = 0.0;
             char interp = 'x';
 
             ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
@@ -2852,19 +2469,7 @@ namespace AstroLibMethods
                 prec[1, 1] = 1.0;
                 prec[2, 2] = 1.0;
                 nut = iau06xys(jdtt, jdftt, ddx, ddy, interp, iau06arr, fArgs06, xysarr, out x, out y, out s);
-                st = sidereal(jdut1, deltapsi, meaneps, fArgs06, lod, 2, opt);
-            }
-            else
-            // iau2006nut or iau-2006/2000 Nut or iau2000a approach
-            // these are wrong, use the series approach
-            {
-                prec[0, 0] = 1.0;
-                prec[1, 1] = 1.0;
-                prec[2, 2] = 1.0;
-                // prec = precess(ttt, opt, out psia, out wa, out epsa, out chia);
-                // this is prec*nut
-                nut = precnutbias00a(ttt, ddx, ddy, iau06arr, opt, fArgs06);
-                st = gstime00(jdut1, deltapsi, ttt, iau06arr, fArgs06, out gst);
+                st = sidereal(jdut1, 0.0, 0.0, fArgs06, 0.0, 2, opt);
             }
 
             omegaearth[0] = 0.0;
@@ -2916,20 +2521,16 @@ namespace AstroLibMethods
         //  inputs          description                              range / units
         //    reci        - position vector eci                           km
         //    veci        - velocity vector eci                           km/s
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
-        //    iau80arr    - iau76/fk5 eop constants
+        //    enum        - direction                                     eto, efrom
         //    iau06arr    - iau2006 eop constants
-        //    ttt         - julian centuries of tt                        centuries
-        //    jdut1       - julian date of ut1                            days from 4713 bc
-        //    lod         - excess length of day                          sec
-        //    ddpsi       - delta psi correction to eci                  rad
-        //    ddeps       - delta eps correction to eci                  rad
-        //    ddx         - delta x correction to eci                    rad
-        //    ddy         - delta y correction to eci                    rad
+        //    jdtt        - julian date of tt                             days from 4713 bc
+        //    jdftt       - fractional julian date of tt                  days
+        //    ddx         - delta x correction to eci                     rad
+        //    ddy         - delta y correction to eci                     rad
         //
         //  outputs       :
-        //    rtod       - position vector tod                            km
-        //    vtod       - velocity vector tod                            km/s
+        //    rcirs       - position vector cirs                          km
+        //    vcirs       - velocity vector cirs                          km/s
         //
         //  locals        :
         //    deltapsi    - nutation angle                                rad
@@ -2943,7 +2544,7 @@ namespace AstroLibMethods
         //   nutation     - rotation for nutation          
         //
         //  references    :
-        //    vallado       2013, 223-231
+        //    vallado       2022, 223-231
         // ------------------------------------------------------------------------------
 
         public void eci_cirs
@@ -2953,8 +2554,8 @@ namespace AstroLibMethods
             ref double[] rcirs, ref double[] vcirs,
             EOpt opt,
             EOPSPWLib.iau06Class iau06arr,
-            double jdtt, double jdftt, double jdut1,
-            double lod, double ddx, double ddy
+            double jdtt, double jdftt,
+            double ddx, double ddy
             )
         {
             double[] fArgs06 = new double[14];
@@ -2980,17 +2581,6 @@ namespace AstroLibMethods
                 prec[1, 1] = 1.0;
                 prec[2, 2] = 1.0;
                 nut = iau06xys(jdtt, jdftt, ddx, ddy, interp, iau06arr, fArgs06, xysarr, out x, out y, out s);
-            }
-            else
-            // iau-2006/2000 Nut or iau2000a approach
-            // these are wrong, use series approach
-            {
-                prec[0, 0] = 1.0;
-                prec[1, 1] = 1.0;
-                prec[2, 2] = 1.0;
-                // prec = precess(ttt, opt, out psia, out wa, out epsa, out chia);
-                // this is prec*nut
-                nut = precnutbias00a(ttt, ddx, ddy, iau06arr, EOpt.e00a, fArgs06);
             }
 
             if (direct.Equals(MathTimeLib.Edirection.eto))
@@ -3027,7 +2617,7 @@ namespace AstroLibMethods
         //    recef       - position vector earth fixed                   km
         //    vecef       - velocity vector earth fixed                   km/s
         //    direct      - direction of transfer                         eto, efrom
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    iau80arr    - iau80 eop constants
         //    ttt         - julian centuries of tt                        centuries
         //    jdut1       - julian date of ut1                            days from 4713 bc
         //    lod         - excess length of day                          sec
@@ -3035,8 +2625,6 @@ namespace AstroLibMethods
         //    yp          - polar motion coefficient                      rad
         //    ddpsi       - delta psi correction to gcrf                  rad
         //    ddeps       - delta eps correction to gcrf                  rad
-        //    ddx         - delta x correction to gcrf                    rad
-        //    ddy         - delta y correction to gcrf                    rad
         //
         //  outputs       :
         //    rmod        - position vector mod                           km
@@ -3057,7 +2645,7 @@ namespace AstroLibMethods
         //   polarm       - rotation for polar motion      
         //
         //  references    :
-        //    vallado       2013, 228-236
+        //    vallado       2022 227
         // ------------------------------------------------------------------------------
 
         public void ecef_mod
@@ -3066,12 +2654,12 @@ namespace AstroLibMethods
             Enum direct,
             ref double[] rmod, ref double[] vmod,
             EOPSPWLib.iau80Class iau80arr,
-            double jdtt, double jdftt, double jdut1,
+            double ttt, double jdut1,
             double lod, double xp, double yp, double ddpsi, double ddeps
             )
         {
-            double[] fArgs = new double[14];
-            double ttt, meaneps, deltapsi, deltaeps, trueeps;
+            double[] fArgs06 = new double[14];
+            double meaneps, deltapsi, deltaeps, trueeps;
             double[] omegaearth = new double[3];
             double[] rpef = new double[3];
             double[] vpef = new double[3];
@@ -3090,14 +2678,12 @@ namespace AstroLibMethods
             deltapsi = 0.0;
             meaneps = 0.0;
 
-            ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
-
-            fundarg(ttt, EOpt.e80, out fArgs);
+            fundarg(ttt, EOpt.e80, out fArgs06);
 
             // IAU-76/FK5 approach
-            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs,
+            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs06,
                 out deltapsi, out deltaeps, out trueeps, out meaneps);
-            st = sidereal(jdut1, deltapsi, meaneps, fArgs, lod, 2, EOpt.e80);
+            st = sidereal(jdut1, deltapsi, meaneps, fArgs06, lod, 2, EOpt.e80);
 
             pm = polarm(xp, yp, ttt, EOpt.e80);
 
@@ -3153,7 +2739,7 @@ namespace AstroLibMethods
         //    recef       - position vector earth fixed                   km
         //    vecef       - velocity vector earth fixed                   km/s
         //    direct      - direction of transfer                         eto, efrom
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    iau80arr    - iau80 eop constants
         //    ttt         - julian centuries of tt                        centuries
         //    jdut1       - julian date of ut1                            days from 4713 bc
         //    lod         - excess length of day                          sec
@@ -3161,8 +2747,6 @@ namespace AstroLibMethods
         //    yp          - polar motion coefficient                      rad
         //    ddpsi       - delta psi correction to gcrf                  rad
         //    ddeps       - delta eps correction to gcrf                  rad
-        //    ddx         - delta x correction to gcrf                    rad
-        //    ddy         - delta y correction to gcrf                    rad
         //
         //  outputs       :
         //    rtod        - position vector eci                           km
@@ -3183,7 +2767,7 @@ namespace AstroLibMethods
         //   polarm       - rotation for polar motion      
         //
         //  references    :
-        //    vallado       2013, 228-236
+        //    vallado       2022 226
         // ------------------------------------------------------------------------------
 
         public void ecef_tod
@@ -3196,7 +2780,7 @@ namespace AstroLibMethods
             double lod, double xp, double yp, double ddpsi, double ddeps
             )
         {
-            double[] fArgs = new double[14];
+            double[] fArgs06 = new double[14];
             double deltaeps, trueeps, meaneps, deltapsi;
             double[] omegaearth = new double[3];
             double[] rpef = new double[3];
@@ -3213,12 +2797,12 @@ namespace AstroLibMethods
             deltapsi = 0.0;
             meaneps = 0.0;
 
-            fundarg(ttt, EOpt.e80, out fArgs);
+            fundarg(ttt, EOpt.e80, out fArgs06);
 
             // IAU-76/FK5 approach
-            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs,
+            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs06,
                 out deltapsi, out deltaeps, out trueeps, out meaneps);
-            st = sidereal(jdut1, deltapsi, meaneps, fArgs, lod, 2, EOpt.e80);
+            st = sidereal(jdut1, deltapsi, meaneps, fArgs06, lod, 2, EOpt.e80);
 
             pm = polarm(xp, yp, ttt, EOpt.e80);
 
@@ -3271,20 +2855,18 @@ namespace AstroLibMethods
         //    recef       - position vector earth fixed                   km
         //    vecef       - velocity vector earth fixed                   km/s
         //    direct      - direction of transfer                         eto, efrom
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    iau06arr    - iau2006 eop constants
         //    ttt         - julian centuries of tt                        centuries
         //    jdut1       - julian date of ut1                            days from 4713 bc
         //    lod         - excess length of day                          sec
         //    xp          - polar motion coefficient                      rad
         //    yp          - polar motion coefficient                      rad
-        //    ddpsi       - delta psi correction to gcrf                  rad
-        //    ddeps       - delta eps correction to gcrf                  rad
         //    ddx         - delta x correction to gcrf                    rad
         //    ddy         - delta y correction to gcrf                    rad
         //
         //  outputs       :
-        //    rtod        - position vector eci                           km
-        //    vtod        - velocity vector eci                           km/s
+        //    rcirs       - position vector eci                           km
+        //    vcirs       - velocity vector eci                           km/s
         //
         //  locals        :
         //    deltapsi    - nutation angle                                rad
@@ -3301,7 +2883,7 @@ namespace AstroLibMethods
         //   polarm       - rotation for polar motion      
         //
         //  references    :
-        //    vallado       2013, 228-236
+        //    vallado       2022, 227
         // ------------------------------------------------------------------------------
 
         public void ecef_cirs
@@ -3316,8 +2898,6 @@ namespace AstroLibMethods
             )
         {
             double[] fArgs06 = new double[14];
-            double gst;
-            double deltapsi;
             double[] omegaearth = new double[3];
             double[] rpef = new double[3];
             double[] vpef = new double[3];
@@ -3330,24 +2910,12 @@ namespace AstroLibMethods
             double[,] stp = new double[3, 3];
             double[,] pmp = new double[3, 3];
 
-            deltapsi = 0.0;
-
             fundarg(ttt, EOpt.e06cio, out fArgs06);
 
             // IAU-2006/2000 CIO series approach
             if (opt.Equals(EOpt.e06cio))
-            {
                 st = sidereal(jdut1, 0.0, 0.0, fArgs06, lod, 2, EOpt.e06cio);
-            }
-            else
-            // IAU2006nut or IAU-2000a pna approach  EOpt.e00a
-            // this is incorrect, but sofa and iers are so confusing, just use the series approach
-            {
-                st = gstime00(jdut1, deltapsi, ttt, iau06arr, fArgs06, out gst);
-                //sofa seems to use this??
-                st = sidereal(jdut1, 0.0, 0.0, fArgs06, lod, 2, EOpt.e06cio);
-            }
-
+ 
             pm = polarm(xp, yp, ttt, EOpt.e06cio);
 
             omegaearth[0] = 0.0;
@@ -3399,7 +2967,7 @@ namespace AstroLibMethods
         //    recef       - position vector earth fixed                   km
         //    vecef       - velocity vector earth fixed                   km/s
         //    direct      - direction of transfer                         eto, efrom
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    opt         - method option                                 e80, e96, e06cio
         //    ttt         - julian centuries of tt                        centuries
         //    lod         - excess length of day                          sec
         //    xp          - polar motion coefficient                      rad
@@ -3422,7 +2990,7 @@ namespace AstroLibMethods
         //   polarm       - rotation for polar motion      
         //
         //  references    :
-        //    vallado       2013, 228-236
+        //    vallado       2022, 224
         // ------------------------------------------------------------------------------
 
         public void ecef_pef
@@ -3469,9 +3037,9 @@ namespace AstroLibMethods
         //    recef       - position vector earth fixed                   km
         //    vecef       - velocity vector earth fixed                   km/s
         //    direct      - direction of transfer                         eto, efrom
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    iau06arr    - iau2006 eop constants
+        //    opt         - method option                                 e80, e96, e06cio
         //    ttt         - julian centuries of tt                        centuries
-        //    lod         - excess length of day                          sec
         //    xp          - polar motion coefficient                      rad
         //    yp          - polar motion coefficient                      rad
         //
@@ -3492,7 +3060,7 @@ namespace AstroLibMethods
         //   polarm       - rotation for polar motion      
         //
         //  references    :
-        //    vallado       2013, 228-236
+        //    vallado       2022, 213
         // ------------------------------------------------------------------------------
 
         public void ecef_tirs
@@ -3547,7 +3115,7 @@ namespace AstroLibMethods
         //    xp           - polar motion coefficient                       arc sec
         //    yp           - polar motion coefficient                       arc sec
         //    eqeterms     - use extra two terms(kinematic) after 1997      0, 2
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
+        //    opt         - method option                                   e80
         //
         //  outputs       :
         //    recef        - position vector earth fixed                    km
@@ -3563,17 +3131,17 @@ namespace AstroLibMethods
         //   polarm        - rotation for polar motion                      pef - ecef
         //
         //  references :
-        //    vallado       2013, 231 - 233
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 232
+        // ----------------------------------------------------------------------------
 
         public void teme_ecef
             (
              ref double[] rteme, ref double[] vteme, Enum direct, double ttt, double jdut1, double lod,
-             double xp, double yp, Int32 eqeterms, EOpt opt,
+             double xp, double yp, Int32 eqeterms, 
              ref double[] recef, ref double[] vecef
             )
         {
-            double deg2rad, gmstg, thetasa, raan;
+            double deg2rad, gmstg, thetasa, omega;
             double[] omegaearth = new double[3];
             double[,] st = new double[3, 3];
             double[,] stdot = new double[3, 3];
@@ -3589,8 +3157,8 @@ namespace AstroLibMethods
             conv = Math.PI / (3600.0 * 180.0);
 
             // find raan from nutation theory
-            raan = 125.04452222 + (-6962890.5390 * ttt + 7.455 * ttt * ttt + 0.008 * ttt * ttt * ttt) / 3600.0;
-            raan = (raan % 360.0) * deg2rad;
+            omega = 125.04452222 + (-6962890.5390 * ttt + 7.455 * ttt * ttt + 0.008 * ttt * ttt * ttt) / 3600.0;
+            omega = (omega % 360.0) * deg2rad;
 
             // ------------------------find gmst--------------------------
             gmst = gstime(jdut1);
@@ -3599,9 +3167,8 @@ namespace AstroLibMethods
             // after 1997, kinematic terms apply
             if ((jdut1 > 2450449.5) && (eqeterms > 0))
             {
-                gmstg = gmst
-                    + 0.00264 * conv * Math.Sin(raan)
-                    + 0.000063 * conv * Math.Sin(2.0 * raan);
+                gmstg = gmst + 0.00264 * conv * Math.Sin(omega)
+                    + 0.000063 * conv * Math.Sin(2.0 * omega);
             }
             else
                 gmstg = gmst;
@@ -3622,7 +3189,7 @@ namespace AstroLibMethods
             st[2, 1] = 0.0;
             st[2, 2] = 1.0;
 
-            pm = polarm(xp, yp, ttt, opt);
+            pm = polarm(xp, yp, ttt, AstroLib.EOpt.e80);
 
             if (direct.Equals(MathTimeLib.Edirection.eto))
             {
@@ -3640,12 +3207,12 @@ namespace AstroLibMethods
                 vecef = MathTimeLibr.matvecmult(pmp, vpef, 3);
 
                 // for accel
-                //addvec(1.0, tempvec1, -1.0, omgxr, vpef);
+                //MathTimeLibr.addvec(1.0, tempvec1, -1.0, omgxr, vpef);
                 //MathTimeLibr.cross(omegaearth, vpef, omgxv);
                 //MathTimeLibr.cross(omegaearth, omgxr, omgxomgxr);
                 //MathTimeLibr.matvecmult(stp, ateme, tempvec1);
-                //addvec(1.0, tempvec1, -1.0, omgxomgxr, tempvec);
-                //addvec(1.0, tempvec, -2.0, omgxv, apef);
+                //MathTimeLibr.addvec(1.0, tempvec1, -1.0, omgxomgxr, tempvec);
+                //MathTimeLibr.addvec(1.0, tempvec, -2.0, omgxv, apef);
                 //MathTimeLibr.matvecmult(pmp, apef, aecef);
                 //fprintf(1, 'st gmst %11.8f ast %11.8f ome  %11.8f \n', gmst * 180 / pi, ast * 180 / pi, omegaearth * 180 / pi);
             }
@@ -3664,8 +3231,8 @@ namespace AstroLibMethods
                 //MathTimeLibr.matvecmult(pm, aecef, apef);
                 //MathTimeLibr.cross(omegaearth, omgxr, omgxomgxr);
                 //MathTimeLibr.cross(omegaearth, vpef, omgxv);
-                //addvec(1.0, apef, 1.0, omgxomgxr, tempvec);
-                //addvec(1.0, tempvec, 2.0, omgxv, tempvec1);
+                //MathTimeLibr.addvec(1.0, apef, 1.0, omgxomgxr, tempvec);
+                //MathTimeLibr.addvec(1.0, tempvec, 2.0, omgxv, tempvec1);
                 //MathTimeLibr.matvecmult(st, tempvec1, ateme);
             }
         }  // teme_ecef
@@ -3685,17 +3252,14 @@ namespace AstroLibMethods
         //                  true equator, mean equinox                     km
         //    vteme       - velocity vector of date
         //                  true equator, mean equinox                     km / s
-        //    ateme       - acceleration vector of date
-        //                  true equator, mean equinox                     km / s2
+        //    iau80arr     - iau80 array of values
         //    ttt         - julian centuries of tt                         centuries
         //    ddpsi       - delta psi correction to gcrf                   rad
         //    ddeps       - delta eps correction to gcrf                   rad
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
         //
         //  outputs       :
         //    reci        - position vector eci                            km
         //    veci        - velocity vector eci                            km / s
-        //    aeci        - acceleration vector eci                        km / s2
         //
         //  locals :
         //    prec        - matrix for eci - mod
@@ -3708,17 +3272,17 @@ namespace AstroLibMethods
         //   nutation     - rotation for nutation                          eci - tod
         //
         //  references :
-        //    vallado       2013, 231 - 233
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 233
+        // ----------------------------------------------------------------------------
 
         public void teme_eci
             (
             ref double[] rteme, ref double[] vteme, EOPSPWLib.iau80Class iau80arr, Enum direct,
-            double ttt, double ddpsi, double ddeps, EOpt opt,
+            double ttt, double ddpsi, double ddeps, 
             ref double[] rgcrf, ref double[] vgcrf
             )
         {
-            double[] fArgs = new double[14];
+            double[] fArgs06 = new double[14];
             double[,] prec = new double[3, 3];
             double[,] nut = new double[3, 3];
             double[,] precp = new double[3, 3];
@@ -3729,10 +3293,10 @@ namespace AstroLibMethods
             double[,] tempmat = new double[3, 3];
             double psia, wa, epsa, chia, deltapsi, deltaeps, trueeps, meaneps, eqeg;
 
-            fundarg(ttt, opt, out fArgs);
+            fundarg(ttt, EOpt.e80, out fArgs06);
 
             prec = precess(ttt, EOpt.e80, out psia, out wa, out epsa, out chia);
-            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs, out deltapsi, out deltaeps, out trueeps, out meaneps);
+            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs06, out deltapsi, out deltaeps, out trueeps, out meaneps);
 
             // ------------------------find eqeg----------------------
             // rotate teme through just geometric terms
@@ -3787,6 +3351,7 @@ namespace AstroLibMethods
         //    rqmod       - position vector qmod                          km
         //    vqmod       - velocity vector qmod                          km/s
         //    ttt         - julian centuries of tt                        centuries
+        //    iau80arr    - iau80 eop constants
         //    jdutc       - julian date of utc                            days from 4713 bc
         //
         //  outputs       :
@@ -3803,17 +3368,17 @@ namespace AstroLibMethods
         //   nutationqmod - rotation for nutation (qmod)                   qmod - tod
         //
         //  references    :
-        //    vallado       2007, 239-248
+        //    vallado       2022, 225
         // ------------------------------------------------------------------------------
 
         public void qmod2ecef
             (
             double[] rqmod, double[] vqmod, double ttt, double jdutc,
-            EOPSPWLib.iau80Class iau80arr, EOpt opt,
+            EOPSPWLib.iau80Class iau80arr, 
             out double[] recef, out double[] vecef
             )
         {
-            double[] fArgs = new double[14];
+            double[] fArgs06 = new double[14];
             double gmst, ed, deg2rad;
             double meaneps, deltapsi, deltaeps;
             double[,] nut = new double[3, 3];
@@ -3825,9 +3390,9 @@ namespace AstroLibMethods
             double[] omegaearth = new double[3];
             omegaearth[2] = gravConst.earthrot;
 
-            fundarg(ttt, opt, out fArgs);
+            fundarg(ttt, EOpt.e80, out fArgs06);
 
-            nut = nutationqmod(ttt, iau80arr, fArgs, out deltapsi, out deltaeps, out meaneps);
+            nut = nutationqmod(ttt, iau80arr, fArgs06, out deltapsi, out deltaeps, out meaneps);
 
             //  assumption that utc = ut1 and therefore a new gmst
             ed = jdutc - 2451544.5;  // elapsed days from 1 jan 2000 0 hr 
@@ -3860,166 +3425,6 @@ namespace AstroLibMethods
         }  //  qmod2ecef 
 
 
-        // ----------------------------------------------------------------------------
-        //
-        //                           function csm2efg
-        //
-        //  this function transforms an efg (pef) state vector and ric (eci) vector of
-        //  another satellite and finds both states in ecef. note that afspc calls pef efg.
-        //  there is about a 5cm and 5cm/s error with the afspc values - still tracking that down. 
-        //
-        //  author        : david vallado             davallado@gmail.com      20 jan 2025
-        //
-        //  inputs          description                              range / units
-        //    r1pef       - pos vector pseudo earth fixed    km
-        //    v1pef       - vel vector pseude earth fixed    km/s
-        //    r2ric       - rel pos vector eci               km
-        //    v2ric       - rel vel vector eci               km/s
-        //    ttt         - julian centuries of tt           centuries
-        //   jdut1       - julian date of ut1               days from 4713 bc
-        //    lod         - excess length of day             sec
-        //   xp          - polar motion coefficient         rad
-        //    yp          - polar motion coefficient         rad
-        //    eqeterms    - terms for ast calculation        0,2
-        //    ddpsi       - delta psi correction to gcrf     rad
-        //    ddeps       - delta eps correction to gcrf     rad
-        //    opt         - method option                           e80, e96, e00a, e06cio, e06eq
-        //
-        //  outputs       :
-        //    r1ecef      - position vector earth fixed      km
-        //    v1ecef      - velocity vector earth fixed      km/s
-        //    r2ecef      - position vector earth fixed      km
-        //    v2ecef      - velocity vector earth fixed      km/s
-        //
-        //  locals        :
-        //    reci        - position vector eci              km
-        //    veci        - velocity vector eci              km/s
-        //    deltapsi    - nutation angle                   rad
-        //    trueeps     - true obliquity of the ecliptic   rad
-        //    meaneps     - mean obliquity of the ecliptic   rad
-        //    prec        - matrix for mod - eci 
-        //    nut         - matrix for tod - mod 
-        //    st          - matrix for pef - tod 
-        //    stdot       - matrix for pef - tod rate
-        //    pm          - matrix for ecef - pef 
-        //
-        //  coupling      :
-        //   precess      - rotation for precession       
-        //   nutation     - rotation for nutation          
-        //   sidereal     - rotation for sidereal time     
-        //   polarm       - rotation for polar motion      
-        //
-        //  references    :
-        //    vallado       2007, 228-236
-        //------------------------------------------------------------------------------
-
-        public void csm2efg
-            (
-            double[] r1pef, double[] v1pef, double[] r2ric, double[] v2ric,
-            double ttt, double jdut1, double lod, double xp, double yp, int eqeterms, double ddpsi, double ddeps,
-            EOpt opt,
-            out double[] r1ecef, out double[] v1ecef, out double[] r2ecef, out double[] v2ecef
-            )
-        {
-            double[] fArgs = new double[14];
-            double psia, wa, epsa, chia;
-            double meaneps, deltapsi, deltaeps, trueeps;
-            double[] omegaearth = new double[3];
-            double[] crossr = new double[3];
-            double[] tempvec1 = new double[3];
-            double[] rrsw = new double[3];
-            double[] vrsw = new double[3];
-            double[] r1eci = new double[3];
-            double[] v1eci = new double[3];
-            double[] r2eci = new double[3];
-            double[] v2eci = new double[3];
-            double[] r2pef = new double[3];
-            double[] v2pef = new double[3];
-            double[] r2rict = new double[3];
-            double[] v2rict = new double[3];
-            double[,] tm = new double[3, 3];
-            double[,] prec = new double[3, 3];
-            double[,] nut = new double[3, 3];
-            double[,] st = new double[3, 3];
-            double[,] pm = new double[3, 3];
-            double[,] precp = new double[3, 3];
-            double[,] nutp = new double[3, 3];
-            double[,] stp = new double[3, 3];
-            double[,] pmp = new double[3, 3];
-            double[,] temp = new double[3, 3];
-            double[,] trans = new double[3, 3];
-            double[,] rot2rsw = new double[3, 3];
-            double[,] rot2rswt = new double[3, 3];
-
-            omegaearth[0] = 0.0;
-            omegaearth[1] = 0.0;
-            omegaearth[2] = gravConst.earthrot * (1.0 - lod / 86400.0);
-
-            fundarg(ttt, opt, out fArgs);
-
-            prec = precess(ttt, opt, out psia, out wa, out epsa, out chia);
-
-            nut = nutation(ttt, ddpsi, ddeps, EOPSPWLibr.iau80arr, fArgs, out deltapsi, out deltaeps, out trueeps, out meaneps);
-
-            st = sidereal(jdut1, deltapsi, meaneps, fArgs, lod, eqeterms, opt);
-
-            pm = polarm(xp, yp, ttt, opt);
-
-            // ---- perform transformations moving pef to eci
-            temp = MathTimeLibr.matmult(prec, nut, 3, 3, 3);
-            trans = MathTimeLibr.matmult(temp, st, 3, 3, 3);
-            r1eci = MathTimeLibr.matvecmult(trans, r1pef, 3);
-
-            MathTimeLibr.cross(omegaearth, r1pef, out crossr);
-            tempvec1[0] = v1pef[0] + crossr[0];
-            tempvec1[1] = v1pef[1] + crossr[1];
-            tempvec1[2] = v1pef[2] + crossr[2];
-            v1eci = MathTimeLibr.matvecmult(trans, tempvec1, 3);
-            if (printopt == 'y')
-                Console.WriteLine(String.Format("r1eci = {0}  {1}  {2}  {3}  {4}  {5}", r1eci[0], r1eci[1], r1eci[2], v1eci[0], v1eci[1], v1eci[2]));
-
-            rot2rsw = rv2rsw(r1eci, v1eci, out rrsw, out vrsw);
-            rot2rswt = MathTimeLibr.mattrans(rot2rsw, 3);
-            r2rict = MathTimeLibr.matvecmult(rot2rswt, r2ric, 3);
-            v2rict = MathTimeLibr.matvecmult(rot2rswt, v2ric, 3);
-
-            r2eci[0] = r1eci[0] + r2rict[0];
-            r2eci[1] = r1eci[1] + r2rict[1];
-            r2eci[2] = r1eci[2] + r2rict[2];
-            v2eci[0] = v1eci[0] + v2rict[0];
-            v2eci[1] = v1eci[1] + v2rict[1];
-            v2eci[2] = v1eci[2] + v2rict[2];
-            if (printopt == 'y')
-            {
-                Console.WriteLine(String.Format("r2eci = {0}  {1}  {2}  {3}  {4}  {5}", r2eci[0], r2eci[1], r2eci[2], v2eci[0], v2eci[1], v2eci[2]));
-                Console.WriteLine(String.Format("r2ric = {0}  {1}  {2}  {3}  {4}  {5}", r2ric[0], r2ric[1], r2ric[2], v2ric[0], v2ric[1], v2ric[2]));
-            }
-
-            // Convert 2 back to efg
-            pmp = MathTimeLibr.mattrans(pm, 3);
-            stp = MathTimeLibr.mattrans(st, 3);
-            nutp = MathTimeLibr.mattrans(nut, 3);
-            precp = MathTimeLibr.mattrans(prec, 3);
-
-            temp = MathTimeLibr.matmult(stp, nutp, 3, 3, 3);
-            trans = MathTimeLibr.matmult(temp, precp, 3, 3, 3);
-            r2pef = MathTimeLibr.matvecmult(trans, r2eci, 3);
-            r2ecef = MathTimeLibr.matvecmult(pmp, r2pef, 3);
-
-            tempvec1 = MathTimeLibr.matvecmult(trans, v2eci, 3);
-            MathTimeLibr.cross(omegaearth, r2pef, out crossr);
-            v2pef[0] = tempvec1[0] - crossr[0];
-            v2pef[1] = tempvec1[1] - crossr[1];
-            v2pef[2] = tempvec1[2] - crossr[2];
-            v2ecef = MathTimeLibr.matvecmult(pmp, v2pef, 3);
-
-            if (printopt == 'y')
-                Console.WriteLine(String.Format("r2pef = {0}  {1}  {2}  {3}  {4}  {5}", r2pef[0], r2pef[1], r2pef[2], v2pef[0], v2pef[1], v2pef[2]));
-
-            // transform pef (efg) vectors for sat 1 to ecef for standard coordinate processing
-            r1ecef = MathTimeLibr.matvecmult(pmp, r1pef, 3);
-            v1ecef = MathTimeLibr.matvecmult(pmp, v1pef, 3);
-        }  //  csm2efg 
 
 
 
@@ -4076,7 +3481,7 @@ namespace AstroLibMethods
         //    newtonnu    - find the mean anomaly
         //
         //  references    :
-        //    vallado       2007, 126, alg 9, ex 2-5
+        //    vallado       2022, 115, alg 9, ex 2-5
         // -----------------------------------------------------------------------------
 
         public void rv2coe
@@ -4259,24 +3664,24 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    p           - semilatus rectum               km
+        //    p           - semilatus rectum                          km
         //    ecc         - eccentricity
         //    incl        - inclination                               0.0 to pi rad
         //    raan        - rtasc of ascending node                   0.0 to 2pi rad
-        //    argp        - argument of perigee            0.0 to 2pi rad
-        //    nu          - true anomaly                   0.0 to 2pi rad
-        //    arglat      - argument of latitude      (ci) 0.0 to 2pi rad
-        //    lamtrue     - true longitude            (ce) 0.0 to 2pi rad
-        //    lonper      - longitude of periapsis    (ee) 0.0 to 2pi rad
+        //    argp        - argument of perigee                       0.0 to 2pi rad
+        //    nu          - true anomaly                              0.0 to 2pi rad
+        //    arglat      - argument of latitude                      (ci) 0.0 to 2pi rad
+        //    lamtrue     - true longitude                            (ce) 0.0 to 2pi rad
+        //    lonper      - longitude of periapsis                    (ee) 0.0 to 2pi rad
         //
         //  outputs       :
-        //    r           - ijk position vector            km
-        //    v           - ijk velocity vector            km / s
+        //    r           - ijk position vector                        km
+        //    v           - ijk velocity vector                        km / s
         //
         //  locals        :
         //    temp        - temporary real*8 value
-        //    rpqw        - pqw position vector            km
-        //    vpqw        - pqw velocity vector            km / s
+        //    rpqw        - pqw position vector                        km
+        //    vpqw        - pqw velocity vector                        km / s
         //    sinnu       - sine of nu
         //    cosnu       - cosine of nu
         //    tempvec     - pqw velocity vector
@@ -4286,7 +3691,7 @@ namespace AstroLibMethods
         //    rot1        - rotation about the 1st axis
         //
         //  references    :
-        //    vallado       2007, 126, alg 10, ex 2-5
+        //    vallado       2022, 120, alg 10, ex 2-5
         // --------------------------------------------------------------------------- 
 
         public void coe2rv
@@ -4375,18 +3780,19 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r           - eci position vector            km
-        //    v           - eci velocity vector            km/s
+        //    r           - eci position vector                        km
+        //    v           - eci velocity vector                        km/s
         //
         //  outputs       :
-        //    n           - mean motion                    rad
-        //    a           - semi major axis                km
+        //    n           - mean motion                                rad
+        //    a           - semi major axis                            km
         //    af          - component of ecc vector
         //    ag          - component of ecc vector
         //    chi         - component of node vector in eqw
         //    psi         - component of node vector in eqw
-        //    meanlon     - mean longitude                 rad
-        //    truelon     - true longitude                 rad
+        //    meanlonM    - mean longitude                             rad
+        //    menalonNu   - true longitude                             rad
+        //    fr          - retrograde factor, neg if incl > 179 deg 1, -1
         //
         //  locals        :
         //    none        -
@@ -4395,7 +3801,7 @@ namespace AstroLibMethods
         //    none        -
         //
         //  references    :
-        //    vallado       2013, 108
+        //    vallado       2022, 110
         //    chobotov            30
         // ----------------------------------------------------------------------------
 
@@ -4488,36 +3894,36 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    a           - semimajor axis                 km
+        //    a           - semimajor axis                             km
         //    af          - component of ecc vector
         //    ag          - component of ecc vector
         //    chi         - component of node vector in eqw
         //    psi         - component of node vector in eqw
-        //    meanlon     - mean longitude                 rad
-        //    fr          - retrograde factor, neg if incl > 90 deg 1, -1
+        //    meanlon     - mean longitude                             rad
+        //    fr          - retrograde factor, neg if incl > 179 deg 1, -1
         //
         //  outputs       :
-        //    r           - position vector                km
-        //    v           - velocity vector                km/s
+        //    r           - position vector                            km
+        //    v           - velocity vector                            km/s
         //
         //  locals        :
-        //    n           - mean motion                    rad
+        //    n           - mean motion                                rad
         //    temp        - temporary variable
-        //    p           - semilatus rectum               km
-        //    ecc         - eccentricity
-        //    incl        - inclination                    0.0  to pi rad
-        //    raan        - rtasc of ascending node    0.0  to 2pi rad
-        //    argp        - argument of perigee            0.0  to 2pi rad
-        //    nu          - true anomaly                   0.0  to 2pi rad
-        //    m           - mean anomaly                   0.0  to 2pi rad
-        //    arglat      - argument of latitude      (ci) 0.0  to 2pi rad
-        //    truelon     - true longitude            (ce) 0.0  to 2pi rad
-        //    lonper      - longitude of periapsis    (ee) 0.0  to 2pi rad
+        //    p           - semilatus rectum                           km
+        //    ecc         - eccentricity            
+        //    incl        - inclination                                0.0  to pi rad
+        //    raan        - rtasc of ascending node                    0.0  to 2pi rad
+        //    argp        - argument of perigee                        0.0  to 2pi rad
+        //    nu          - true anomaly                               0.0  to 2pi rad
+        //    m           - mean anomaly                               0.0  to 2pi rad
+        //    arglat      - argument of latitude      (ci)             0.0  to 2pi rad
+        //    truelon     - true longitude            (ce)             0.0  to 2pi rad
+        //    lonper      - longitude of periapsis    (ee)             0.0  to 2pi rad
         //
         //  coupling      :
         //
         //  references    :
-        //    vallado 2013:108
+        //    vallado 2022 : 110
         // ------------------------------------------------------------------------------
 
         public void eq2rv
@@ -4627,6 +4033,7 @@ namespace AstroLibMethods
         //    yp          - polar motion coefficient                        arc sec
         //    terms       - number of terms for ast calculation             0,2
         //    ddpsi, ddeps - corrections for fk5 to gcrf                    rad
+        //    iau80arr     - iau80 coefficients of eop
         //
         //  outputs       :
         //    magr        - eci position vector magnitude                   km
@@ -4639,15 +4046,14 @@ namespace AstroLibMethods
         //  locals        :
         //    fpav        - sat flight path anglefrom vert                  rad
         //
-        //    none        -
         //  references    :
-        //    vallado       2013, xx
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 111
+        // ----------------------------------------------------------------------------
 
         public void rv2flt
             (
-            double[] reci, double[] veci, double jdtt, double jdftt,
-            double jdut1, double lod,
+            double[] reci, double[] veci, double[] aeci,
+            double ttt, double jdut1, double lod,
             double xp, double yp, int terms, double ddpsi, double ddeps,
             EOPSPWLib.iau80Class iau80arr,
             out double lon, out double latgc, out double rtasc, out double decl,
@@ -4657,6 +4063,7 @@ namespace AstroLibMethods
             double[] avec = new double[3];
             double[] recef = new double[3];
             double[] vecef = new double[3];
+            double[] aecef = new double[3];
             double[] h = new double[3];
             double[] hcrossr = new double[3];
             double small = 0.00000001;
@@ -4664,11 +4071,10 @@ namespace AstroLibMethods
 
             magr = MathTimeLibr.mag(reci);
             magv = MathTimeLibr.mag(veci);
-
+          
             // -------- convert r to ecef for lat/lon calculation
-            eci_ecef(ref reci, ref veci, MathTimeLib.Edirection.eto, ref recef, ref vecef,
-                EOPSPWLibr.iau80arr,
-                jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+            eci_ecef(ref reci, ref veci, ref aeci, MathTimeLib.Edirection.eto, ref recef, ref vecef, ref aecef,
+                EOPSPWLibr.iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
 
             // ----------------- find longitude value  ----------------- uses ecef
             temp = Math.Sqrt(recef[0] * recef[0] + recef[1] * recef[1]);
@@ -4700,6 +4106,94 @@ namespace AstroLibMethods
         }  // rv2flt
 
 
+        // ----------------------------------------------------------------------------
+        //
+        //                           function flt2rv
+        //
+        //  this function transforms flight elements - latgc, lon, fpa, az, position and
+        //    velocity magnitude in position and velocity vectors.
+        //
+        //  author        : david vallado             davallado@gmail.com      20 jan 2025
+        //
+        //  inputs          description                              range / units
+        //    r           - eci position vector km
+        //    v           - eci velocity vector km/s
+        //    ttt         - julian centuries of tt                          centuries
+        //    jdut1       - julian date of ut1                              days from 4713 bc
+        //    lod         - excess length of day                            sec
+        //    xp          - polar motion coefficient                        arc sec
+        //    yp          - polar motion coefficient                        arc sec
+        //    terms       - number of terms for ast calculation             0,2
+        //    ddpsi, ddeps - corrections for fk5 to gcrf                    rad
+        //    iau80arr     - iau80 coefficients of eop
+        //
+        //  outputs       :
+        //    magr        - eci position vector magnitude                   km
+        //    magv        - eci velocity vector magnitude                   km/sec
+        //    latgc       - geocentric lat of satellite, not nadir point           -pi/2 to pi/2 rad          
+        //    lon         - longitude                                       rad
+        //    fpa         - sat flight path angle                           rad
+        //    az          - sat flight path az                              rad
+        //
+        //  locals        :
+        //    fpav        - sat flight path anglefrom vert                  rad
+        //
+        //  references    :
+        //    vallado       2022, 111
+        // ----------------------------------------------------------------------------
+
+        public void flt2rv
+            (
+            double rmag, double vmag, double latgc, double lon, double fpa, double az,
+            double ttt, double jdut1, double lod,
+            double xp, double yp, int terms, double ddpsi, double ddeps,
+            EOPSPWLib.iau80Class iau80arr,
+            out double[] reci, out double[] veci
+            )
+        {
+            double[] aeci = new double[3];
+            double[] recef = new double[3];
+            double[] vecef = new double[3];
+            double[] aecef = new double[3];
+            double[] h = new double[3];
+            double[] hcrossr = new double[3];
+            double temp, rtasc, decl, fpav;
+
+            double twopi = 2.0 * Math.PI;
+            double small = 0.00000001;
+
+            // -------- form position vector
+            recef[0] = rmag * Math.Cos(latgc) * Math.Cos(lon);
+            recef[1] = rmag * Math.Cos(latgc) * Math.Sin(lon);
+            recef[2] = rmag * Math.Sin(latgc);
+
+            // -------- convert r to eci
+            reci = new double[] { 0.0, 0.0, 0.0 };
+            veci = new double[] { 0.0, 0.0, 0.0 };
+            aeci = new double[] { 0.0, 0.0, 0.0 };
+            eci_ecef(ref reci, ref veci, ref aeci, MathTimeLib.Edirection.efrom, ref recef, ref vecef, ref aecef,
+                EOPSPWLibr.iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
+
+            // ------------- calculate rtasc and decl ------------------
+            temp = Math.Sqrt(reci[0] * reci[0] + reci[1] * reci[1]);
+
+            if (temp < small)
+                // v needs to be defined herexxxxxxxxx
+                rtasc = Math.Atan2(veci[1], veci[0]);
+            else
+                rtasc = Math.Atan2(reci[1], reci[0]);
+            decl = Math.Asin(reci[2] / rmag);
+
+            // -------- form velocity vector
+            fpav = Math.PI * 0.5 - fpa;
+            veci[0] = vmag * (-Math.Cos(rtasc) * Math.Sin(decl) * (Math.Cos(az) * Math.Cos(fpav) -
+                          Math.Sin(rtasc) * Math.Sin(az) * Math.Cos(fpav)) + Math.Cos(rtasc) * Math.Sin(decl) * Math.Sin(fpav));
+            veci[1] = vmag * (-Math.Sin(rtasc) * Math.Sin(decl) * (Math.Cos(az) * Math.Cos(fpav) +
+                          Math.Cos(rtasc) * Math.Sin(az) * Math.Cos(fpav)) + Math.Sin(rtasc) * Math.Cos(decl) * Math.Sin(fpav));
+            veci[2] = vmag * (Math.Sin(decl) * Math.Sin(fpav) + Math.Cos(decl) * Math.Cos(az) * Math.Cos(fpav));
+        }
+
+
         //  ------------------------------------------------------------------------------
         //
         //                           procedure rv_elatlon
@@ -4711,20 +4205,20 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    rijk        - ijk position vector            er
-        //    vijk        - ijk velocity vector            er/tu
-        //    direction   - which set of vars to output    from  too
+        //    rijk        - ijk position vector                      km
+        //    vijk        - ijk velocity vector                      km / s
+        //    direction   - which set of vars to output              efrom  eto
         //
         //  outputs       :
-        //    rr          - radius of the sat              er
-        //    ecllat      - ecliptic latitude              -Math.PI/2 to Math.PI/2 rad
-        //    ecllon      - ecliptic longitude             -Math.PI/2 to Math.PI/2 rad
-        //    drr         - radius of the sat rate         er/tu
-        //    decllat     - ecliptic latitude rate         -Math.PI/2 to Math.PI/2 rad
-        //    eecllon     - ecliptic longitude rate        -Math.PI/2 to Math.PI/2 rad
+        //    rr          - radius of the sat                        km
+        //    ecllat      - ecliptic latitude                        -PI/2 to PI/2 rad
+        //    ecllon      - ecliptic longitude                       -2PI to 2PI rad
+        //    drr         - radius of the sat rate                   km/s
+        //    decllat     - ecliptic latitude rate                   -PI/2 to PI/2 rad
+        //    eecllon     - ecliptic longitude rate                  -2PI to 2PI rad
         //
         //  locals        :
-        //    obliquity   - obliquity of the ecliptic      rad
+        //    obliquity   - obliquity of the ecliptic                rad
         //    temp        -
         //    temp1       -
         //    re          - position vec in eclitpic frame
@@ -4738,8 +4232,8 @@ namespace AstroLibMethods
         //    Math.Atan2       - arc tangent function that resolves quadrant ambiguites
         //
         //  references    :
-        //    vallado       2013, 268, eq 4-15
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022 268, eq 4-15
+        // ----------------------------------------------------------------------------
 
         public void rv_elatlon
         (
@@ -4813,8 +4307,8 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //     r           - position vector eci                       km, er
-        //     v           - velocity vector eci                       km/s, er/tu
+        //     r           - position vector eci                       km 
+        //     v           - velocity vector eci                       km/s 
         //     direct      -  direction to convert                     eFrom  eTo
         //
         //   outputs       :
@@ -4833,7 +4327,7 @@ namespace AstroLibMethods
         //     none
         // 
         //   references    :
-        //    vallado       2013, 259, alg 25
+        //    vallado       2022, 256, alg 25
         // --------------------------------------------------------------------------------
 
         public void rv_radec
@@ -4938,7 +4432,7 @@ namespace AstroLibMethods
         //    sign        - returns the sign of a variable
         //
         //  references    :
-        //    vallado       2013, 265, alg 27
+        //    vallado       2022, 262, alg 27
         // -----------------------------------------------------------------------------
 
         public void rv_razel
@@ -4973,7 +4467,7 @@ namespace AstroLibMethods
                 tempvec = MathTimeLibr.rot2(drhosez, latgd - halfpi);
                 drhoecef = MathTimeLibr.rot3(tempvec, -lon);
 
-                // ---------  find ecef range and velocity vectors -----------*/
+                // ---------  find ecef range and velocity vectors -----------
                 MathTimeLibr.addvec(1.0, rhoecef, 1.0, rsecef, out recef);
                 vecef[0] = drhoecef[0];
                 vecef[1] = drhoecef[1];
@@ -5040,23 +4534,23 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    reci        - eci position vector                    km
-        //    veci        - eci velocity vector                    km/s
-        //    rseci       - eci site position vector               km
-        //    direct      - direction to convert                   eFrom  eTo
+        //    reci        - eci position vector                      km
+        //    veci        - eci velocity vector                      km/s
+        //    rseci       - eci site position vector                 km
+        //    direct      - direction to convert                     efrom  eto
         //
         //  outputs       :
-        //    rho         - topo radius of the sat                 km
-        //    trtasc      - topo right ascension                   rad
-        //    tdecl       - topo declination                       rad
-        //    drho        - topo radius of the sat rate            km/s
-        //    tdrtasc     - topo right ascension rate              rad/s
-        //    tddecl      - topo declination rate                  rad/s
+        //    rho         - topo radius of the sat                   km
+        //    trtasc      - topo right ascension                     rad
+        //    tdecl       - topo declination                         rad
+        //    drho        - topo radius of the sat rate              km/s
+        //    tdrtasc     - topo right ascension rate                rad/s
+        //    tddecl      - topo declination rate                    rad/s
         //
         //  locals        :
-        //    rhov        - eci range vector from site             km
-        //    drhov       - eci velocity vector from site          km/s
-        //    latgc       - geocentric lat of satellite, not nadir point           -pi/2 to pi/2 rad          
+        //    rhov        - eci range vector from site               km
+        //    drhov       - eci velocity vector from site            km/s
+        //    latgc       - geocentric lat of satellite, not nadir point  -pi/2 to pi/2 rad          
         //
         //  coupling      :
         //    mag         - magnitude of a vector
@@ -5064,7 +4558,7 @@ namespace AstroLibMethods
         //    dot         - dot product of two vectors
         //
         //  references    :
-        //    vallado       2022, 254-257, eq 4-1, 4-2, alg 26
+        //    vallado       2022, 257, eq 4-1, 4-2, alg 26
         // ----------------------------------------------------------------------------
 
         public void rv_tradec
@@ -5155,17 +4649,17 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    rhovec      - sez satellite range vector           km
-        //    drhovec     - sez satellite velocity vector        km/s
-        //    direct      - direction to convert                 eFrom  eTo
+        //    rhovec      - sez satellite range vector               km
+        //    drhovec     - sez satellite velocity vector            km/s
+        //    direct      - direction to convert                     eFrom  eTo
         //
         //  outputs       :
-        //    rho         - satellite range from site            km
-        //    az          - azimuth                              0.0 to 2pi rad
-        //    el          - elevation                            -Math.PI/2 to Math.PI/2 rad
-        //    drho        - range rate                           km/s
-        //    daz         - azimuth rate                         rad/s
-        //    del         - elevation rate                       rad/s
+        //    rho         - satellite range from site                km
+        //    az          - azimuth                                  0.0 to 2pi rad
+        //    el          - elevation                                -PI/2 to PI/2 rad
+        //    drho        - range rate                               km/s
+        //    daz         - azimuth rate                             rad/s
+        //    del         - elevation rate                           rad/s
         //
         //  locals        :
         //    sinel       - variable for Math.Sin( el )
@@ -5183,8 +4677,8 @@ namespace AstroLibMethods
         //    atan2       - arc tangent function that resolves quadrant ambiguites
         //
         //  references    :
-        //    vallado       2013, 261, eq 4-4, eq 4-5
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 269, eq 4-4, eq 4-5
+        // ----------------------------------------------------------------------------
 
         public void rvsez_razel
         (
@@ -5290,7 +4784,7 @@ namespace AstroLibMethods
             out double az, out double el
             )
         {
-            double[] fArgs = new double[14];
+            double[] fArgs06 = new double[14];
             double[] reci = new double[3];
             double[] rhosez = new double[3];
             double[] drhosez = new double[3];
@@ -5332,13 +4826,13 @@ namespace AstroLibMethods
             double halfpi = Math.PI * 0.5;
             double small = 0.00000001;
             // -------------------- convert eci to ecef --------------------
-            fundarg(ttt, EOpt.e80, out fArgs);
+            fundarg(ttt, EOpt.e80, out fArgs06);
 
             // a = [0;0;0];
             // [recef,vecef,aecef] = eci2ecef(reci,veci,a,ttt,jdut1,lod,xp,yp,terms,ddpsi,ddeps);
             prec = precess(ttt, EOpt.e80, out psia, out wa, out ea, out xa);
-            nut = nutation(ttt, ddpsi, ddeps, EOPSPWLibr.iau80arr, fArgs, out deltapsi, out deltaeps, out trueeps, out meaneps);
-            st = sidereal(jdut1, deltapsi, meaneps, fArgs, lod, 2, EOpt.e80);  // stdot calc, not returned, use terms = 2 since well past 1997
+            nut = nutation(ttt, ddpsi, ddeps, EOPSPWLibr.iau80arr, fArgs06, out deltapsi, out deltaeps, out trueeps, out meaneps);
+            st = sidereal(jdut1, deltapsi, meaneps, fArgs06, lod, 2, EOpt.e80);  // stdot calc, not returned, use terms = 2 since well past 1997
             pm = polarm(xp, yp, ttt, EOpt.e80);
             prect = MathTimeLibr.mattrans(prec, 3);
             nutt = MathTimeLibr.mattrans(nut, 3);
@@ -5391,12 +4885,12 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r           - position vector                km
-        //    v           - velocity vector                km/s
+        //    r           - position vector                          km
+        //    v           - velocity vector                          km/s
         //
         //  outputs       :
-        //    rrsw        - position vector                km
-        //    vrsw        - velocity vector                km/s
+        //    rrsw        - position vector                          km
+        //    vrsw        - velocity vector                          km/s
         //    transmat    - transformation matrix
         //
         //  locals        :
@@ -5406,7 +4900,7 @@ namespace AstroLibMethods
         //  coupling      :
         //
         //  references    :
-        //    vallado       2007, 163
+        //    vallado       2022, 166
         // -----------------------------------------------------------------------------
 
         public double[,] rv2rsw
@@ -5488,7 +4982,7 @@ namespace AstroLibMethods
         //  coupling      :
         //
         //  references    :
-        //    vallado       2013, 164
+        //    vallado       2022, 166
         // -----------------------------------------------------------------------------
 
         public double[,] rv2ntw
@@ -5589,7 +5083,7 @@ namespace AstroLibMethods
         //    angle       - find the angle between two vectors
         //
         //  references    :
-        //    vallado       2007, 126, alg 9, ex 2-5
+        //    vallado       2022, 126, alg 9, ex 2-5
         // -----------------------------------------------------------------------------
 
         public void rv2pqw
@@ -5775,7 +5269,7 @@ namespace AstroLibMethods
         //  coupling      :
         //
         //  references    :
-        //    vallado       2013, 73, alg 2, ex 2-1
+        //    vallado       2022, 65, alg 2, ex 2-1
         // -------------------------------------------------------------------
 
         public void newtone
@@ -5843,15 +5337,15 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    ecc         - eccentricity                         0.0 to
-        //    m           - mean anomaly                         0.0 to 2pi rad
+        //    ecc         - eccentricity                             0.0 to
+        //    m           - mean anomaly                             0.0 to 2pi rad
         //
         //  outputs       :
-        //    eccanom     - eccentric anomaly                    0.0 to 2pi rad
-        //    nu          - true anomaly                         0.0 to 2pi rad
+        //    eccanom     - eccentric anomaly                        0.0 to 2pi rad
+        //    nu          - true anomaly                             0.0 to 2pi rad
         //
         //  locals        :
-        //    e1          - eccentric anomaly, next value  rad
+        //    e1          - eccentric anomaly, next value            rad
         //    sinv        - sine of nu
         //    cosv        - cosine of nu
         //    ktr         - index
@@ -5869,7 +5363,7 @@ namespace AstroLibMethods
         //    power       - raises a base number to an arbitrary power
         //
         //  references    :
-        //    vallado       2013, 73, alg 2, ex 2-1
+        //    vallado       2022, 67, alg 2, ex 2-1
         //    oltrogge      JAS 2015
         // -------------------------------------------------------------------
 
@@ -5987,20 +5481,20 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    ecc         - eccentricity                   0.0 to
-        //    m           - mean anomaly                   0.0 to 2pi rad
+        //    ecc         - eccentricity                             0.0 to
+        //    m           - mean anomaly                             0.0 to 2pi rad
         //
         //  outputs       :
-        //    eccanom     - eccentric anomaly              0.0 to 2pi rad
-        //    nu          - true anomaly                   0.0 to 2pi rad
+        //    eccanom     - eccentric anomaly                        0.0 to 2pi rad
+        //    nu          - true anomaly                             0.0 to 2pi rad
         //
         //  locals        :
-        //    e1          - eccentric anomaly, next value  rad
+        //    e1          - eccentric anomaly, next value            rad
         //    sinv        - sine of nu
         //    cosv        - cosine of nu
         //    ktr         - index
         //    r1r         - cubic roots - 1 to 3
-        //    r1i         - MathTimeLibr imaginary component
+        //    r1i         - imaginary component
         //    r2r         -
         //    r2i         -
         //    r3r         -
@@ -6017,7 +5511,7 @@ namespace AstroLibMethods
         //    sgn         - returns the sign of an argument
         //
         //  references    :
-        //    vallado       2013, 73, alg 2, ex 2-1
+        //    vallado       2022, 66, alg 2, ex 2-1
         // -------------------------------------------------------------------
 
         public void newtonm
@@ -6148,7 +5642,7 @@ namespace AstroLibMethods
         //    sinh        - hyperbolic Math.Sine
         //
         //  references    :
-        //    vallado       2007, 85, alg 5
+        //    vallado       2022, 78, alg 5
         // -----------------------------------------------------------------------------
 
         public void newtonnu
@@ -6227,17 +5721,17 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    jdut1       - julian date in ut1             days from 4713 bc
-        //    lon         - longitude                      0 to 2pi rad
-        //    incl        - inclination                    0 to 2pi rad
-        //    raan        - right ascenion of the node     0 to 2pi rad
-        //    argp        - argument of perigee            0 to 2pi rad
+        //    jdut1       - julian date in ut1                       days from 4713 bc
+        //    lon         - longitude                                0 to 2pi rad
+        //    incl        - inclination                              0 to 2pi rad
+        //    raan        - right ascenion of the node               0 to 2pi rad
+        //    argp        - argument of perigee                      0 to 2pi rad
         //
         //  outputs       :
-        //    nu          - true anomaly                   0 to 2pi rad
+        //    nu          - true anomaly                             0 to 2pi rad
         //
         //  locals        :
-        //    temp        - temporary variable for doubles   rad
+        //    temp        - temporary variable for doubles           rad
         //    tut1        - julian centuries from the
         //                  jan 1, 2000 12 h epoch (ut1)
         //
@@ -6245,7 +5739,7 @@ namespace AstroLibMethods
         //    none
         //
         //  references    :
-        //    vallado       2013, 110, eq 2-101
+        //    vallado       2022, 112, eq 2-103
         // -----------------------------------------------------------------------------
 
         public double lon2nu
@@ -6320,7 +5814,7 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    znew        - z variable                     rad2
+        //    znew        - z variable                               rad2
         //
         //  outputs       :
         //    c2new       - c2 function value
@@ -6334,7 +5828,7 @@ namespace AstroLibMethods
         //    Math.Cosh        - hyperbolic Math.Cosine
         //
         //  references    :
-        //    vallado       2013, 63, alg 1
+        //    vallado       2022, 63, alg 1
         // -----------------------------------------------------------------------------
 
         public void findc2c3
@@ -6383,15 +5877,15 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r1          - position vector                     km
-        //    v1          - velocity vector                     km/s
-        //    r2          - position vector                     km
-        //    v2          - velocity vector                     km/s
+        //    r1          - position vector                          km
+        //    v1          - velocity vector                          km/s
+        //    r2          - position vector                          km
+        //    v2          - velocity vector                          km/s
         //    x           - universal variable
         //    c2          - stumpff function
         //    c3          - stumpff function
-        //    dtsec       - step size                          sec (SMALL time steps only!!)
-        //    opt         - calculation method                 pqw, series, c2c3
+        //    dtsec       - step size                                sec (SMALL time steps only!!)
+        //    opt         - calculation method                       pqw, series, c2c3
         //    
         //  outputs       :
         //    f, g        - f and g functions                 
@@ -6402,7 +5896,7 @@ namespace AstroLibMethods
         //  coupling      :
         //
         //  references    :
-        //    vallado       2013, 83, 87, 813
+        //    vallado       2022, 83, 87, 813
         //  findfandg(r1, v1t, r2, v2t, 0.0, 0.0, 0.0, 0.0, 0.0, "pqw", out f, out g, out fdot, out gdot);
         //  findfandg(r1, v1t, r2, v2t, dtsec, 0.0, 0.0, 0.0, 0.0, "series", out f, out g, out fdot, out gdot);
         //  findfandg(r1, v1t, r2, v2t, dtsec, 0.35987, 0.6437, 0.2378, -0.0239, "c2c3", out f, out g, out fdot, out gdot);
@@ -6693,7 +6187,7 @@ namespace AstroLibMethods
         //    findc2c3    - find c2 and c3 functions
         //
         //  references    :
-        //    vallado       2004, 95-103, alg 8, ex 2-4
+        //    vallado       2022, 94, alg 8, ex 2-4
         // -------------------------------------------------------------------------------
 
         public void kepler
@@ -6907,21 +6401,21 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r           - ecef position vector           km
+        //    r           - ecef position vector                     km
         //
         //  outputs       :
-        //    latgc       - geocentric lat of satellite, not nadir point           -pi/2 to pi/2 rad          
-        //    latgd       - geodetic latitude              -pi/2 to pi/2 rad
-        //    lon         - longitude (west -)             0 to 2pi rad
-        //    hellp       - height above the ellipsoid     km
+        //    latgc       - geocentric lat of satellite, not nadir point  -pi/2 to pi/2 rad          
+        //    latgd       - geodetic latitude                        -pi/2 to pi/2 rad
+        //    lon         - longitude (west -)                       0 to 2pi rad
+        //    hellp       - height above the ellipsoid               km
         //
         //  locals        :
         //    temp        - diff between geocentric/
-        //                  geodetic lat                   rad
+        //                  geodetic lat                             rad
         //    Math.Sintemp     - Math.Sine of temp                   rad
-        //    olddelta    - previous value of deltalat     rad
-        //    rtasc       - right ascension                rad
-        //    decl        - declination                    rad
+        //    olddelta    - previous value of deltalat               rad
+        //    rtasc       - right ascension                          rad
+        //    decl        - declination                              rad
         //    i           - index
         //
         //  coupling      :
@@ -6929,7 +6423,7 @@ namespace AstroLibMethods
         //    gcgd        - converts between geocentric and geodetic latitude
         //
         //  references    :
-        //    vallado       2001, 174-179, alg 12 and alg 13, ex 3-3
+        //    vallado       2022, 174, alg 12 and alg 13, ex 3-3
         //
         // -------------------------------------------------------------------------------
 
@@ -7006,24 +6500,24 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r           - ecef position vector                km
+        //    r           - ecef position vector                     km
         //
         //  outputs       :
         //    latgc       - geocentric lat of satellite, not nadir point           -pi/2 to pi/2 rad          
-        //    latgd       - geodetic latitude                   -pi/2 to pi/2 rad  
-        //    lon         - longitude (west -)                  0 to 2pi rad
-        //    hellp       - height above the ellipsoid           km
+        //    latgd       - geodetic latitude                        -pi/2 to pi/2 rad  
+        //    lon         - longitude (west -)                       0 to 2pi rad
+        //    hellp       - height above the ellipsoid               km
         //
         //  locals        :
-        //    rc          - range of site wrt earth center      er
-        //    height      - height above earth wrt site         er
-        //    alpha       - angle from iaxis to point, lst      rad
-        //    olddelta    - previous value of deltalat          rad
+        //    rc          - range of site wrt earth center           er
+        //    height      - height above earth wrt site              er
+        //    alpha       - angle from iaxis to point, lst           rad
+        //    olddelta    - previous value of deltalat               rad
         //    deltalat    - diff between delta and
-        //                  geocentric lat                      rad
-        //    delta       - declination angle of r in ecef      rad
-        //    rsqrd       - magnitude of r squared              er2
-        //    sintemp     - sine of temp                        rad
+        //                  geocentric lat                           rad
+        //    delta       - declination angle of r in ecef           rad
+        //    rsqrd       - magnitude of r squared                   er2
+        //    sintemp     - sine of temp                             rad
         //    c           -
         //
         //  coupling      :
@@ -7031,7 +6525,7 @@ namespace AstroLibMethods
         //    gcgd        - converts between geocentric and geodetic latitude
         //
         //  references    :
-        //    vallado       2022, 174-179, alg 12 and alg 13, ex 3-3
+        //    vallado       2022, 174, alg 12 and alg 13, ex 3-3
         //
         // -------------------------------------------------------------------------------
 
@@ -7104,10 +6598,10 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    latgd       - geodetic latitude              -Math.PI to Math.PI rad
+        //    latgd       - geodetic latitude                        -PI to PI rad
         //
         //  outputs       :
-        //    latgc       - geocentric lat of satellite, not nadir point           -pi/2 to pi/2 rad          
+        //    latgc       - geocentric lat of satellite, not nadir point  -pi/2 to pi/2 rad          
         //
         //  locals        :
         //    none.
@@ -7116,9 +6610,7 @@ namespace AstroLibMethods
         //    none.
         //
         //  references    :
-        //    vallado       2001, 146, eq 3-11
-        //
-        // [latgc] = gd2gc ( latgd );
+        //    vallado       2022, 146, eq 3-14
         // --------------------------------------------------------------------------------
 
         public double gd2gc
@@ -7145,26 +6637,26 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    altPad      - pad for alt above surface       km  
-        //    r1          - initial position vector of int  km   
-        //    v1t         - initial velocity vector of trns km/s
-        //    r2          - final position vector of int    km
-        //    v2t         - final velocity vector of trns   km/s
-        //    nrev        - number of revolutions           0, 1, 2,  
+        //    altPad      - pad for alt above surface                km  
+        //    r1          - initial position vector of int           km   
+        //    v1t         - initial velocity vector of trns          km/s
+        //    r2          - final position vector of int             km
+        //    v2t         - final velocity vector of trns            km/s
+        //    nrev        - number of revolutions                    0, 1, 2,  
         //
         //  outputs       :
-        //    hitearth    - is earth was impacted           'y' 'n'
-        //    hitearthstr - is earth was impacted           "y - radii" "no"
+        //    hitearth    - is earth was impacted                    'y' 'n'
+        //    hitearthstr - is earth was impacted                    "y - radii" "no"
+        //    a           - semimajor axis of transfer               km
         //
         //  locals        :
         //    sme         - specific mechanical energy
-        //    rp          - radius of perigee               km
-        //    a           - semimajor axis of transfer      km
+        //    rp          - radius of perigee                        km
         //    ecc         - eccentricity of transfer
-        //    p           - semi-paramater of transfer      km
+        //    p           - semi-paramater of transfer               km
         //    hbar        - angular momentum vector of
         //                  transfer orbit
-        //    radiuspad   - radius including user pad       km
+        //    radiuspad   - radius including user pad                km
         //
         //  coupling      :
         //    dot         - dot product of vectors
@@ -7172,8 +6664,8 @@ namespace AstroLibMethods
         //    MathTimeLibr.cross       - MathTimeLibr.cross product of vectors
         //
         //  references    :
-        //    vallado       2013, 503, alg 60
-        // ------------------------------------------------------------------------------*/
+        //    vallado       2022, 483, alg 58
+        // ------------------------------------------------------------------------------
 
         public void checkhitearth
             (
@@ -7334,35 +6826,35 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    altPadc     - pad for alt above surface       er  
-        //    r1c         - initial position vector of int  er   
-        //    v1tc        - initial velocity vector of trns er/tu
-        //    r2c         - final position vector of int    er
-        //    v2tc        - final velocity vector of trns   er/tu
-        //    nrev        - number of revolutions           0, 1, 2,  
+        //    altPadc     - pad for alt above surface                 er  
+        //    r1c         - initial position vector of int            er   
+        //    v1tc        - initial velocity vector of trns           er/tu
+        //    r2c         - final position vector of int              er
+        //    v2tc        - final velocity vector of trns             er/tu
+        //    nrev        - number of revolutions                     0, 1, 2,  
         //
         //  outputs       :
-        //    hitearth    - is earth was impacted           'y' 'n'
-        //    hitearthstr - is earth was impacted           "y - radii" "no"
+        //    hitearth    - is earth was impacted                     'y' 'n'
+        //    hitearthstr - is earth was impacted                     "y - radii" "no"
+        //    a           - semimajor axis of transfer                er
         //
         //  locals        :
         //    sme         - specific mechanical energy
-        //    rp          - radius of perigee               er
-        //    a           - semimajor axis of transfer      er
+        //    rp          - radius of perigee                         er
         //    ecc         - eccentricity of transfer
-        //    p           - semi-paramater of transfer      er
+        //    p           - semi-paramater of transfer                er
         //    hbar        - angular momentum vector of
         //                  transfer orbit
-        //    radiuspadc  - radius including user pad       er
+        //    radiuspadc  - radius including user pad                 er
         //
         //  coupling      :
         //    dot         - dot product of vectors
         //    mag         - magnitude of a vector
-        //    MathTimeLibr.cross       - MathTimeLibr.cross product of vectors
+        //    cross       - cross product of vectors
         //
         //  references    :
-        //    vallado       2013, 503, alg 60
-        // ------------------------------------------------------------------------------*/
+        //    vallado       2022, 483, alg 58
+        // ------------------------------------------------------------------------------
 
         public void checkhitearthc
             (
@@ -7522,19 +7014,19 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r1          - ijk position vector 1                 km
-        //    r2          - ijk position vector 2                 km
-        //    nrev        - multiple revolutions                  0, 1,  
-        //    dm          - direction of motion                  'S', 'L'
+        //    r1          - ijk position vector 1                    km
+        //    r2          - ijk position vector 2                    km
+        //    nrev        - multiple revolutions                     0, 1,  
+        //    dm          - direction of motion                     'S', 'L'
         //                  this is the inclination discriminator
         //
         //  outputs       :
         //    kbi         - k values for min tof for each nrev
-        //    tof         - min time of flight for each nrev      sec
+        //    tof         - min time of flight for each nrev         sec
         //
         //  references    :
         //    Arora and Russell AAS 10-198
-        // ------------------------------------------------------------------------------*/
+        // ------------------------------------------------------------------------------
 
         public void lambertumins
             (
@@ -7666,16 +7158,16 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r1          - ijk position vector 1                km
-        //    r2          - ijk position vector 2                km
-        //    dm          - direction of motion                  'L', 'S'
-        //    de          - orbital energy                       'L', 'H'
-        //    nrev        - number of revs to complete           0, 1, 2, 3,  
+        //    r1          - ijk position vector 1                   km
+        //    r2          - ijk position vector 2                   km
+        //    dm          - direction of motion                     'L', 'S'
+        //    de          - orbital energy                          'L', 'H'
+        //    nrev        - number of revs to complete              0, 1, 2, 3,  
         //
         //  outputs       :
-        //    tmin        - minimum time of flight               sec
-        //    tminp       - minimum parabolic tof                sec
-        //    tminenergy  - minimum energy tof                   sec
+        //    tmin        - minimum time of flight                  sec
+        //    tminp       - minimum parabolic tof                   sec
+        //    tminenergy  - minimum energy tof                      sec
         //
         //  locals        :
         //    i           - index
@@ -7691,9 +7183,9 @@ namespace AstroLibMethods
         //    dot         - dot product
         //
         //  references    :
-        //    vallado       2013, 494, Alg 59, ex 7-5
+        //    vallado       2022, 481, Alg 57, ex 7-5
         //    prussing      JAS 2000
-        // ----------------------------------------------------------------------------*/
+        // ----------------------------------------------------------------------------
 
         public void lambertminT
         (
@@ -7792,16 +7284,16 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r1          - ijk position vector 1          km
-        //    r2          - ijk position vector 2          km
-        //    dm          - direction of motion                  'L', 'S'
-        //    de          - orbital energy                       'L', 'H'
-        //    nrev        - number of revs to complete     0, 1, 2, 3,  
+        //    r1          - ijk position vector 1                    km
+        //    r2          - ijk position vector 2                    km
+        //    dm          - direction of motion                      'L', 'S'
+        //    de          - orbital energy                           'L', 'H'
+        //    nrev        - number of revs to complete               0, 1, 2, 3,  
         //
         //  outputs       :
-        //    tmin        - minimum time of flight         sec
-        //    tminp       - minimum parabolic tof          sec
-        //    tminenergy  - minimum energy tof             sec
+        //    tmin        - minimum time of flight                   sec
+        //    tminp       - minimum parabolic tof                    sec
+        //    tminenergy  - minimum energy tof                       sec
         //
         //  locals        :
         //    i           - index
@@ -7818,7 +7310,7 @@ namespace AstroLibMethods
         //
         //  references    :
         //    thompson       2019
-        //     // ----------------------------------------------------------------------------*/
+        //     // ----------------------------------------------------------------------------
 
         public void lambertTmaxrp
         (
@@ -7944,23 +7436,23 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r1          - ijk position vector 1                km
-        //    r2          - ijk position vector 2                km
-        //    v1          - ijk velocity vector 1 if avail       km/s
-        //    dm          - direction of motion                  'L', 'S'
-        //    de          - orbital energy                       'L', 'H'
+        //    r1          - ijk position vector 1                     km
+        //    r2          - ijk position vector 2                     km
+        //    v1          - ijk velocity vector 1 if avail            km/s
+        //    dm          - direction of motion                       'L', 'S'
+        //    de          - orbital energy                            'L', 'H'
         //                  only affects nrev >= 1 upper/lower bounds
-        //    dtsec       - time between r1 and r2               sec
-        //    nrev        - number of revs to complete           0, 1, 2, 3,  
+        //    dtsec       - time between r1 and r2                    sec
+        //    nrev        - number of revs to complete                0, 1, 2, 3,  
         //    kbi         - psi value for min                     
-        //    altpad      - altitude pad for hitearth calc       km
+        //    altpad      - altitude pad for hitearth calc            km
         //    show        - control output don't output for speed      'y', 'n'
         //
         //  outputs       :
-        //    v1t         - ijk transfer velocity vector         km/s
-        //    v2t         - ijk transfer velocity vector         km/s
-        //    hitearth    - flag if hit or not                   'y', 'n'
-        //    error       - error flag                           1, 2, 3,   use numbers since c++ is so horrible at strings
+        //    v1t         - ijk transfer velocity vector              km/s
+        //    v2t         - ijk transfer velocity vector              km/s
+        //    hitearth    - flag if hit or not                        'y', 'n'
+        //    error       - error flag                                1, 2, 3,   use numbers since c++ is so horrible at strings
         //
         //  locals        :
         //    vara        - variable of the iteration,
@@ -7968,7 +7460,7 @@ namespace AstroLibMethods
         //    y           - area between position vectors
         //    upper       - upper bound for z
         //    lower       - lower bound for z
-        //    cosdeltanu  - cosine of true anomaly change        rad
+        //    cosdeltanu  - cosine of true anomaly change             rad
         //    f           - f expression
         //    g           - g expression
         //    gdot        - g dot expression
@@ -7978,7 +7470,7 @@ namespace AstroLibMethods
         //    znew        - new value of z
         //    c2new       - c2(z) function
         //    c3new       - c3(z) function
-        //    timenew     - new time                             sec
+        //    timenew     - new time                                  sec
         //    small       - tolerance for roundoff errors
         //    i, j        - index
         //
@@ -7988,8 +7480,8 @@ namespace AstroLibMethods
         //    findc2c3    - find c2 and c3 functions
         //
         //  references    :
-        //    vallado       2013, 492, alg 58, ex 7-5
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 499, alg 60, ex 7-5
+        // ----------------------------------------------------------------------------
 
         public void lambertuniv
                (
@@ -8502,41 +7994,10 @@ namespace AstroLibMethods
         //    errorsum    - error flag                                 'ok',  
         //    errorout    - text for iterations / last loop
         //
-        //  locals        :
-        //    i           - index
-        //    loops       -
-        //    u           -
-        //    b           -
-        //    sinv        -
-        //    cosv        -
-        //    rp          -
-        //    x           -
-        //    xn          -
-        //    y           -
-        //    l           -
-        //    m           -
-        //    cosdeltanu  -
-        //    sindeltanu  -
-        //    dnu         -
-        //    a           -
-        //    tan2w       -
-        //    ror         -
-        //    h1          -
-        //    h2          -
-        //    tempx       -
-        //    eps         -
-        //    denom       -
-        //    chord       -
-        //    k2          -
-        //    s           -
-        //
-        //  coupling      :
-        //    mag         - magnitude of a vector
-        //
         //  references    :
-        //    vallado       2013, 494, Alg 59, ex 7-5
+        //    vallado       2022, 505, Alg 61, ex 7-5
         //    thompson      AAS GNC 2018
-        // ----------------------------------------------------------------------------*/
+        // ----------------------------------------------------------------------------
 
         public void lambertbattin
                (
@@ -8603,7 +8064,7 @@ namespace AstroLibMethods
                 xn = L;   //l    // 0.0 for par and hyp, l for ell
 
             // alt approach for high energy(long way, multi-nrev) case
-            if ((de.Equals('H')) && (nrev > 0))
+            if ((de == 'H') && (nrev > 0))
             {
                 h1 = 0.0;
                 h2 = 0.0;
@@ -8751,26 +8212,24 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r           - init rel position of int              m or km
-        //    v           - init rel velocity of int              m or km/s
-        //    alt         - altitude of tgt satellite               km
-        //    dts         - desired time                            s
+        //    r           - init rel position of int                 m or km
+        //    v           - init rel velocity of int                 m or km/s
+        //    alt         - altitude of tgt satellite                km
+        //    dts         - desired time                             s
         //
         //  outputs       :
-        //    rinit       - final rel position of int             m or km
-        //    vinit       - final rel velocity of int             m or km/s
+        //    rinit       - final rel position of int                m or km
+        //    vinit       - final rel velocity of int                m or km/s
         //
         //  locals        :
-        //    nt          - angular velocity times time             rad
+        //    nt          - angular velocity times time              rad
         //    omega       -
         //    sinnt       - sine of nt
         //    cosnt       - cosine of nt
-        //    radius      - magnitude of range vector               km
-        //
-        //  coupling      :
+        //    radius      - magnitude of range vector                km
         //
         //  references    :
-        //    vallado       2007, 397, alg 47, ex 6-14
+        //    vallado       2022, 401, alg 48, ex 6-14
         // ------------------------------------------------------------------------------
 
         public void hillsr
@@ -8832,11 +8291,8 @@ namespace AstroLibMethods
         //    cosnt       - cosine of nt
         //    radius      - magnitude of range vector                 km
         //
-        //  coupling      :
-        //    none.
-        //
         //  references    :
-        //    vallado       2007, 410, eq 6-60, ex 6-15
+        //    vallado       2022, 410, eq 6-60, ex 6-15
         // ------------------------------------------------------------------------------
 
         public void hillsv
@@ -8881,27 +8337,24 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    latgd       - geodetic latitude              -Math.PI/2 to Math.PI/2 rad
-        //    lon         - longitude of site              -2pi to 2pi rad
-        //    alt         - altitude                       km
+        //    latgd       - geodetic latitude                        -PI/2 to PI/2 rad
+        //    lon         - longitude of site                        -2pi to 2pi rad
+        //    alt         - altitude                                 km
         //
         //  outputs       :
-        //    rsecef      - ecef site position vector      km
-        //    vsecef      - ecef site velocity vector      km/s
+        //    rsecef      - ecef site position vector                km
+        //    vsecef      - ecef site velocity vector                km/s
         //
         //  locals        :
-        //    Math.Sinlat      - variable containing  Math.Sin(lat)  rad
+        //    sinlat      - variable containing sin(lat)             rad
         //    temp        - temporary real value
-        //    rdel        - rdel component of site vector  km
-        //    rk          - rk component of site vector    km
+        //    rdel        - rdel component of site vector            km
+        //    rk          - rk component of site vector              km
         //    cearth      -
         //
-        //  coupling      :
-        //    none
-        //
         //  references    :
-        //    vallado       2013, 430, alg 51, ex 7-1
-        // ---------------------------------------------------------------------------*/
+        //    vallado       2022, 436, alg 51, ex 7-1
+        // ---------------------------------------------------------------------------
 
         public void site
             (
@@ -9014,8 +8467,8 @@ namespace AstroLibMethods
         //    factor       - find the roots of a polynomial
         //
         //  references     :
-        //    vallado       2013, 435
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 441
+        // ----------------------------------------------------------------------------
 
         public void angleslaplace
         (
@@ -9364,7 +8817,7 @@ namespace AstroLibMethods
 
         // ---------------------------------------------------------------------------------
         // get root from Gauss to use as a seed for double-r and Gooding
-        // note bigr2 is output in km, but calcs are in cannonical
+        // note bigr2 is output in km, but calcs are in cannonical for better root solving performance
         public void getGaussRoot
             (
             double tdecl1, double tdecl2, double tdecl3,
@@ -9489,6 +8942,7 @@ namespace AstroLibMethods
             bigr2 = bigr2c * gravConst.re;
         }  // getGaussRoot
 
+
         //  ------------------------------------------------------------------------------
         //
         //                           procedure anglesgauss
@@ -9537,15 +8991,6 @@ namespace AstroLibMethods
         //    rhodot       -
         //    dmat         -
         //    earthrate    - velocity of earth rotation
-        //    p            -
-        //    q            -
-        //    oldr         -
-        //    oldv         -
-        //    f1           - f coefficient
-        //    g1           -
-        //    f3           -
-        //    g3           -
-        //    l2dotrs      -
         //
         //  coupling       :
         //    mag          - magnitude of a vector
@@ -9557,8 +9002,8 @@ namespace AstroLibMethods
         //    angle        - angle between two vectors
         //
         //  references     :
-        //    vallado       2013, 442, alg 52, ex 7-2
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 448, alg 52, ex 7-2
+        // ----------------------------------------------------------------------------
 
         public void anglesgauss
         (
@@ -10062,15 +9507,12 @@ namespace AstroLibMethods
         //    deltae32     - eccentric anomaly difference 3-2            
         //    errstr       - output results for debugging
         //    
-        //  locals         :
-        //                 -
-        //
         //  coupling       :
         //    dot, cross, mag
         //
         //  references     :
-        //    vallado       2013
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 450 Alg 53
+        // ----------------------------------------------------------------------------
 
         void doubler
         (
@@ -10369,14 +9811,6 @@ namespace AstroLibMethods
         //    rho          - range from site to sat at t2                 km
         //    rhodot       -
         //    earthrate    - velocity of earth rotation
-        //    p            -
-        //    q            -
-        //    oldr         -
-        //    oldv         -
-        //    f1           - f coefficient
-        //    g1           -
-        //    f3           -
-        //    g3           -
         //
         //  coupling       :
         //    mag          - magnitude of a vector
@@ -10384,8 +9818,8 @@ namespace AstroLibMethods
         //    angle        - angle between two vectors
         //
         //  references     :
-        //    vallado       2013, 442, alg 52, ex 7-2
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 450, alg 53, ex 7-2
+        // ----------------------------------------------------------------------------
 
         public void anglesdoubler
         (
@@ -10698,8 +10132,7 @@ namespace AstroLibMethods
         //   a, e, i, bom, q = computed orbital elements
         //   xs(6)  = computed pos/vel at time t2
         //
-        //  references     :
-        //    vallado 2021 Chap 7
+        //  references    2022, 452
         //    gooding tr 93004, april 1993. 
         //    cmda 1997
         // --------------------------------------------------------------------------------
@@ -10744,33 +10177,8 @@ namespace AstroLibMethods
             double[] r3 = new double[] { 0.0, 0.0, 0.0 };
             v2 = new double[] { 0.0, 0.0, 0.0 };
 
-            //int maxit, kzero, nmarsd, ncdref, npolar, nswap, nlambt, nautct;
             double pdinc; //, t12mod, t13mod, hn;
-            //bool lobdp, lautop, lctrans, lminly, lgmean, lautoq, lfixax, lfaxa2, lmodfy;
-
-            //maxit = 25;                 //Limit to itns(cf code 8001)
-            //                            // lobdp = true;          //Observ'ns 'dependent' basic
-            //kzero = 0;             //Values for 'k' range from 0
-            //lautop = false;       //'Automat operation' not used
-            //ncdref = 0;               //Code ref for k(in 'auto')
-            //                          //NAUTCT = 0                                                       //(std, now changed to - 10000)
-            //lautoq = false;         //No spec Table to be set up
-            //nmarsd = 0;            //Data from DATA1, not 3 or 4
-            //npolar = 0;          //Starters normal, NOT 'polar'
-
             pdinc = 1e-3;                     //1.0e-5  Increment for num partials, needed
-            //lgmean = true;       //Geometric means are used
-            //lctrans = false;        //Not use 'common transversal'
-            //t12mod = 0.0;                //No change to interval T12
-            //t13mod = 0.0;              //No change to interval T13
-            //nswap = 0;             //1st data set NOT swapped
-            //lminly = false;      //NOT going for 'min goal'
-            //nlambt = 0;               //Use both Lamb sols(if poss)
-            //lfixax = false;           //Axes changed after 1st it'n???
-            //lfaxa2 = false;           //Axes changed during 1st it'n
-            //lmodfy = true;              //Allow modding between it'ns
-            //nautct = -10000;               //Std value now, not 0 above
-            //hn = 0.5;                 //Halley value(basic)
 
             // ----------------  find line of sight vectors  ------------------
             los1[0] = Math.Cos(tdecl1) * Math.Cos(trtasc1);
@@ -10801,13 +10209,6 @@ namespace AstroLibMethods
             ikn = 0;
             nsol = 0;
 
-            //  5 continue
-            //dot = ol1 * (om2 * on3 - om3 * on2) + ol2 * (om3 * on1 - om1 * on3) + ol3 *
-            //    (om1 * on2 - om2 * on1);
-            //dq = MathTimeLibr.mag(ol1, om1, on1) * MathTimeLibr.mag(ol2, om2, on2) * 
-            //    MathTimeLibr.mag(ol3, om3, on3);
-            ////
-            //  if (ind = 1  &  nlambt = 2) go to 61
             // need to separate into jd and jdf portions for accuracy since it's often only seconds or minutes
             tau12 = (jd2 - jd1) * 86400.0 + (jdf2 - jdf1) * 86400.0; // days to sec
             //tau13 = (jd1 - jd3) * 86400.0 + (jdf1 - jdf3) * 86400.0;
@@ -10868,37 +10269,6 @@ namespace AstroLibMethods
             //		call els3pv(gm, al, q, ei, bom, om, tauxx, xs(1), xs(2), xs(3), xs(4), xs(5), xs(6))
             //
             nsol = nsol + 1;
-
-
-            //    // ------------------------------------------------------------------------------
-            //lknst = false;
-
-            //if (nfail == 0 && ikn < 8)
-            //{
-            //    ikn = ikn + 1;
-            //    ro1kn[ikn] = rng1;
-            //    r1knsq[ikn] = Math.Pow(rs1eci[0] + rng1 * los1[0], 2) +
-            //        Math.Pow(rs1eci[1] + rng1 * los1[1], 2) +
-            //        Math.Pow(rs1eci[2] + rng1 * los1[2], 2);
-            //    rng1 = ro1st;
-            //    ro3kn[ikn] = rng3;
-            //    r3knsq[ikn] = Math.Pow(rs3eci[0] + rng3 * los3[0], 2) +
-            //        Math.Pow(rs3eci[1] + rng3 * los3[1], 2) +
-            //        Math.Pow(rs3eci[2] + rng3 * los3[2], 2);
-            //    rng3 = ro3st;
-            //}
-            //if (lknst)
-            //    if (ikn == 1)
-            //    {
-            //        rng1 = 2.0 * ro1kn[ikn] - ro1st;
-            //        rng3 = 2.0 * ro3kn[ikn] - ro3st;
-            //    }
-            //    else
-            //    {
-            //        rng1 = 2.0 * ro1kn[ikn] - ro1kn(ikn - 1);
-            //        rng3 = 2.0 * ro3kn[ikn] - ro3kn(ikn - 1);
-            //    }
-            //  go to 5
         }  // anglesgooding
 
 
@@ -11333,7 +10703,7 @@ namespace AstroLibMethods
                             r30 = magr3;
                             //
                             //
-                            // but still missing some more stuff beyond the goto......
+                            // but still missing some more stuff 
                             //
                             //
                         }
@@ -11417,7 +10787,7 @@ namespace AstroLibMethods
                                     r30 = magr3;
                                     //
                                     //
-                                    // but still missing some more stuff beyond the goto......
+                                    // but still missing some more stuff 
                                     //
                                     //
                                 }
@@ -11635,8 +11005,6 @@ namespace AstroLibMethods
         //    
         //  locals        :
         //  
-        //  
-        //  
         // --------------------------------------------------------------------------------
 
         public void calcps
@@ -11824,7 +11192,7 @@ namespace AstroLibMethods
         //    angle       - angle between two vectors
         //
         //  references    :
-        //    vallado       2013, 460, alg 54, ex 7-3
+        //    vallado       2022, 460, alg 54, ex 7-3
         // ---------------------------------------------------------------------------- 
 
         public void gibbs
@@ -11941,8 +11309,8 @@ namespace AstroLibMethods
         //    angle       - angle between two vectors
         //
         //  references    :
-        //    vallado       2013, 466, alg 55, ex 7-4
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 472, alg 55, ex 7-4
+        // ----------------------------------------------------------------------------
 
         public void herrgibbs
         (
@@ -12046,7 +11414,7 @@ namespace AstroLibMethods
         //
         //  references    :
         //    vallado       2013, 503, alg 61
-        // ----------------------------------------------------------------------------*/
+        // ----------------------------------------------------------------------------
 
         public void target
         (
@@ -12113,11 +11481,6 @@ namespace AstroLibMethods
         //    jpldearr    - array of jplde data records
         //    jdjpldestart- julian date of the start of the jpldearr data
         //    jdfjpldestart- julian date fraction of the start of the jpldearr data
-        //
-        //  locals        :
-        //                -
-        //
-        //  coupling      :
         //
         //  references    :
         //
@@ -12210,9 +11573,9 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    jdtdb         - epoch julian date                     days from 4713 BC
-        //    jdtdbF        - epoch julian date fraction            day fraction from jdutc
-        //    interp        - interpolation                        n-none, l-linear, s-spline
+        //    jdtdb         - epoch julian date                      days from 4713 BC
+        //    jdtdbF        - epoch julian date fraction             day fraction from jdutc
+        //    interp        - interpolation                          n-none, l-linear, s-spline
         //    jpldearr      - array of jplde data records
         //    jdjpldestart  - julian date of the start of the jpldearr data (set in initjplde)
         //
@@ -12239,7 +11602,7 @@ namespace AstroLibMethods
         //    none        -
         //
         //  references    :
-        //    vallado       2013,
+        //    vallado       2022, 612
         // -----------------------------------------------------------------------------
 
         public void findjpldeparam
@@ -12272,7 +11635,7 @@ namespace AstroLibMethods
             // ---- read data for day of interest
             jdjpldestarto = Math.Floor(jdtdb + jdtdbF - 2400000.5 - jpldearr[0].mjd);
             //recnum = Convert.ToInt32(jdjpldestarto);  // for 1 day centers
-            recnum = Convert.ToInt32(jdjpldestarto) * 2;  // for 12 hr centers
+            recnum = Convert.ToInt32(jdjpldestarto) * 2 + 2;  // for 12 hr centers
 
             // check for out of bound values
             if ((recnum >= 1) && (recnum < jpldesize - 2))
@@ -12402,7 +11765,7 @@ namespace AstroLibMethods
         //    none.
         //
         //  references    :
-        //    vallado       2013, 279, alg 29, ex 5-1
+        //    vallado       2022, 285, alg 29, ex 5-1
         // -----------------------------------------------------------------------------
 
         public void sunmoonjpl
@@ -12415,7 +11778,7 @@ namespace AstroLibMethods
             )
         {
             double rsmag, rmmag, temp;
-            double small = 0.000001;
+            double small = 1.0e-11;
 
             // -------------------------  implementation    // ----------------
             // -------------------  initialize values    // -------------------
@@ -12481,7 +11844,7 @@ namespace AstroLibMethods
         //    none.
         //
         //  references    :
-        //    vallado       2013, 279, alg 29, ex 5-1
+        //    vallado       2022, 285, alg 29, ex 5-1
         // -----------------------------------------------------------------------------
 
         public void sun
@@ -12582,7 +11945,7 @@ namespace AstroLibMethods
         //    none.
         //
         //  references    :
-        //    vallado       2013, 288, alg 31, ex 5-3
+        //    vallado       2022, 294, alg 31, ex 5-3
         // -----------------------------------------------------------------------------
 
         public void moon
@@ -12789,7 +12152,7 @@ namespace AstroLibMethods
         //
         //  references :
         //    vallado       2022, 500, Eq 8-56
-        // ---------------------------------------------------------------------------*/
+        // ---------------------------------------------------------------------------
 
         public void LegPolyGTDS
            (
@@ -12892,7 +12255,7 @@ namespace AstroLibMethods
         //
         //  references :
         //    vallado       2022, 600
-        // ---------------------------------------------------------------------------*/
+        // ---------------------------------------------------------------------------
 
         public void LegPolyMont
            (
@@ -12975,9 +12338,9 @@ namespace AstroLibMethods
         //   approach. the arrays are indexed from 0 to coincide with the usual nomenclature 
         //   (eq 8-21 in my text). fortran and matlab implementations will have indices of 1 
         //   greater as they start at 1. note that this formulation is able to handle degree 
-        //   and order terms larger than 170 due to the formulation. note these will not match 
+        //   and order terms larger than 170, due to the formulation. note these will not match 
         //   hand calculations because they do not have the latgc term which is added later in 
-        //   the recursions. these functions can be found one time.
+        //   the recursions. these functions can be found once before any calls to the gottlieb method.
         //      
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
@@ -12985,7 +12348,7 @@ namespace AstroLibMethods
         //    order       - size of gravity field                                   1..~170
         //
         //  outputs       :
-        //    LegArrNorm  - array of normalized Legendre polynomials, constant portion
+        //    normxx   - arrays of normalized Legendre polynomials, constant portion
         //
         //  locals :
         //    L,m         - degree and order indices
@@ -12996,7 +12359,7 @@ namespace AstroLibMethods
         //  references :
         //    eckman, brown, adamo 2016 paper and code in matlab
         //    vallado       2022, 600, Eq 8-56
-        // ---------------------------------------------------------------------------*/
+        // ---------------------------------------------------------------------------
 
         public void LegPolyGottN
            (
@@ -13020,14 +12383,14 @@ namespace AstroLibMethods
             normn1 = new double[order + 2, order + 2];
 
             // -------------------- perform recursions ---------------------- }
-            for (L = 2; L < order + 1; L++) // L = 2:order + 1  
+            for (L = 2; L <= order + 1; L++) // L = 2:order + 1  
             {
                 norm1[L] = Math.Sqrt((2.0 * L + 1.0) / (2.0 * L - 1.0));    // eq 3-1 
                 norm2[L] = Math.Sqrt((2.0 * L + 1.0) / (2.0 * L - 3.0));    // eq 3-2 
                 norm11[L] = Math.Sqrt((2.0 * L + 1.0) / (2.0 * L)) / (2.0 * L - 1.0); // eq 3-3 
                 normn10[L] = Math.Sqrt((L + 1.0) * L / 2.0);  // eq 3-13
 
-                for (m = 1; m < L; m++) // m = 1:L 
+                for (m = 1; m <= L; m++) // m = 1:L 
                 {
                     norm1m[L, m] = Math.Sqrt((L - m) * (2.0 * L + 1.0) / ((L + m) * (2.0 * L - 1.0)));    // eq 3-4 
                     norm2m[L, m] = Math.Sqrt((L - m) * (L - m - 1.0) * (2.0 * L + 1.0) /
@@ -13065,7 +12428,7 @@ namespace AstroLibMethods
         //
         //  references :
         //    vallado       2022, 600, Eq 8-56
-        // ----------------------------------------------------------------------------*/
+        // ----------------------------------------------------------------------------
 
         public void TrigPoly
            (
@@ -13127,7 +12490,7 @@ namespace AstroLibMethods
         //
         //  references :
         //    vallado       2022, 602
-        // ----------------------------------------------------------------------------*/
+        // ----------------------------------------------------------------------------
 
         public void TrigPolyLeg
            (
@@ -13217,10 +12580,46 @@ namespace AstroLibMethods
         } // TrigPolyLeg
 
 
+        // this produces the normalization values for up to a 100x100 gravity field
+        // useful for gtds, montenbruck, etc
+        public void gravnorm
+      (
+          out double[,] unnormArr
+      )
+        {
+            unnormArr = new double[172, 172];
+            int L, m;
+            double conv;
+
+            L = 0;
+
+            unnormArr[0, 0] = 1.0;
+            unnormArr[1, 0] = Math.Sqrt(3);
+            unnormArr[1, 1] = unnormArr[1, 0];
+
+
+            // note these normalization recursions should work for higher than 150 since factorials are "not" used. 
+            for (L = 1; L <= 100; L++)
+            {
+                for (m = 0; m <= L; m++)
+                {
+                    if (m == 0)
+                        conv = Math.Sqrt(MathTimeLibr.factorial(L) * (2 * L + 1) / MathTimeLibr.factorial(L));
+                    else
+                        conv = Math.Sqrt(MathTimeLibr.factorial(L - m) * 2 * (2 * L + 1) / MathTimeLibr.factorial(L + m));
+
+                    // ----- store these for later use
+                    unnormArr[L, m] = conv;
+                }
+            }
+
+        } // gravnorm
+
+
 
         // ----------------------------------------------------------------------------
         //
-        //                           function FullGeopG
+        //                           function GravAccelGTDS
         //
         //   this function finds the acceleration for the gravity field. the acceleration is
         //   found in the body fixed frame. rotation back to inertial is done after this 
@@ -13255,15 +12654,14 @@ namespace AstroLibMethods
         //
         //  references :
         //    vallado       2022, 600, Eq 8-56
-        // ----------------------------------------------------------------------------*/
+        // ----------------------------------------------------------------------------
 
-        public void FullGeopG
+        public void GravAccelGTDS
         (
             double[] recef,
             Int32 order,
             char normalized,
             double[,] unnormArr,
-            double[,,] normArr,
             gravityConst gravData,
             out double[] aPertG,
             char show,
@@ -13381,12 +12779,12 @@ namespace AstroLibMethods
                 }
             }
 
-        }  // FullGeopG 
+        }  // GravAccelGTDS 
 
 
         // ----------------------------------------------------------------------------
         //
-        //                           function FullGeopM
+        //                           function GravAccelMont
         //
         //   this function finds the acceleration for the gravity field. the acceleration is
         //   found in the body fixed frame. rotation back to inertial is done after this 
@@ -13419,10 +12817,10 @@ namespace AstroLibMethods
         //   TrigPoly     - find the trigonmetric terms through recursion
         //
         //  references :
-        //    vallado       2013, 597, Eq 8-57
-        // ----------------------------------------------------------------------------*/
+        //    vallado       2022, 601, Eq 8-59
+        // ----------------------------------------------------------------------------
 
-        public void FullGeopM
+        public void GravAccelMont
         (
             double[] recef,
             Int32 order,
@@ -13577,16 +12975,16 @@ namespace AstroLibMethods
             // Inertial acceleration 
             //return Transp(E) * a_bf;
 
-        }  // FullGeopM 
+        }  // GravAccelMont 
 
 
         // ----------------------------------------------------------------------------
         //
-        //                           function FullGeopMC
+        //                           function GravAccelMonta
         //
         //   this function finds the acceleration for the gravity field. the acceleration is
         //   found in the body fixed frame. rotation back to inertial is done after this 
-        //   routine. this is the montenbruck code approach. 
+        //   routine. this is the montenbruck alternate approach. 
         //      
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
@@ -13614,9 +13012,9 @@ namespace AstroLibMethods
         //  references :
         //    montenbruck   2012
         //    vallado       2022, 602
-        // ----------------------------------------------------------------------------*/
+        // ----------------------------------------------------------------------------
 
-        public void FullGeopMC
+        public void GravAccelMonta
         (
             double[] recef,
             Int32 order,
@@ -13817,12 +13215,12 @@ namespace AstroLibMethods
 
             // Inertial acceleration 
             //return Transp(E) * a_bf;
-        }  // FullGeopMC 
+        }  // GravAccelMonta 
 
 
         // ----------------------------------------------------------------------------
         //
-        //                           function FullGeopGott
+        //                           function GravAccelGott
         //
         //   this function finds the acceleration for the gravity field using the normalized 
         //   Gottlieb approach. the arrays are indexed from 0 to coincide with the usual nomenclature 
@@ -13837,44 +13235,42 @@ namespace AstroLibMethods
         //    order       - size of gravity field                                  1.. 170 .. 2000
         //    gravData    - structure containing the gravity field coefficients, 
         //                  radius of the Earth, and gravitational parameter
-        //    normxx      - constant normalization parameters pre-calculated              
         //    recef       - earth fixed position vector for satellite              km
+        //    normxx      - constant normalization parameters pre-calculated              
         //
         //  outputs       :
-        //    LegGottN    - array of normalized Legendre polynomials, Gottlieb 
-        //    accel       - acceleration from gravity                              km/s^2
+        //    accel       - bf frame acceleration from gravity                              km/s^2
         //
         //  locals :
         //    L,m         - degree and order indices
+        //    fastapp     - use 'n' if want to compare Legendre functions          'y', 'n'
         //
         //  coupling      :
         //   none
         //
         //  references :
-        //    eckman, brown, adamo 2016 paper and code in matlab
+        //    eckman, brown, adamo 2016 paper and code in gottliebnorm.m matlab code
         //    vallado       2022, 600-601, Eq 8-62
-        // ---------------------------------------------------------------------------*/
+        // ---------------------------------------------------------------------------
 
-        public void FullGeopGott
+        public void GravAccelGott
            (
-               double latgc,
+               double[] recef,
                Int32 order,
                gravityConst gravData,
-               double[] recef,
                double[] norm1, double[] norm2, double[] norm11, double[] normn10,
                double[,] norm1m, double[,] norm2m, double[,] normn1,
-               out double[,] LegGottN,
                out double[] accel
            )
         {
             Int32 L, m;
-            LegGottN = new double[order + 2, order + 2];
+            double[,] LegGottN = new double[order + 3, order + 3];
             accel = new double[3];
 
-            double[] ctil = new double[order + 2];
-            double[] stil = new double[order + 2];
+            double[] ctil = new double[order + 3];
+            double[] stil = new double[order + 3];
             double[,] g = new double[3, 3];
-            double reorn, sumhn, sumgmn, magr, ep, mxpnm, bnmtil, anmtm1, bnmtm1, sumj, sumjn,
+            double reorn, sumhn, sumgmn, magr, sinlat, coslat, mxpnm, bnmtil, anmtm1, bnmtm1, sumj, sumjn,
                 sumkn, sumk, sumh, sumgm, lambda, reor, muor2;
             double n2m1;
             Int32 lim, nm1, np1, mm1, mp1;
@@ -13882,15 +13278,22 @@ namespace AstroLibMethods
 
             sumjn = 0.0;
             sumkn = 0.0;
+            coslat = 0.0;
 
             magr = MathTimeLibr.mag(recef);
             double[] runit = MathTimeLibr.norm(recef);
-            ep = runit[2];  // this is sin(latgc)
+            sinlat = runit[2];  // this is sin(latgc)
+            if (fastapp == 'n')
+            {
+                double temp = Math.Sqrt(recef[0] * recef[0] + recef[1] * recef[1]);
+                coslat = recef[2] / temp;
+            }
+
             reor = gravData.re / magr;
             reorn = reor;
             muor2 = gravData.mu / (magr * magr);
 
-            // note this whole section can be calculated ahead of time (without latgc) for speed...
+            // note this section can be calculated ahead of time (without latgc) for speed...
             // -------------------- perform recursions ---------------------- }
             //LegPolyGottN(order, out norm1, out norm2, out norm11, out normn10, out norm1m, out norm2m, out normn1);
 
@@ -13901,18 +13304,18 @@ namespace AstroLibMethods
                 LegGottN[1, 1] = Math.Sqrt(3.0);
             else
                 // add ep here to match hand calcs. leave out if doing acceleration calcs for speed
-                LegGottN[1, 1] = Math.Sqrt(3.0) * Math.Cos(latgc);
+                LegGottN[1, 1] = Math.Sqrt(3.0) * coslat;
             LegGottN[1, 2] = 0.0;
             LegGottN[1, 3] = 0.0;
 
             // --------------- sectoral
-            for (L = 2; L < order; L++)   // L = 2:nax 
+            for (L = 2; L <= order; L++)   // L = 2:nax 
             {
                 if (fastapp == 'y')
                     LegGottN[L, L] = norm11[L] * LegGottN[L - 1, L - 1] * (2.0 * L - 1.0);   // eq 3-15 
                 else
                     // dav add ep to this to make it match hand calcs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    LegGottN[L, L] = norm11[L] * LegGottN[L - 1, L - 1] * (2.0 * L - 1.0) * Math.Cos(latgc);   // eq 3-15 
+                    LegGottN[L, L] = norm11[L] * LegGottN[L - 1, L - 1] * (2.0 * L - 1.0) * coslat;   // eq 3-15 
                 LegGottN[L, L + 1] = 0.0;
                 LegGottN[L, L + 2] = 0.0;
             }
@@ -13926,9 +13329,9 @@ namespace AstroLibMethods
             sumgm = 1.0;
             sumj = 0.0;
             sumk = 0.0;
-            LegGottN[1, 0] = Math.Sqrt(3) * ep;
+            LegGottN[1, 0] = Math.Sqrt(3) * sinlat;
 
-            for (L = 2; L < order; L++)   //  L = 2:nax
+            for (L = 2; L <= order; L++)   //  L = 2:nax
             {
                 reorn = reorn * reor;
                 n2m1 = L + L - 1;
@@ -13937,14 +13340,14 @@ namespace AstroLibMethods
 
                 // note he adds ep back in here for the specific case!!!!! So this is where the complete ALFs would be
                 // --------------- tesserals(L, m = L - 1) initial value
-                LegGottN[L, L - 1] = normn1[L, L - 1] * ep * LegGottN[L, L];  // eq 3-16
+                LegGottN[L, L - 1] = normn1[L, L - 1] * sinlat * LegGottN[L, L];  // eq 3-16
 
                 // --------------- zonals(L, m = 1)
-                LegGottN[L, 0] = (n2m1 * ep * norm1[L] * LegGottN[L - 1, 0]
+                LegGottN[L, 0] = (n2m1 * sinlat * norm1[L] * LegGottN[L - 1, 0]
                     - nm1 * norm2[L] * LegGottN[L - 2, 0]) / L;   // eq 3-17  
 
                 // --------------- tesseral(L, m = 2) initial value
-                LegGottN[L, 1] = (n2m1 * ep * norm1m[L, 1] * LegGottN[L - 1, 1]
+                LegGottN[L, 1] = (n2m1 * sinlat * norm1m[L, 1] * LegGottN[L - 1, 1]
                     - L * norm2m[L, 1] * LegGottN[L - 2, 1]) / (nm1);  // eq 3-
 
                 sumhn = normn10[L] * LegGottN[L, 1] * gravData.cNor[L, 0];
@@ -13953,7 +13356,7 @@ namespace AstroLibMethods
                 {
                     for (m = 2; m < L - 2; m++)   // m = 2:L-2
                     {
-                        LegGottN[L, m] = (n2m1 * ep * norm1m[L, m] * LegGottN[L - 1, m] -
+                        LegGottN[L, m] = (n2m1 * sinlat * norm1m[L, m] * LegGottN[L - 1, m] -
                                (nm1 + m) * norm2m[L, m] * LegGottN[L - 2, m]) / (L - m); // eq 3-18 
                     }
                     sumjn = 0.0;
@@ -13986,11 +13389,11 @@ namespace AstroLibMethods
                 sumgm = sumgm + reorn * sumgmn;
             }
 
-            lambda = sumgm + ep * sumh;
+            lambda = sumgm + sinlat * sumh;
             accel[0] = -muor2 * (lambda * runit[0] - sumj);
             accel[1] = -muor2 * (lambda * runit[1] - sumk);
             accel[2] = -muor2 * (lambda * runit[2] - sumh);
-        }  // FullGeopGott
+        }  // GravAccelGott
 
 
 
@@ -14006,14 +13409,14 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    llat        - start geocentric latitude              -pi/2 to pi/2 rad
-        //    llon        - start longitude (west -)               0.0  to 2pi rad
+        //    llat        - start geocentric latitude                -pi/2 to pi/2 rad
+        //    llon        - start longitude (west -)                 0.0  to 2pi rad
         //    range       - range between points er
-        //    az          - azimuth                                0.0  to 2pi rad
+        //    az          - azimuth                                  0.0  to 2pi rad
         //
         //  outputs       :
-        //    tlat        - end geocentric latitude                -pi/2 to pi/2 rad
-        //    tlon        - end longitude(west -)                 0.0  to 2pi rad
+        //    tlat        - end geocentric latitude                  -pi/2 to pi/2 rad
+        //    tlon        - end longitude(west -)                    0.0  to 2pi rad
         //
         //  locals        :
         //    sindeltan   - sine of delta n                              rad
@@ -14024,7 +13427,7 @@ namespace AstroLibMethods
         //    none.
         //
         //  references    :
-        //    vallado       2013, 774-776, eq 11-6, eq 11-7
+        //    vallado       2022, 872, eq 11-6, eq 11-7
         // --------------------------------------------------------------------------------
 
         public void pathm
@@ -14095,15 +13498,15 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    llat        - start geocentric latitude             -pi/2 to pi/2 rad
-        //    llon        - start longitude (west -)               0.0  to 2pi rad
-        //    tlat        - end geocentric latitude               -pi/2 to pi/2 rad
-        //    tlon        - end longitude(west -)                  0.0  to 2pi rad
-        //    tof         - time of flight if icbm, or             0.0 min
+        //    llat        - start geocentric latitude               -pi/2 to pi/2 rad
+        //    llon        - start longitude (west -)                 0.0  to 2pi rad
+        //    tlat        - end geocentric latitude                 -pi/2 to pi/2 rad
+        //    tlon        - end longitude(west -)                    0.0  to 2pi rad
+        //    tof         - time of flight if icbm, or               0.0 min
         //
         //  outputs       :
-        //    range       - range between points km
-        //    az          - azimuth                                0.0  to 2pi rad
+        //    range       - range between points                     km
+        //    az          - azimuth                                  0.0  to 2pi rad
         //
         //  locals        :
         //    none.
@@ -14112,7 +13515,7 @@ namespace AstroLibMethods
         //    site, rot3, binomial, cross, atan2, dot, unit
         //
         //  references    :
-        //    vallado       2001, 774-775, eq 11-3, eq 11-4, eq 11-5
+        //    vallado       2022, 872, eq 11-3, eq 11-4, eq 11-5
         // --------------------------------------------------------------------------------
         public void rngaz
             (
@@ -14262,7 +13665,7 @@ namespace AstroLibMethods
         //
         //  references    :
         //    vallado       2022, 819
-        // --------------------------------------------------------------------------- - */
+        // --------------------------------------------------------------------------- - 
 
         public void partObs2State
             (
@@ -14348,9 +13751,8 @@ namespace AstroLibMethods
         //
         //  references        :
         //    Alfano original code
-        //    
-        //  sigmapts = posvelcov2pts(reci, veci, cov);
-        // --------------------------------------------------------------------------- - */
+        //    vallado 2022, 814
+        // --------------------------------------------------------------------------- - 
 
         public void posvelcov2pts
             (
@@ -14409,9 +13811,8 @@ namespace AstroLibMethods
         //
         //  references        :
         //    Alfano original code
-        //
-        //  sigmapts = poscov2pts(reci, cov);
-        // --------------------------------------------------------------------------- - */
+        //    vallado 2022, 814
+        // --------------------------------------------------------------------------- - 
 
         public void poscov2pts
             (
@@ -14470,20 +13871,21 @@ namespace AstroLibMethods
         //    n_dim          dimension of vector
         //    n_pts          total number of points
         //    
-        //    references :
-        //      alfano original code
-        // --------------------------------------------------------------------------- - */
+        //  references :
+        //    alfano original code
+        //    vallado 2022, 814
+        // --------------------------------------------------------------------------- - 
 
         public void remakecovpv
             (
-               double[,] sigmapts, out double[] yu, out double[,] cov
+ //             double[,] sigmapts, out double[] yu, out double[,] cov
             )
         {
-            Int32 i, j;
-            double oo12;
+            //Int32 i, j;
+            //double oo12;
 
-            oo12 = 1.0 / 12.0;
-            yu = new double[] { 0, 0, 0, 0, 0, 0 };
+            //oo12 = 1.0 / 12.0;
+            //yu = new double[] { 0, 0, 0, 0, 0, 0 };
 
             // -------------------------  implementation    // ----------------
             // initialize data & pre-allocate matrices
@@ -14491,21 +13893,21 @@ namespace AstroLibMethods
             double[,] tmp = new double[6, 6];
 
             // find mean
-            for (i = 0; i < 12; i++)
-                for (j = 0; j < 6; j++)
-                    yu[j] = yu[j] + sigmapts[j, i];
+            //for (i = 0; i < 12; i++)
+            //    for (j = 0; j < 6; j++)
+            //        yu[j] = yu[j] + sigmapts[j, i];
 
-            for (j = 0; j < 6; j++)
-                yu[j] = yu[j] * oo12;
+            //for (j = 0; j < 6; j++)
+            //    yu[j] = yu[j] * oo12;
 
-            // find covariance
-            for (i = 0; i < 12; i++)
-                for (j = 0; j < 6; j++)
-                    y[j, i] = sigmapts[j, i] - yu[j];
+            //// find covariance
+            //for (i = 0; i < 12; i++)
+            //    for (j = 0; j < 6; j++)
+            //        y[j, i] = sigmapts[j, i] - yu[j];
 
-            double[,] yt = MathTimeLibr.mattransx(y, 6, 12);
-            tmp = MathTimeLibr.matmult(y, yt, 6, 12, 6);
-            cov = MathTimeLibr.matscale(tmp, 6, 6, oo12);
+            //double[,] yt = MathTimeLibr.mattransx(y, 6, 12);
+            //tmp = MathTimeLibr.matmult(y, yt, 6, 12, 6);
+            //cov = MathTimeLibr.matscale(tmp, 6, 6, oo12);
 
             // cov = MathTimeLibr.matmult(y, tmp, 6, 6, 6);
             //cov = (tmp + tmp) * 0.5;  //tmp*tmp'? // ensures perfect symmetry
@@ -14534,42 +13936,43 @@ namespace AstroLibMethods
         //    n_dim          dimension of vector
         //    n_pts          total number of points
         //    
-        //    references  :
-        //     alfano original code
-        // --------------------------------------------------------------------------- - */
+        //  references  :
+        //    alfano original code
+        //    vallado 2022, 814
+        // --------------------------------------------------------------------------- - 
 
         public void remakecovp
             (
-               double[,] sigmapts, out double[] yu, out double[,] cov
+ //              double[,] sigmapts, out double[] yu, out double[,] cov
             )
         {
-            Int32 i, j;
-            double oo6;
+            //Int32 i, j;
+            //double oo6;
 
-            oo6 = 1.0 / 6.0;
-            yu = new double[] { 0, 0, 0 };
+            //oo6 = 1.0 / 6.0;
+            //yu = new double[] { 0, 0, 0 };
 
-            // -------------------------  implementation    // ----------------
-            // initialize data & pre-allocate matrices
-            double[,] y = new double[3, 6];
-            double[,] tmp = new double[3, 3];
+            //// -------------------------  implementation    // ----------------
+            //// initialize data & pre-allocate matrices
+            //double[,] y = new double[3, 6];
+            //double[,] tmp = new double[3, 3];
 
             // find mean
-            for (i = 0; i < 6; i++)
-                for (j = 0; j < 3; j++)
-                    yu[j] = yu[j] + sigmapts[j, i];
+            //for (i = 0; i < 6; i++)
+            //    for (j = 0; j < 3; j++)
+            //        yu[j] = yu[j] + sigmapts[j, i];
 
-            for (j = 0; j < 3; j++)
-                yu[j] = yu[j] * oo6;
+            //for (j = 0; j < 3; j++)
+            //    yu[j] = yu[j] * oo6;
 
-            // find covariance
-            for (i = 0; i < 6; i++)
-                for (j = 0; j < 3; j++)
-                    y[j, i] = sigmapts[j, i] - yu[j];
+            //// find covariance
+            //for (i = 0; i < 6; i++)
+            //    for (j = 0; j < 3; j++)
+            //        y[j, i] = sigmapts[j, i] - yu[j];
 
-            double[,] yt = MathTimeLibr.mattransx(y, 3, 6);
-            tmp = MathTimeLibr.matmult(y, yt, 3, 6, 3);
-            cov = MathTimeLibr.matscale(tmp, 3, 3, oo6);
+            //double[,] yt = MathTimeLibr.mattransx(y, 3, 6);
+            //tmp = MathTimeLibr.matmult(y, yt, 3, 6, 3);
+            //cov = MathTimeLibr.matscale(tmp, 3, 3, oo6);
         } // remakecovp  
 
 
@@ -14615,8 +14018,7 @@ namespace AstroLibMethods
         //    rv2coe      - position and velocity vectors to classical elements
         //
         //  references    :
-        //    Vallado and Alfano 2015
-        //
+        //    Vallado and Alfano AAS 15-537
         // ------------------------------------------------------------------------------
 
         public void covct2cl(double[,] cartcov, double[] cartstate, string anomclass, out double[,] classcov, out double[,] tm)
@@ -14862,7 +14264,7 @@ namespace AstroLibMethods
         //    newtonnu    - newton iteration for nu and ecc to m
         //
         //  references    :
-        //    Vallado and Alfano 2015
+        //    Vallado and Alfano AAS 15-537
         // ------------------------------------------------------------------------------
 
         public void covcl2ct
@@ -15104,7 +14506,7 @@ namespace AstroLibMethods
         //    constastro
         //
         //  references    :
-        //    Vallado and Alfano 2015
+        //    Vallado and Alfano AAS 15-537
         // ------------------------------------------------------------------------------
 
         public void covct2eq
@@ -15355,7 +14757,7 @@ namespace AstroLibMethods
         //    constastro
         //
         //  references    :
-        //    Vallado and Alfano 2015
+        //    Vallado and Alfano AAS 15-537
         // ------------------------------------------------------------------------------
 
         public void coveq2ct
@@ -15697,8 +15099,8 @@ namespace AstroLibMethods
         //  coupling      :
         //
         //  references    :
-        //    Vallado and Alfano 2015
-        // ----------------------------------------------------------------------------*/
+        //    Vallado and Alfano AAS 15-537
+        // ----------------------------------------------------------------------------
 
         public void covcl2eq
             (
@@ -15853,8 +15255,8 @@ namespace AstroLibMethods
         //    constastro
         //
         //  references    :
-        //    Vallado and Alfano 2015
-        // ----------------------------------------------------------------------------*/
+        //    Vallado and Alfano AAS 15-537
+        // ----------------------------------------------------------------------------
 
         public void coveq2cl
             (
@@ -16007,43 +15409,40 @@ namespace AstroLibMethods
         //
         //                           function covct2fl
         //
-        //  this function transforms a six by six covariance matrix expressed in cartesian elements
-        //    into one expressed in flight parameters
+        //  this function transforms a six by six covariance matrix expressed in cartesian 
+        //    elements into one expressed in flight parameters
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
         //    cartcov     - 6x6 cartesian covariance matrix
-        //    cartstate   - 6x1 cartesian orbit state            (x y z vx vy vz)
-        //    anom        - anomaly                              'latlon', 'radec'
-        //    ttt         - julian centuries of tt               centuries
-        //    jdut1       - julian date of ut1                   days from 4713 bc
-        //    lod         - excess length of day                 sec
-        //    xp          - polar motion coefficient             arc sec
-        //    yp          - polar motion coefficient             arc sec
-        //    terms       - number of terms for ast calculation 0,2
-        //    opt         - method option                           e80, e96, e00a, e00cio
+        //    cartstate   - 6x1 cartesian orbit state                (x y z vx vy vz)
+        //    anom        - anomaly                                  'latlon', 'radec'
+        //    ttt         - julian centuries of tt                   centuries
+        //    jdut1       - julian date of ut1                       days from 4713 bc
+        //    lod         - excess length of day                     sec
+        //    xp          - polar motion coefficient                 rad
+        //    yp          - polar motion coefficient                 rad
+        //    terms       - number of terms for ast calculation      0,2
+
         //  outputs       :
         //    flcov       - 6x6 flight covariance matrix
         //    tm          - transformation matrix
         //
         //  locals        :
         //    r           - matrix of partial derivatives
-        //    x,y,z       - components of position vector        km
-        //    vx,vy,vz    - components of position vector        km/s
-        //    magr        - eci position vector magnitude        km
-        //    magv        - eci velocity vector magnitude        km/sec
+        //    x,y,z       - components of position vector            km
+        //    vx,vy,vz    - components of position vector            km/s
+        //    magr        - eci position vector magnitude            km
+        //    magv        - eci velocity vector magnitude            km/sec
         //    d           - r dot v
         //    h           - angular momentum vector
-        //    hx,hy,hz    - components of angular momentum vector
-        //    hcrossrx,y,z- components of h MathTimeLibr.cross r vector
-        //    p1,p2       - denominator terms for the partials
         //
         // coupling      :
         //    ecef2eci    - convert eci vectors to ecef
         //
         // references    :
-        //    Vallado and Alfano 2015
+        //    Vallado and Alfano AAS 15-537
         // -----------------------------------------------------------------------------
 
         public void covct2fl
@@ -16055,11 +15454,13 @@ namespace AstroLibMethods
             out double[,] flcov, out double[,] tm
             )
         {
-            double rx, ry, rz, vx, vy, vz, rxf, ryf, rzf, magr, magv, rdotv, rdot, k1, k2, p0, p1, p2, h;
+            double rx, ry, rz, vx, vy, vz, rxf, ryf, rzf, magr, magv, rdotv, rdot, k1, k2, p0, p1, p2, h, ttt;
             double[] reci = new double[3];
             double[] veci = new double[3];
+            double[] aeci = new double[3];
             double[] recef = new double[3];
             double[] vecef = new double[3];
+            double[] aecef = new double[3];
             tm = new double[,] { { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
             { 0, 0, 0, 0, 0, 0 } };
             // initialize
@@ -16080,8 +15481,12 @@ namespace AstroLibMethods
                 // -------- convert r to eci
                 reci = new double[] { rx * 0.001, ry * 0.001, rz * 0.001 };
                 veci = new double[] { vx * 0.001, vy * 0.001, vz * 0.001 };
-                eci_ecef(ref reci, ref veci, MathTimeLib.Edirection.eto, ref recef, ref vecef,
-                    EOPSPWLibr.iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                aeci = new double[] { 0.0, 0.0, 0.0 };
+
+                ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
+
+                eci_ecef(ref reci, ref veci, ref aeci, MathTimeLib.Edirection.eto, ref recef, ref vecef, ref aecef,
+                    EOPSPWLibr.iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
 
                 recef[0] = recef[0] * 1000.0;  // in m
                 recef[1] = recef[1] * 1000.0;
@@ -16223,7 +15628,6 @@ namespace AstroLibMethods
 
 
         // ----------------------------------------------------------------------------
-        //
         // 
         //                        function covfl2ct
         //
@@ -16234,15 +15638,14 @@ namespace AstroLibMethods
         //
         //  inputs          description                              range / units
         //    flcov       - 6x6 flight covariance matrix
-        //    flstate     - 6x1 flight orbit state               (r v latgc lon fpa az)
-        //    anom        - anomaly                              'latlon', 'radec'
-        //    ttt         - julian centuries of tt               centuries
-        //    jdut1       - julian date of ut1                   days from 4713 bc
-        //    lod         - excess length of day                 sec
-        //    xp          - polar motion coefficient             arc sec
-        //    yp          - polar motion coefficient             arc sec
-        //    terms       - number of terms for ast calculation 0,2
-        //    opt         - method option                           e80, e96, e00a, e00cio
+        //    flstate     - 6x1 flight orbit state                   (r v latgc lon fpa az)
+        //    anom        - anomaly                                  'latlon', 'radec'
+        //    ttt         - julian centuries of tt                   centuries
+        //    jdut1       - julian date of ut1                       days from 4713 bc
+        //    lod         - excess length of day                     sec
+        //    xp          - polar motion coefficient                 rad
+        //    yp          - polar motion coefficient                 rad
+        //    terms       - number of terms for ast calculation      0,2
         //
         //  outputs       :
         //    cartcov     - 6x6 cartesian covariance matrix
@@ -16250,20 +15653,20 @@ namespace AstroLibMethods
         //
         //  locals        :
         //    tm           - matrix of partial derivatives
-        //    magr        - eci position vector magnitude        km
-        //    magv        - eci velocity vector magnitude        km/sec
-        //    latgc       - geocentric latitude                  rad
-        //    lon         - longitude                            rad
-        //    fpa         - sat flight path angle                rad
-        //    az          - sat flight path az                   rad
-        //    fpav        - sat flight path anglefrom vert       rad
-        //    xe,ye,ze    - ecef position vector components      km
+        //    magr        - eci position vector magnitude            km
+        //    magv        - eci velocity vector magnitude            km/sec
+        //    latgc       - geocentric latitude                      rad
+        //    lon         - longitude                                rad
+        //    fpa         - sat flight path angle                    rad
+        //    az          - sat flight path az                       rad
+        //    fpav        - sat flight path anglefrom vert           rad
+        //    xe,ye,ze    - ecef position vector components          km
         //
         //  coupling      :
         //    ecef2eci    - convert eci vectors to ecef
         //
         //  references    :
-        //    Vallado and Alfano 2015
+        //    Vallado and Alfano AAS 15-537
         // ------------------------------------------------------------------------------
 
         public void covfl2ct
@@ -16274,11 +15677,13 @@ namespace AstroLibMethods
             )
         {
             double small, lon, latgc, fpa, cfpa, sfpa, az, decl, magr, magv, caz, saz, craf, sraf, cdf, sdf,
-                cd, sd, cra, sra, temp, rtasc;
+                cd, sd, cra, sra, temp, rtasc, ttt;
             double[] recef = new double[3];
             double[] vecef = new double[3];
+            double[] aecef = new double[3];
             double[] reci = new double[3];
             double[] veci = new double[3];
+            double[] aeci = new double[3];
 
             // initialize
             cd = 0.0;
@@ -16324,9 +15729,12 @@ namespace AstroLibMethods
                 vecef[0] = magv * 0.001 * (-Math.Cos(lon) * Math.Sin(latgc) * caz * cfpa - Math.Sin(lon) * saz * cfpa + Math.Cos(lon) * Math.Cos(latgc) * sfpa); // m/s
                 vecef[1] = magv * 0.001 * (-Math.Sin(lon) * Math.Sin(latgc) * caz * cfpa + Math.Cos(lon) * saz * cfpa + Math.Sin(lon) * Math.Cos(latgc) * sfpa);
                 vecef[2] = magv * 0.001 * (Math.Sin(lon) * sfpa + Math.Cos(latgc) * caz * cfpa);
-                double[] aecef = new double[] { 0, 0, 0 };
-                eci_ecef(ref reci, ref veci, MathTimeLib.Edirection.efrom, ref recef, ref vecef,
-                   EOPSPWLibr.iau80arr, jdtt, jdftt, jdut1, lod, xp, yp, ddpsi, ddeps);
+                aecef = new double[] { 0.0, 0.0, 0.0 };
+
+                ttt = (jdtt + jdftt - 2451545.0) / 36525.0;
+
+                eci_ecef(ref reci, ref veci, ref aeci, MathTimeLib.Edirection.efrom, ref recef, ref vecef, ref aecef,
+                   EOPSPWLibr.iau80arr, ttt, jdut1, lod, xp, yp, ddpsi, ddeps);
 
                 reci[0] = reci[0] * 1000.0;  // in m
                 reci[1] = reci[1] * 1000.0;
@@ -16503,7 +15911,7 @@ namespace AstroLibMethods
         //    none
         //
         //  references    :
-        //    Vallado and Alfano 2015
+        //    Vallado and Alfano AAS 15-537
         // ------------------------------------------------------------------------------
 
         public void covct_rsw
@@ -16597,7 +16005,7 @@ namespace AstroLibMethods
         //    none
         //
         //  references    :
-        //    Vallado and Alfano 2015
+        //    Vallado and Alfano AAS 15-537
         // ------------------------------------------------------------------------------
 
         public void covct_ntw
@@ -16690,7 +16098,7 @@ namespace AstroLibMethods
         //    none
         //
         //  references    :
-        //    Vallado and Alfano 2015
+        //    Vallado and Alfano AAS 15-537
         // ------------------------------------------------------------------------------
 
         public void coveci_ecef
@@ -16701,7 +16109,7 @@ namespace AstroLibMethods
             EOpt opt
             )
         {
-            double[] fArgs = new double[14];
+            double[] fArgs06 = new double[14];
             double psia, wa, epsa, chia;
             double meaneps, deltapsi, deltaeps, trueeps;
             double[] omegaearth = new double[3];
@@ -16739,13 +16147,13 @@ namespace AstroLibMethods
             omegaearth[1] = 0.0;
             omegaearth[2] = gravConst.earthrot * (1.0 - lod / 86400.0);
 
-            fundarg(ttt, opt, out fArgs);
+            fundarg(ttt, opt, out fArgs06);
 
             prec = precess(ttt, opt, out psia, out wa, out epsa, out chia);
 
-            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs, out deltapsi, out deltaeps, out trueeps, out meaneps);
+            nut = nutation(ttt, ddpsi, ddeps, iau80arr, fArgs06, out deltapsi, out deltaeps, out trueeps, out meaneps);
 
-            st = sidereal(jdut1, deltapsi, meaneps, fArgs, lod, eqeterms, opt);
+            st = sidereal(jdut1, deltapsi, meaneps, fArgs06, lod, eqeterms, opt);
 
             pm = polarm(xp, yp, ttt, opt);
 

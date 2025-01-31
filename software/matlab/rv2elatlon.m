@@ -1,11 +1,47 @@
+%  ------------------------------------------------------------------------------
 %
-% position and velocity to ecliptic latitude longitude
-% dav 28 mar 04
+%                           procedure rv_elatlon
+%
+%  this procedure converts ecliptic latitude and longitude with position and
+%    velocity vectors. uses velocity vector to find the solution of Math.Singular
+%    cases.
+%
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
+%
+%  inputs          description                              range / units
+%    rijk        - ijk position vector                      km
+%    vijk        - ijk velocity vector                      km / s
+%    direction   - which set of vars to output              efrom  eto
+%
+%  outputs       :
+%    rr          - radius of the sat                        km
+%    ecllat      - ecliptic latitude                        -PI/2 to PI/2 rad
+%    ecllon      - ecliptic longitude                       -2PI to 2PI rad
+%    drr         - radius of the sat rate                   km/s
+%    decllat     - ecliptic latitude rate                   -PI/2 to PI/2 rad
+%    eecllon     - ecliptic longitude rate                  -2PI to 2PI rad
+%
+%  locals        :
+%    obliquity   - obliquity of the ecliptic                rad
+%    temp        -
+%    temp1       -
+%    re          - position vec in eclitpic frame
+%    ve          - velocity vec in ecliptic frame
+%
+%  coupling      :
+%    mag         - magnitude of a vector
+%    rot1        - rotation about 1st axis
+%    dot         - dot product
+%    arcsin      - arc Math.Sine function
+%    Math.Atan2       - arc tangent function that resolves quadrant ambiguites
+%
+%  references    :
+%    vallado       2022 268, eq 4-15
 %
 % [rr, ecllon, ecllat, drr, decllon, decllat] = rv2elatlon (rijk,vijk);
+% ----------------------------------------------------------------------------
 
-function [rr, ecllon, ecllat, drr, decllon, decllat] = rv2elatlon (rijk,vijk);
-
+function [rr, ecllon, ecllat, drr, decllon, decllat] = rv2elatlon (rijk,vijk)
     % --------------------  implementation   ----------------------
     constmath;
     obliquity= 0.40909280;   %23.439291 /rad
@@ -41,3 +77,4 @@ function [rr, ecllon, ecllat, drr, decllon, decllat] = rv2elatlon (rijk,vijk);
         decllat= 0.0;
     end
 
+end

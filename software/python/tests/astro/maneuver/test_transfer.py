@@ -16,14 +16,14 @@ def rinit_rfinal():
 
 @pytest.fixture
 def nuinit_nufinal():
-    return 0.0, np.pi
+    return 0, np.pi
 
 
 @pytest.mark.parametrize(
     "einit, efinal, deltava_expected, deltavb_expected",
     [
         # Vallado 2007, Example 6-1
-        (0.0, 0.0, 2.457038635627854, 1.478187015430896),
+        (0, 0, 2.457038635627854, 1.478187015430896),
         # Test non-zero eccentricities
         (0.00123, 0.024, 2.4522496326398677, 1.4410649593617622),
     ],
@@ -46,7 +46,7 @@ def test_hohmann(
     "einit, efinal, deltava_expected, deltavb_expected, deltavc_expected",
     [
         # Vallado 2007, Example 6-2
-        (0.0, 0.0, 3.1562341430432026, 0.6773580299907941, 0.07046593708633986),
+        (0, 0, 3.1562341430432026, 0.6773580299907941, 0.07046593708633986),
         # Test non-zero eccentricities
         (0.00123, 0.024, 3.151445140055216, 0.6773580299907941, 0.08278725521142083),
     ],
@@ -62,8 +62,8 @@ def test_bielliptic(
 ):
     # Input values
     rinit, _ = rinit_rfinal
-    rb = const.RE + 503873.0
-    rfinal = const.RE + 376310.0
+    rb = const.RE + 503873
+    rfinal = const.RE + 376310
 
     # Calculate bielliptic transfer
     deltava, deltavb, deltavc, dtsec = transfer.bielliptic(
@@ -81,7 +81,7 @@ def test_bielliptic(
     "efinal, deltavb_expected",
     [
         # Vallado 2007, Example 6-3
-        (0.0, 2.1239372795577847),
+        (0, 2.1239372795577847),
         # Test non-zero eccentricity
         (0.024, 2.0814417965636647),
     ],
@@ -108,7 +108,7 @@ def test_one_tangent(rinit_rfinal, nuinit_nufinal, efinal, deltavb_expected):
 
 def test_one_tangent_bad_transfer(rinit_rfinal, nuinit_nufinal):
     # Input values
-    efinal = 0.0
+    efinal = 0
     nuinit, _ = nuinit_nufinal
     nutran = np.radians(0)
 
@@ -121,7 +121,7 @@ def test_one_tangent_bad_transfer(rinit_rfinal, nuinit_nufinal):
     "vinit, fpa, deltav_expected",
     [
         # Vallado 2007, Example 6-4
-        (5.892311, 0.0, 1.5382018364126486),
+        (5.892311, 0, 1.5382018364126486),
         # Test non-zero flight path angle, Example 6-4
         (5.993824, np.radians(-6.79), 1.5537274747634255),
     ],
@@ -142,9 +142,9 @@ def test_incl_only(vinit, fpa, deltav_expected):
     [
         # Vallado 2007, Example 6-5
         (
-            0.0,
-            0.0,
-            np.radians(55.0),
+            0,
+            0,
+            np.radians(55),
             3.694195175425934,
             np.radians(103.36472752868785),
             np.radians(76.63527247131213),
@@ -155,17 +155,17 @@ def test_incl_only(vinit, fpa, deltav_expected):
             np.radians(11.23),
             np.radians(63.6589989314141),
             3.8891364302301996,
-            np.radians(90.0),
+            np.radians(90),
             np.radians(77.4574164527168),
         ),
     ],
 )
 def test_node_only(ecc, fpa, ifinal_exp, deltav_exp, arglat_init_exp, arglat_final_exp):
     # Input values
-    iinit = np.radians(55.0)
-    deltaraan = np.radians(45.0)
+    iinit = np.radians(55)
+    deltaraan = np.radians(45)
     vinit = 5.892311
-    incl = np.radians(55.0)
+    incl = np.radians(55)
 
     # Calculate node change
     ifinal, deltav, arglat_init, arglat_final = transfer.node_only(
@@ -183,16 +183,16 @@ def test_node_only(ecc, fpa, ifinal_exp, deltav_exp, arglat_init_exp, arglat_fin
     "fpa, deltav_expected",
     [
         # Vallado 2007, Example 6-6
-        (0.0, 3.615924548496319),
+        (0, 3.615924548496319),
         # Test non-zero flight path angle
         (np.radians(11.23), 3.546691598327748),
     ],
 )
 def test_incl_and_node(fpa, deltav_expected):
     # Input values
-    iinit = np.radians(55.0)
-    ifinal = np.radians(40.0)
-    deltaraan = np.radians(45.0)
+    iinit = np.radians(55)
+    ifinal = np.radians(40)
+    deltaraan = np.radians(45)
     vinit = 5.892311
 
     # Calculate inclination and node change
@@ -212,8 +212,8 @@ def test_incl_and_node(fpa, deltav_expected):
     [
         # Vallado 2007, Table 6-3, optimal
         (
-            0.0,
-            0.0,
+            0,
+            0,
             np.radians(0.9173377342379527),
             np.radians(9.082662265762048),
             2.431758178760123,
@@ -222,8 +222,8 @@ def test_incl_and_node(fpa, deltav_expected):
         ),
         # Vallado 2007, Table 6-3, non-optimal
         (
-            0.0,
-            0.0,
+            0,
+            0,
             np.radians(0.589638589451664),
             np.radians(9.410361410548337),
             2.4293288846983843,
@@ -255,8 +255,8 @@ def test_min_combined(
     # Input values
     rinit = 6671.53  # km
     rfinal = 42163.95  # km
-    iinit = np.radians(55.0)
-    ifinal = np.radians(65.0)
+    iinit = np.radians(55)
+    ifinal = np.radians(65)
 
     # Calculate minimum combined transfer
     deltai_init, deltai_final, deltava, deltavb, dtsec = transfer.min_combined(
@@ -282,14 +282,14 @@ def test_min_combined(
     "einit, nuinit, deltava_exp, gama_exp",
     [
         # Vallado 2007, Example 6-7
-        (0.0, 0.0, 2.4696696299347445, np.radians(6.6314687256750915)),
+        (0, 0, 2.4696696299347445, np.radians(6.6314687256750915)),
         # Test non-zero eccentricity and true anomaly
         (0.00123, np.pi, 2.474429703935413, np.radians(6.618654628381083)),
     ],
 )
 def test_combined(einit, nuinit, deltava_exp, gama_exp):
-    rinit = const.RE + 191.0
-    rfinal = const.RE + 35780.0
+    rinit = const.RE + 191
+    rfinal = const.RE + 35780
     deltai = np.radians(-28.5)
 
     # Calculate combined transfer
@@ -313,9 +313,9 @@ def test_combined(einit, nuinit, deltava_exp, gama_exp):
         # Vallado 2007, Example 6-8, Part 1
         (
             12756.274,
-            0.0,
-            0.0,
-            0.0,
+            0,
+            0,
+            0,
             1,
             1,
             np.radians(-20.0),
@@ -325,9 +325,9 @@ def test_combined(einit, nuinit, deltava_exp, gama_exp):
         # Vallado 2007, Example 6-8, Part 2
         (
             12756.274,
-            0.0,
-            0.0,
-            0.0,
+            0,
+            0,
+            0,
             2,
             2,
             np.radians(-20.0),
@@ -337,9 +337,9 @@ def test_combined(einit, nuinit, deltava_exp, gama_exp):
         # Vallado 2007, Example 6-9
         (
             42159.48,
-            0.0,
-            0.0,
-            0.0,
+            0,
+            0,
+            0,
             1,
             1,
             np.radians(85.391519024022),
@@ -365,8 +365,8 @@ def test_rendezvous_coplanar(
 ):
     # Input values
     rcsint = 12756.274
-    phasei = np.radians(-20.0)
-    nuinit = 0.0
+    phasei = np.radians(-20)
+    nuinit = 0
 
     # Calculate rendezvous transfer
     phasef, waittime, deltav = transfer.rendezvous_coplanar(
@@ -382,8 +382,8 @@ def test_rendezvous_coplanar(
 def test_rendezvous_coplanar_intersects():
     # Input values
     rcsint = rcstgt = 12756.274
-    phasei = np.radians(-20.0)
-    einit = efinal = nuinit = nufinal = 0.0
+    phasei = np.radians(-20)
+    einit = efinal = nuinit = nufinal = 0
     kint, ktgt = 10, 1
 
     # Calculate rendezvous transfer
@@ -395,12 +395,12 @@ def test_rendezvous_coplanar_intersects():
 
 def test_rendezvous_noncoplanar():
     # Vallado, Example 6-10
-    phasei = np.pi - np.radians(15.0)
+    phasei = np.pi - np.radians(15)
     aint = 7143.51
     atgt = 42159.4855
     kint, ktgt = 1, 0
-    nodeint = np.radians(45.0)
-    truelon = np.radians(200.0)
+    nodeint = np.radians(45)
+    truelon = np.radians(200)
     deltai = np.radians(-28.5)
 
     # Calculate rendezvous transfer
@@ -416,3 +416,32 @@ def test_rendezvous_noncoplanar():
     assert custom_isclose(dvtrans1, 0.2226079943473298)
     assert custom_isclose(dvtrans2, 1.8024492966461878)
     assert custom_isclose(aphase, 19473.30414898291)
+
+
+@pytest.mark.parametrize(
+    "alt_init, iinit, mdot, accel_init, lambda_, deltav_exp, tof_exp",
+    [
+        # Vallado 2020, Example 6-12
+        (318.9, 0, -2.48e-7, 4e-6, 0.001, 4.640020203126722, 11.666037030201334),
+        # Vallado 2020, Example 6-13
+        # NOTE: This is consistent with MATLAB outputs but not the textbook answers!
+        (200, 28.5, -2e-7, 1e-5, -0.54, 4.709431035248551, 6.264662605789706),
+    ],
+)
+def test_low_thrust(alt_init, iinit, mdot, accel_init, lambda_, deltav_exp, tof_exp):
+    # Input values
+    alt_final = 35781.343
+
+    # Calculate low-thrust transfer
+    deltav, tof = transfer.low_thrust(
+        const.RE + alt_init,
+        const.RE + alt_final,
+        np.radians(iinit),  # iinit is in degrees here
+        mdot,
+        accel_init,
+        lambda_,
+    )
+
+    # Expected results (expected TOF is in days)
+    assert custom_isclose(deltav, deltav_exp)
+    assert custom_isclose(tof / const.DAY2SEC, tof_exp)

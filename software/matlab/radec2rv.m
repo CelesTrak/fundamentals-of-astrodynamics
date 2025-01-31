@@ -1,39 +1,37 @@
 % ------------------------------------------------------------------------------
 %
-%                           function radec2rv
+%                            function radec2rv
 %
-%  this function converts the right ascension and declination values with
-%    position and velocity vectors of a satellite. uses velocity vector to
-%    find the solution of singular cases.
+%   this function converts the right ascension and declination values with
+%     position and velocity vectors of a satellite. uses velocity vector to
+%     find the solution of singular cases.
 %
-%  author        : david vallado                  719-573-2600   25 jun 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%                -
+%  inputs          description                              range / units
+%     r           - position vector eci                       km
+%     v           - velocity vector eci                       km/s
+%     direct      -  direction to convert                     eFrom  eTo
 %
-%  inputs          description                    range / units
-%    rr          - radius of the satellite        er
-%    rtasc       - right ascension                rad
-%    decl        - declination                    rad
-%    drr         - radius of the satellite rate   er/tu
-%    drtasc      - right ascension rate           rad/tu
-%    ddecl       - declination rate               rad/tu
+%   outputs       :
+%     rr          - radius of the satellite                      km
+%     rtasc       - right ascension                              rad
+%     decl        - declination                                  rad
+%     drr         - radius of the satellite rate                 km/s
+%     drtasc      - right ascension rate                         rad/s
+%     ddecl       - declination rate                             rad/s
 %
-%  outputs       :
-%    r           -  position vector            er
-%    v           -  velocity vector            er/tu
+%   locals        :
+%     temp        - temporary position vector
+%     temp1       - temporary variable
 %
-%  locals        :
-%    temp        - temporary position vector
-%    temp1       - temporary variable
+%   coupling      :
+%     none
 %
-%  coupling      :
-%    none
+%   references    :
+%    vallado       2022, 256, alg 25
 %
-%  references    :
-%    vallado       2001, 246-248, alg 25
-%
-% [r, v] = radec2rv( rr, rtasc, decl, drr, drtasc, ddecl )
+% [r, v] = radec2rv( rr, rtasc, decl, drr, drtasc, ddecl );
 % ------------------------------------------------------------------------------
 
 function [r, v] = radec2rv( rr, rtasc, decl, drr, drtasc, ddecl )
@@ -51,3 +49,4 @@ function [r, v] = radec2rv( rr, rtasc, decl, drr, drtasc, ddecl )
         + rr*cos(decl)*cos(rtasc)*drtasc;
     v(3)= drr*sin(decl) + rr*cos(decl)*ddecl;
     v = v';
+end

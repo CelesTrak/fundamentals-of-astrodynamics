@@ -1,50 +1,43 @@
-%
 % ----------------------------------------------------------------------------
 %
-%                           function eci2mod
+%                           function eci_mod
 %
-%  this function transfroms a vector from the mean equator, mean equinox frame
-%    (j2000), to the mean equator mean equinox of date (mod).
+%  this function transforms between the mean equator mean equinox (eci), and
+%    the mean of date frame (mod).
 %
-%  author        : david vallado                  719-573-2600   27 jun 2002
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
-%  revisions
-%    vallado     - consolidate with iau 2000                     14 feb 2005
-%
-%  inputs          description                    range / units
-%    reci      - position vector eci          km
-%    veci      - velocity vector eci          km/s
-%    aeci      - acceleration vector eci      km/s2
-%    ttt         - julian centuries of tt         centuries
+%  inputs          description                              range / units
+%    reci        - position vector eci                           km
+%    veci        - velocity vector eci                           km/s
+%    direct      - direction                                     eto, efrom
+%    iau80arr    - iau76/fk5 eop constants
+%    ttt         - julian centuries of tt                        centuries
 %
 %  outputs       :
-%    rmod        - position vector of date
-%                    mean equator, mean equinox   km
-%    vmod        - velocity vector of date
-%                    mean equator, mean equinox   km/s
-%    amod        - acceleration vector of date
-%                    mean equator, mean equinox   km/s2
+%    rmod       - position vector mod                            km
+%    vmod       - velocity vector mod                            km/s
 %
 %  locals        :
-%    none.
+%    prec        - matrix for mod - eci
 %
 %  coupling      :
-%   precess      - rotation for precession        eci - mod
+%   precess      - rotation for precession
 %
 %  references    :
-%    vallado       2001, 214-215, eq 3-57
+%    vallado       2022, 226
 %
 % [prec] = precession  ( ttt );
 % ----------------------------------------------------------------------------
 
-function [rmod,vmod,amod] = eci2mod  ( reci,veci,aeci,ttt );
+function [rmod,vmod,amod] = eci2mod  ( reci,veci,aeci,ttt )
 
-        [prec,psia,wa,ea,xa] = precess ( ttt, '80' );
+    [prec,psia,wa,ea,xa] = precess ( ttt, '80' );
 
-        rmod=prec'*reci;
+    rmod=prec'*reci;
 
-        vmod=prec'*veci;
+    vmod=prec'*veci;
 
-        amod=prec'*aeci;
+    amod=prec'*aeci;
 
-
+end
