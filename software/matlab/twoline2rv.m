@@ -201,6 +201,19 @@
     [mon,day,hr,minute,sec] = days2mdh ( year,satrec.epochdays );
     [satrec.jdsatepoch, satrec.jdsatepochf] = jday( year,mon,day,hr,minute,sec );
 
+    % perform complete catalog evaluation
+    if (typerun == 'c')
+        startmfe =  -1440.0;
+        stopmfe  =  1440.0;
+        deltamin = 20.0;
+    end
+    % user input
+    if (typerun == 'u')
+        startmfe =  0.0;
+        stopmfe  =  14400.0;
+        deltamin = 1440.0;
+    end
+
     %     // input start stop times manually
     if ((typerun ~= 'v') && (typerun ~= 'c')  && (typerun ~= 'u'))
         % ------------- enter start/stop ymd hms values --------------------
@@ -247,19 +260,6 @@
             stopmfe  = input('input stop mfe: ');
             deltamin = input('input time step in minutes: ');
         end
-    end
-
-    % perform complete catalog evaluation
-    if (typerun == 'c')
-        startmfe =  -1440.0;
-        stopmfe  =  1440.0;
-        deltamin = 20.0;
-    end
-    % user input
-    if (typerun == 'u')
-        startmfe =  0.0;
-        stopmfe  =  14400.0;
-        deltamin = 1440.0;
     end
 
     %     // ------------- initialize the orbit at sgp4epoch --------------
