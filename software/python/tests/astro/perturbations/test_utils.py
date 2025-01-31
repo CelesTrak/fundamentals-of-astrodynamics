@@ -16,13 +16,13 @@ def gravarr_norm(test_data_dir):
     return load_matlab_data(file_path, keys=[struct_name])[struct_name]
 
 
-def test_leg_polyn():
+def test_legpolyn():
     # Define input values
     latgc = np.radians(30.6103084177511)
     order = 5
 
     # Call leg_polyn method
-    legarr_mu, legarr_gu, legarr_mn, legarr_gn = utils.leg_polyn(latgc, order)
+    legarr_mu, legarr_gu, legarr_mn, legarr_gn = utils.legpolyn(latgc, order)
 
     # Expected results
     # fmt: off
@@ -50,6 +50,7 @@ def test_leg_polyn():
     ])
     # fmt: on
 
+    # Check results
     assert custom_allclose(legarr_mu, legarr_mu_exp)
     assert custom_allclose(legarr_gu, legarr_mu_exp)
     assert custom_allclose(legarr_mn, legarr_mn_exp)

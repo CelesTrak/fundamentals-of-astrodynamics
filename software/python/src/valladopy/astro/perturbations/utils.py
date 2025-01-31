@@ -6,6 +6,7 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
+import math
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -19,7 +20,7 @@ class GravityFieldData:
     normalized: bool = False
 
 
-def leg_polyn(
+def legpolyn(
     latgc: float, order: int
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Computes Legendre polynomials for the gravity field.
@@ -72,8 +73,7 @@ def leg_polyn(
         for m in range(n + 1):
             factor = 1 if m == 0 else 2
             conv = np.sqrt(
-                (np.math.factorial(n - m) * factor * (2 * n + 1))
-                / np.math.factorial(n + m)
+                (math.factorial(n - m) * factor * (2 * n + 1)) / math.factorial(n + m)
             )
             legarr_mn[n, m] = conv * legarr_mu[n, m]
 
@@ -109,8 +109,7 @@ def leg_polyn(
         for m in range(n + 1):
             factor = 1 if m == 0 else 2
             conv1 = np.sqrt(
-                (np.math.factorial(n - m) * factor * (2 * n + 1))
-                / np.math.factorial(n + m)
+                (math.factorial(n - m) * factor * (2 * n + 1)) / math.factorial(n + m)
             )
             legarr_gn[n, m] = conv1 * legarr_gu[n, m]
 
