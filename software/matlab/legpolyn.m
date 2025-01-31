@@ -13,7 +13,7 @@
 %  author        : david vallado                    719-573-2600  10 oct 2019
 %
 %  inputs        description                                   range / units
-%    latgc       - Geocentric lat of satellite                   pi to pi rad
+%    latgc       - Geocentric lat of satellite                   -pi to pi rad
 %    lon         - longitude of satellite                        0 - 2pi rad
 %    order       - size of gravity field                         1..~170
 %
