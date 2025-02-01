@@ -1,2 +1,5 @@
+[project]
+license = {text = "AGPL-3.0"}
+
 [tool.black]
-target-version = ['py312']  # Set the target Python version
+target-version = ['py312']  # target Python version
