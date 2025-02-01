@@ -21,7 +21,8 @@ jobs:
         python-version: '3.12.2'
     - name: Install dependencies
       run: |
-        pip install -r software/python/requirements.txt
+        cd software/python
+        pip install -e .
     - name: Install linters and formatters
       run: |
         pip install black==24.10.0 flake8==7.0.0

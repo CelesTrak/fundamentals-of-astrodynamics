@@ -1,5 +1,18 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
+name = "valladopy"
+version = "0.1.0"
+description = "Astrodynamics routines from Vallado's textbook"
+authors = [{name = "David Vallado", email = "davallado@gmail.com"}]
 license = {text = "AGPL-3.0"}
+dependencies = [
+    "numpy==1.26.4",
+    "pydantic==2.9.2",
+    "scipy==1.13.1",
+]
 
 [tool.black]
-target-version = ['py312']  # target Python version
+target-version = ['py312']
