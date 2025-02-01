@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "valladopy"
 version = "0.1.0"
-description = "Astrodynamics routines from Vallado's textbook"
+description = "Routines from Fundamentals of Astrodynamics and Applications by David Vallado"
 authors = [{name = "David Vallado", email = "davallado@gmail.com"}]
 license = {text = "AGPL-3.0"}
 dependencies = [
