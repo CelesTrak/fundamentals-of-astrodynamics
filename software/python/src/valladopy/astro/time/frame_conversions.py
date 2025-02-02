@@ -186,10 +186,16 @@ def eci2ecef(
     vecef = pm.T @ vpef
 
     # Acceleration transformation
-    aecef = pm.T @ st.T @ nut.T @ prec.T @ (
-        aeci 
-        - np.cross(omegaearth, np.cross(omegaearth, rpef))
-        - 2 * np.cross(omegaearth, vpef)
+    aecef = (
+        pm.T
+        @ st.T
+        @ nut.T
+        @ prec.T
+        @ (
+            aeci
+            - np.cross(omegaearth, np.cross(omegaearth, rpef))
+            - 2 * np.cross(omegaearth, vpef)
+        )
     )
 
     return recef, vecef, aecef
