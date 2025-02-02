@@ -187,15 +187,9 @@ def eci2ecef(
 
     # Acceleration transformation
     aecef = (
-        pm.T
-        @ st.T
-        @ nut.T
-        @ prec.T
-        @ (
-            aeci
-            - np.cross(omegaearth, np.cross(omegaearth, rpef))
-            - 2 * np.cross(omegaearth, vpef)
-        )
+        pm.T @ (st.T @ nut.T @ prec.T @ aeci)
+        - np.cross(omegaearth, np.cross(omegaearth, rpef))
+        - 2 * np.cross(omegaearth, vpef)
     )
 
     return recef, vecef, aecef
@@ -321,11 +315,14 @@ def ecef2eci(
     veci = np.dot(prec, np.dot(nut, np.dot(st, vpef + np.cross(omegaearth, rpef))))
 
     # Acceleration transformation
-    aeci = (
-        np.dot(prec, np.dot(nut, np.dot(st, np.dot(pm, aecef))))
-        + np.cross(omegaearth, np.cross(omegaearth, rpef))
-        + 2 * np.cross(omegaearth, vpef)
-    )
+    # Acceleration transformation
+    # 1) Build up total acceleration in PEF,
+    # 2) then rotate from PEF --> ECI
+    apef = pm @ aecef \
+        + np.cross(omegaearth, np.cross(omegaearth, rpef)) \
+        + 2.0 * np.cross(omegaearth, vpef)
+
+    aeci = prec @ nut @ st @ apef
 
     return reci, veci, aeci
 
