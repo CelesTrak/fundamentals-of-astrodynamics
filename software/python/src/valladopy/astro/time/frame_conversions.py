@@ -318,9 +318,11 @@ def ecef2eci(
     # Acceleration transformation
     # 1) Build up total acceleration in PEF,
     # 2) then rotate from PEF --> ECI
-    apef = pm @ aecef \
-        + np.cross(omegaearth, np.cross(omegaearth, rpef)) \
+    apef = (
+        pm @ aecef
+        + np.cross(omegaearth, np.cross(omegaearth, rpef))
         + 2.0 * np.cross(omegaearth, vpef)
+    )
 
     aeci = prec @ nut @ st @ apef
 
