@@ -56,6 +56,31 @@ def calculate_los_vectors(decl: list[float], rtasc: list[float]) -> list[np.ndar
     ]
 
 
+def _halley_iteration(
+    poly: np.ndarray,
+    bigr2c_default: float = 20000 / const.RE,
+    tol: float = 8e-5,
+    max_iter: int = 15,
+):
+    """Perform Halley's iteration to refine the value of bigr2."""
+    # Select the max real root (use fallback of ~GPS altitude if necessary)
+    roots = np.roots(poly)
+    real_roots = roots[np.isreal(roots)].real
+    bigr2c = max(real_roots) if real_roots.size > 0 else bigr2c_default
+
+    # Halley iteration for refining bigr2
+    bigr2, kk = 100, 0
+    while abs(bigr2 - bigr2c) > tol and kk < max_iter:
+        bigr2 = bigr2c
+        deriv = bigr2**8 + poly[2] * bigr2**6 + poly[5] * bigr2**3 + poly[8]
+        deriv1 = 8 * bigr2**7 + 6 * poly[2] * bigr2**5 + 3 * poly[5] * bigr2**2
+        deriv2 = 56 * bigr2**6 + 30 * poly[2] * bigr2**4 + 6 * poly[5] * bigr2
+        bigr2c = bigr2 - (2 * deriv * deriv1) / (2 * deriv1**2 - deriv * deriv2)
+        kk += 1
+
+    return bigr2c
+
+
 def laplace(
     decl1: float,
     decl2: float,
@@ -173,21 +198,9 @@ def laplace(
     poly[2] = l2dotrs * 4 * d1c / d - 4 * d1c**2 / d**2 - np.linalg.norm(rseci2c) ** 2
     poly[5] = l2dotrs * 4 * d2c / d - 8 * d1c * d2c / d**2
     poly[8] = -4 * d2c**2 / d**2
-    roots = np.roots(poly)
 
-    # Select the appropriate root (use fallback of ~GPS altitude if necessary)
-    real_roots = roots.real[roots.imag == 0]
-    bigr2c = max(real_roots) if real_roots.size > 0 else 20000 / const.RE
-
-    # Halley iteration for refining bigr2
-    kk, bigr2 = 0, 100  # initial arbitrary value
-    while abs(bigr2 - bigr2c) > 8.0e-5 and kk < 15:
-        bigr2 = bigr2c
-        deriv = bigr2**8 + poly[2] * bigr2**6 + poly[5] * bigr2**3 + poly[8]
-        deriv1 = 8 * bigr2**7 + 6 * poly[2] * bigr2**5 + 3 * poly[5] * bigr2**2
-        deriv2 = 56 * bigr2**6 + 30 * poly[2] * bigr2**4 + 6 * poly[5] * bigr2
-        bigr2c = bigr2 - (2 * deriv * deriv1) / (2 * deriv1**2 - deriv * deriv2)
-        kk += 1
+    # Halley iteration for refining bigr2c
+    bigr2c = _halley_iteration(poly)
 
     # Solve for rho and rho dot
     rho = -2 * d1c / d - 2 * d2c / (bigr2c**3 * d)
@@ -353,20 +366,8 @@ def gauss(
     poly[5] = -2 * (l2dotrs * d2c + d1c * d2c)
     poly[8] = -(d2c**2)
 
-    # Get real roots
-    roots = np.roots(poly)
-    real_roots = roots[np.isreal(roots)].real
-    bigr2c = max(real_roots) if real_roots.size > 0 else 20000 / const.RE  # fallback
-
-    # Halley iteration for refining bigr2
-    bigr2, kk = 100, 0
-    while abs(bigr2 - bigr2c) > 8.0e-5 and kk < 15:
-        bigr2 = bigr2c
-        deriv = bigr2**8 + poly[2] * bigr2**6 + poly[5] * bigr2**3 + poly[8]
-        deriv1 = 8 * bigr2**7 + 6 * poly[2] * bigr2**5 + 3 * poly[5] * bigr2**2
-        deriv2 = 56 * bigr2**6 + 30 * poly[2] * bigr2**4 + 6 * poly[5] * bigr2
-        bigr2c = bigr2 - (2 * deriv * deriv1) / (2 * deriv1**2 - deriv * deriv2)
-        kk += 1
+    # Halley iteration for refining bigr2c
+    bigr2c = _halley_iteration(poly)
 
     # Ensure a valid radius solution
     if bigr2c < 0 or bigr2c * const.RE > 50000:
