@@ -118,65 +118,86 @@ def laplace(
             "division by zero."
         )
 
-    # Lagrange coefficients
-    s1 = -tau32 / (tau12 * tau13)
-    s2 = (tau12 + tau32) / (tau12 * tau32)
-    s3 = -tau12 / (-tau13 * tau32)
-    s4 = 2 / (tau12 * tau13)
-    s5 = 2 / (tau12 * tau32)
-    s6 = 2 / (-tau13 * tau32)
+    # Normalize to canonical units
+    tau12c = tau12 / const.TUSEC
+    tau13c = tau13 / const.TUSEC
+    tau32c = tau32 / const.TUSEC
+    rseci1c = np.array(rseci1) / const.RE
+    rseci2c = np.array(rseci2) / const.RE
+    rseci3c = np.array(rseci3) / const.RE
 
-    # First and second derivatives of los2
+    # Lagrange coefficients
+    s1 = -tau32c / (tau12c * tau13c)
+    s2 = (tau12c + tau32c) / (tau12c * tau32c)
+    s3 = -tau12c / (-tau13c * tau32c)
+    s4 = 2 / (tau12c * tau13c)
+    s5 = 2 / (tau12c * tau32c)
+    s6 = 2 / (-tau13c * tau32c)
+
+    # First and second derivatives of los vectors
     ldot = s1 * los1 + s2 * los2 + s3 * los3
     lddot = s4 * los1 + s5 * los2 + s6 * los3
 
-    # First and second derivatives of rs2
+    # Derivatives of site position vectors
     if not diffsites:
-        earth_rot_vec = [0, 0, const.EARTHROT]
-        rs2dot = np.cross(earth_rot_vec, rseci2)
+        # Same sites
+        earth_rot_vec = [0, 0, const.EARTHROT * const.TUSEC]  # canonical Earth rotation
+        rs2dot = np.cross(earth_rot_vec, rseci2c)
         rs2ddot = np.cross(earth_rot_vec, rs2dot)
     else:
-        rs2dot = s1 * np.array(rseci1) + s2 * np.array(rseci2) + s3 * np.array(rseci3)
-        rs2ddot = s4 * np.array(rseci1) + s5 * np.array(rseci2) + s6 * np.array(rseci3)
+        # Different sites
+        rs2dot = s1 * rseci1c + s2 * rseci2c + s3 * rseci3c
+        rs2ddot = s4 * rseci1c + s5 * rseci2c + s6 * rseci3c
 
-    # Determinants for position and velocity
+    # Compute determinants
     dmat = np.column_stack((los2, ldot, lddot))
     dmat1 = np.column_stack((los2, ldot, rs2ddot))
-    dmat2 = np.column_stack((los2, ldot, rseci2))
+    dmat2 = np.column_stack((los2, ldot, rseci2c))
     dmat3 = np.column_stack((los2, rs2ddot, lddot))
-    dmat4 = np.column_stack((los2, rseci2, lddot))
+    dmat4 = np.column_stack((los2, rseci2c, lddot))
 
     d = 2 * np.linalg.det(dmat)
-    d1 = np.linalg.det(dmat1)
-    d2 = np.linalg.det(dmat2)
-    d3 = np.linalg.det(dmat3)
-    d4 = np.linalg.det(dmat4)
+    d1c = np.linalg.det(dmat1)
+    d2c = np.linalg.det(dmat2)
+    d3c = np.linalg.det(dmat3)
+    d4c = np.linalg.det(dmat4)
 
     # Check determinant value
     if abs(d) < const.SMALL:
         raise ValueError("Determinant is too small; system may be singular.")
 
     # Solve the 8th-order polynomial
-    l2dotrs = np.dot(los2, rseci2)
+    l2dotrs = np.dot(los2, rseci2c)
     poly = np.zeros(9)
     poly[0] = 1
-    poly[2] = l2dotrs * 4 * d1 / d - 4 * d1**2 / d**2 - np.linalg.norm(rseci2) ** 2
-    poly[5] = const.MU * (l2dotrs * 4 * d2 / d - 8 * d1 * d2 / d**2)
-    poly[8] = -4 * const.MU**2 * d2**2 / d**2
+    poly[2] = l2dotrs * 4 * d1c / d - 4 * d1c**2 / d**2 - np.linalg.norm(rseci2c) ** 2
+    poly[5] = l2dotrs * 4 * d2c / d - 8 * d1c * d2c / d**2
+    poly[8] = -4 * d2c**2 / d**2
     roots = np.roots(poly)
 
-    # Select the appropriate root
-    bigr2 = max(root.real for root in roots if root.imag == 0 and root.real > 0)
+    # Select the appropriate root (use fallback of ~GPS altitude if necessary)
+    real_roots = roots.real[roots.imag == 0]
+    bigr2c = max(real_roots) if real_roots.size > 0 else 20000 / const.RE
+
+    # Halley iteration for refining bigr2
+    kk, bigr2 = 0, 100  # initial arbitrary value
+    while abs(bigr2 - bigr2c) > 8.0e-5 and kk < 15:
+        bigr2 = bigr2c
+        deriv = bigr2**8 + poly[2] * bigr2**6 + poly[5] * bigr2**3 + poly[8]
+        deriv1 = 8 * bigr2**7 + 6 * poly[2] * bigr2**5 + 3 * poly[5] * bigr2**2
+        deriv2 = 56 * bigr2**6 + 30 * poly[2] * bigr2**4 + 6 * poly[5] * bigr2
+        bigr2c = bigr2 - (2 * deriv * deriv1) / (2 * deriv1**2 - deriv * deriv2)
+        kk += 1
 
     # Solve for rho and rho dot
-    rho = -2 * d1 / d - 2 * const.MU * d2 / (bigr2**3 * d)
-    rhodot = -d3 / d - const.MU * d4 / (bigr2**3 * d)
+    rho = -2 * d1c / d - 2 * d2c / (bigr2c**3 * d)
+    rhodot = -d3c / d - d4c / (bigr2c**3 * d)
 
     # Position and velocity vectors at the middle
-    r2 = rho * los2 + rseci2
-    v2 = rhodot * los2 + rho * ldot + rs2dot
+    r2c = rho * los2 + rseci2c
+    v2c = rhodot * los2 + rho * ldot + rs2dot
 
-    return r2, v2
+    return r2c * const.RE, v2c * const.RE / const.TUSEC
 
 
 def _update_fg_series(
