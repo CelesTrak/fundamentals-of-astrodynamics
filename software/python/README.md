@@ -4,7 +4,7 @@ This directory contains the **Python implementation** of the routines from the p
 
 ## Key Differences
 - **Function Modeling & Validation**: Python functions were designed based on MATLAB implementations and validated against them.
-- **Use of NumPy & SciPy**: Lower-level math and linear algebra functions (e.g., vector/matrix operations, interpolation) were excluded in favor of `numpy` and `scipy`. Some routines were also intentionally omitted based on their utility.
+- **Use of NumPy & SciPy**: Lower-level math and linear algebra functions (e.g., vector/matrix operations, interpolation) were excluded in favor of `numpy` and `scipy`. Some routines were also intentionally omitted based on their utility. Functions that won't be implemented are greyed out on the spreadsheet.
 - **Differences in Arguments & Returns**: Some function signatures differ (e.g. using enums and booleans instead of strings) for clarity. Refer to the docstrings for details on function usage.
 
 ## Installation
