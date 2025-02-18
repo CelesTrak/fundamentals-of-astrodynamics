@@ -10,7 +10,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from typing import Tuple
 
-from .utils import gibbs, hgibbs
+from .utils import gibbs
 from ... import constants as const
 
 
@@ -272,10 +272,9 @@ def gauss(
     jdf2: float,
     jd3: float,
     jdf3: float,
-    rseci1: np.ndarray,
-    rseci2: np.ndarray,
-    rseci3: np.ndarray,
-    angle_tol: float = np.radians(1),
+    rseci1: ArrayLike,
+    rseci2: ArrayLike,
+    rseci3: ArrayLike,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Solve orbit determination problem using three optical sightings and the
     Gaussian method.
@@ -296,10 +295,9 @@ def gauss(
         jdf2 (float): Julian date fraction of second sighting (days from 4713 BC)
         jd3 (float): Julian date of third sighting (days from 4713 BC)
         jdf3 (float): Julian date fraction of third sighting (days from 4713 BC)
-        rseci1 (np.ndarray): ECI site position vector of first sighting in km
-        rseci2 (np.ndarray): ECI site position vector of second sighting in km
-        rseci3 (np.ndarray): ECI site position vector of third sighting in km
-        angle_tol (float, optional): Tolerance for angles in radians (default = 1 deg)
+        rseci1 (array_like): ECI site position vector of first sighting in km
+        rseci2 (array_like): ECI site position vector of second sighting in km
+        rseci3 (array_like): ECI site position vector of third sighting in km
 
     Returns:
         tuple: (r2, v2)
@@ -314,6 +312,13 @@ def gauss(
         [decl1, decl2, decl3], [rtasc1, rtasc2, rtasc3]
     )
 
+    # Normalize to canonical units
+    tau12c = tau12 / const.TUSEC
+    tau32c = tau32 / const.TUSEC
+    rseci1c = np.array(rseci1) / const.RE
+    rseci2c = np.array(rseci2) / const.RE
+    rseci3c = np.array(rseci3) / const.RE
+
     # Construct l-matrix and determinant
     lmat = np.column_stack([los1, los2, los3])
     d = np.linalg.det(lmat)
@@ -326,35 +331,51 @@ def gauss(
     lmati = np.linalg.inv(lmat)
 
     # Range-site matrix
-    rsmat = np.column_stack([rseci1, rseci2, rseci3])
-    lir = lmati @ rsmat
+    rsmatc = np.column_stack([rseci1c, rseci2c, rseci3c])
+    lir = lmati @ rsmatc
 
     # Calculate coefficients for polynomial
-    a1 = tau32 / (tau32 - tau12)
-    a1u = (tau32 * ((tau32 - tau12) ** 2 - tau32**2)) / (6 * (tau32 - tau12))
-    a3 = -tau12 / (tau32 - tau12)
-    a3u = -(tau12 * ((tau32 - tau12) ** 2 - tau12**2)) / (6 * (tau32 - tau12))
+    a1 = tau32c / (tau32c - tau12c)
+    a1u = (tau32c * ((tau32c - tau12c) ** 2 - tau32c**2)) / (6 * (tau32c - tau12c))
+    a3 = -tau12c / (tau32c - tau12c)
+    a3u = -(tau12c * ((tau32c - tau12c) ** 2 - tau12c**2)) / (6 * (tau32c - tau12c))
 
-    dl1 = lir[1, 0] * a1 - lir[1, 1] + lir[1, 2] * a3
-    dl2 = lir[1, 0] * a1u + lir[1, 2] * a3u
+    # Polynomial terms
+    d1c = lir[1, 0] * a1 - lir[1, 1] + lir[1, 2] * a3
+    d2c = lir[1, 0] * a1u + lir[1, 2] * a3u
+    magrs2 = np.linalg.norm(rseci2c)
+    l2dotrs = np.dot(los2, rseci2c)
 
-    magrs2 = np.linalg.norm(rseci2)
-    l2dotrs = np.dot(los2, rseci2)
-
-    # Polynomial coefficients
+    # Solve the 8th-order polynomial
     poly = np.zeros(9)
     poly[0] = 1
-    poly[2] = -(dl1**2 + 2 * dl1 * l2dotrs + magrs2**2)
-    poly[5] = -2 * const.MU * (l2dotrs * dl2 + dl1 * dl2)
-    poly[8] = -const.MU**2 * dl2**2
+    poly[2] = -(d1c**2 + 2 * d1c * l2dotrs + magrs2**2)
+    poly[5] = -2 * (l2dotrs * d2c + d1c * d2c)
+    poly[8] = -(d2c**2)
 
-    # Roots of the polynomial
+    # Get real roots
     roots = np.roots(poly)
-    roots = roots[np.isreal(roots)].real  # filter real roots
-    if len(roots) == 0:
-        raise ValueError("No valid roots found.")
+    real_roots = roots[np.isreal(roots)].real
+    bigr2c = max(real_roots) if real_roots.size > 0 else 20000 / const.RE  # fallback
 
-    bigr2 = max(roots)
+    # Halley iteration for refining bigr2
+    bigr2, kk = 100, 0
+    while abs(bigr2 - bigr2c) > 8.0e-5 and kk < 15:
+        bigr2 = bigr2c
+        deriv = bigr2**8 + poly[2] * bigr2**6 + poly[5] * bigr2**3 + poly[8]
+        deriv1 = 8 * bigr2**7 + 6 * poly[2] * bigr2**5 + 3 * poly[5] * bigr2**2
+        deriv2 = 56 * bigr2**6 + 30 * poly[2] * bigr2**4 + 6 * poly[5] * bigr2
+        bigr2c = bigr2 - (2 * deriv * deriv1) / (2 * deriv1**2 - deriv * deriv2)
+        kk += 1
+
+    # Ensure a valid radius solution
+    if bigr2c < 0 or bigr2c * const.RE > 50000:
+        bigr2c = 35000 / const.RE  # adjust to a GEO-like altitude
+
+    # Convert some values back to non-canonical units
+    bigr2 = bigr2c * const.RE
+    a1u *= const.TUSEC**2
+    a3u *= const.TUSEC**2
 
     # Solve for improved estimates of f and g series
     u = const.MU / bigr2**3
@@ -363,43 +384,18 @@ def gauss(
     c3 = a3 + a3u * u
 
     # Compute range values
+    rsmat = np.column_stack([rseci1, rseci2, rseci3])
+    lir = lmati @ rsmat
     cmat = np.array([-c1, -c2, -c3]).reshape(-1, 1)
     rhomat = lir @ cmat
-    rhoold2 = rhomat[1, 0] / c2
-    rho2 = np.inf
 
-    # Iteratively solve for r2 and v2
-    ll = 0
-    r2, v2 = np.zeros(3), np.zeros(3)
-    while abs(rhoold2 - rho2) > const.SMALL and ll <= 0:
-        ll += 1
-        rho2 = rhoold2
+    # Form position vectors
+    r1 = rhomat[0, 0] * los1 / c1 + rseci1
+    r2 = rhomat[1, 0] * los2 / c2 + rseci2
+    r3 = rhomat[2, 0] * los3 / c3 + rseci3
 
-        # Recompute range values
-        r1 = rhomat[0, 0] * los1 / c1 + rseci1
-        r2 = rhomat[1, 0] * los2 / -1 + rseci2
-        r3 = rhomat[2, 0] * los3 / c3 + rseci3
-
-        # Call gibbs method
-        v2, theta12, theta23, _ = gibbs(r1, r2, r3)
-
-        # Check for fallback to hgibbs
-        v2_empty = np.all(np.isclose(v2, 0))
-        if v2_empty or any(abs(theta) < angle_tol for theta in (theta12, theta23)):
-            v2, *_ = hgibbs(r1, r2, r3, jd1 + jdf1, jd2 + jdf2, jd3 + jdf3)
-
-        # Update f and g series
-        f1, g1, f3, g3 = _update_fg_series(ll, r1, r2, r3, v2, tau12, tau32, bigr2)
-
-        # Recalculate coefficients
-        c1 = g3 / (f1 * g3 - f3 * g1)
-        c3 = -g1 / (f1 * g3 - f3 * g1)
-
-        # Recompute rhomat with updated coefficients
-        rhomat = lir @ np.array([-c1, -c2, -c3]).reshape(-1, 1)
-
-        # Update the range value for convergence
-        rhoold2 = rhomat[1, 0] / c2
+    # Find middle velocity vector with gibbs
+    v2, *_ = gibbs(r1, r2, r3)
 
     return r2, v2
 

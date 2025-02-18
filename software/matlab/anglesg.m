@@ -296,6 +296,7 @@ function [r2, v2] = anglesg(decl1, decl2, decl3, rtasc1, rtasc2, ...
         %bigr2n = bigr2 - deriv * n2 / (deriv1 * (n2 - deriv * deriv2 * 0.5));
         % Halley iteration
         bigr2c = bigr2 - (2.0 * deriv * deriv1) / (2.0 * deriv1 * deriv1 - deriv * deriv2);
+        kk = kk + 1;
     end
 
     if (bigr2c < 0.0 || bigr2c * re > 50000.0)
