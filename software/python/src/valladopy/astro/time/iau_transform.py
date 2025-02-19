@@ -362,16 +362,15 @@ def iau06pnb(
 ########################################################################################
 
 
-def _get_mfme_recnum(jdtt, jdttf, mjd0):
+def _get_mfme_recnum(jd: float, jdf: float, mjd0: float) -> Tuple[float, int]:
     # Calculate the Julian day at 0000 hr
-    jdb = np.floor(jdtt + jdttf) + 0.5
-    mfme = (jdtt + jdttf - jdb) * const.DAY2MIN
+    jdb = np.floor(jd + jdf) + 0.5
+    mfme = (jd + jdf - jdb) * const.DAY2MIN
     if mfme < 0:
         mfme += const.DAY2MIN
 
     # Find the record number corresponding to the desired day
-    jdxysstarto = np.floor(jdtt + jdttf - mjd0 - const.JD_TO_MJD_OFFSET)
-    recnum = int(np.floor(jdxysstarto))
+    recnum = int(np.floor(jd + jdf - mjd0 - const.JD_TO_MJD_OFFSET))
 
     return mfme, recnum
 
@@ -751,8 +750,8 @@ def iau06xys(
 
 
 def findeopparam(
-    jdtdb: float,
-    jdtdbf: float,
+    jd: float,
+    jdf: float,
     eoparr: EOPArray,
     interp: InterpolationMode | None = None,
 ) -> Tuple[float, float, float, float, float, float, float, float, float]:
@@ -762,8 +761,8 @@ def findeopparam(
         Vallado, 2013
 
     Args:
-        jdtdb (float): Epoch Julian day (days from 4713 BC)
-        jdtdbf (float): Epoch Julian day fraction (day fraction from jdutc)
+        jd (float): Epoch Julian day (days from 4713 BC)
+        jdf (float): Epoch Julian day fraction (day fraction from jdutc)
         eoparr (EOPArray): EOP data
         interp (InterpolationMode, optional): Interpolation mode (default: None)
 
@@ -780,7 +779,7 @@ def findeopparam(
             dy (float): Celestial pole (CIP) y offset in radians
     """
     # Find the record number corresponding to the desired day
-    mfme, recnum = _get_mfme_recnum(jdtdb, jdtdbf, eoparr.mjd[0])
+    mfme, recnum = _get_mfme_recnum(jd, jdf, eoparr.mjd[0])
 
     # Ensure recnum is within valid bounds
     if 0 <= recnum < len(eoparr.mjd) - 1:

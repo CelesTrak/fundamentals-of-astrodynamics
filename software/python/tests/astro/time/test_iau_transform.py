@@ -39,7 +39,7 @@ def fundargs():
 
 
 @pytest.fixture()
-def jdtt_jdttf():
+def jd_jdf():
     return 2453101.5, 0.328154745474537
 
 
@@ -214,9 +214,9 @@ def test_iau06pnb(ttt, iau06data_old):
         ),
     ],
 )
-def test_findxysparam(iau06xysarr, jdtt_jdttf, interp, x_exp, y_exp, s_exp):
+def test_findxysparam(iau06xysarr, jd_jdf, interp, x_exp, y_exp, s_exp):
     # Call function
-    x, y, s = iau_transform.findxysparam(*jdtt_jdttf, iau06xysarr, interp=interp)
+    x, y, s = iau_transform.findxysparam(*jd_jdf, iau06xysarr, interp=interp)
 
     # Check against expected values
     assert custom_isclose(x, x_exp)
@@ -349,8 +349,8 @@ def test_iau06xys_bad(ttt, iau06arr):
         ),
     ],
 )
-def test_findeopparam(eoparr, jdtt_jdttf, interp, eop_params_exp):
-    eop_params = iau_transform.findeopparam(*jdtt_jdttf, eoparr, interp=interp)
+def test_findeopparam(eoparr, jd_jdf, interp, eop_params_exp):
+    eop_params = iau_transform.findeopparam(*jd_jdf, eoparr, interp=interp)
     for i, param in enumerate(eop_params):
         if i == 1:  # dat
             assert int(param) == eop_params_exp[i]
