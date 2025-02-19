@@ -750,10 +750,7 @@ def iau06xys(
 
 
 def findeopparam(
-    jd: float,
-    jdf: float,
-    eoparr: EOPArray,
-    interp: InterpolationMode | None = None,
+    jd: float, jdf: float, eoparr: EOPArray, interp: InterpolationMode | None = None
 ) -> Tuple[float, float, float, float, float, float, float, float, float]:
     """Finds the EOP parameters for a given time with optional interpolation.
 
