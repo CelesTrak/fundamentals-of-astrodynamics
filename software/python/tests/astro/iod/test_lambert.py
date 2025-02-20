@@ -178,44 +178,44 @@ class TestLambertBattin:
             lambert.hodograph(r1, new_r2, v1, p, ecc, dnu, dtsec)
 
     @pytest.mark.parametrize(
-        "dm, df, v1dv_exp, v2dv_exp",
+        "dm, de, v1t_exp, v2t_exp",
         [
             (
-                lambert.DirectionOfMotion.LONG,
-                lambert.DirectionOfFlight.DIRECT,
+                lambert.DirectionOfMotion.SHORT,
+                lambert.DirectionOfEnergy.HIGH,
                 [-0.8696153795282852, 6.3351545812502374, 0],
                 [-3.405994961791248, 5.41198791828363, 0],
             ),
             (
                 lambert.DirectionOfMotion.SHORT,
-                lambert.DirectionOfFlight.DIRECT,
+                lambert.DirectionOfEnergy.LOW,
                 [5.832522716212579, 1.4319944881331306, 0],
                 [-5.388439978490882, -2.652101898141935, 0],
             ),
             (
                 lambert.DirectionOfMotion.LONG,
-                lambert.DirectionOfFlight.RETROGRADE,
+                lambert.DirectionOfEnergy.HIGH,
                 [-6.241103309400493, -1.351339299630816, 0],
                 [5.6495867154901545, 2.976517897853268, 0],
             ),
             (
-                lambert.DirectionOfMotion.SHORT,
-                lambert.DirectionOfFlight.RETROGRADE,
+                lambert.DirectionOfMotion.LONG,
+                lambert.DirectionOfEnergy.LOW,
                 [0.6411191586146303, -5.957501823796459, 0],
                 [3.33828270226307, -4.975814585231199, 0],
             ),
         ],
     )
-    def test_battin(self, lambert_inputs, dm, df, v1dv_exp, v2dv_exp):
+    def test_battin(self, lambert_inputs, dm, de, v1t_exp, v2t_exp):
         # Unpack inputs and set dtsec
         r1, r2, v1, nrev, dtsec = lambert_inputs
 
         # Compute Lambert minimum time
-        v1dv, v2dv = lambert.battin(r1, r2, v1, dm, df, nrev, dtsec)
+        v1t, v2t = lambert.battin(r1, r2, v1, dm, de, nrev, dtsec)
 
         # Check results
-        assert np.allclose(v1dv, v1dv_exp, rtol=DEFAULT_TOL)
-        assert np.allclose(v2dv, v2dv_exp, rtol=DEFAULT_TOL)
+        assert np.allclose(v1t, v1t_exp, rtol=DEFAULT_TOL)
+        assert np.allclose(v2t, v2t_exp, rtol=DEFAULT_TOL)
 
     def test_battin_bad_inputs(self, lambert_inputs):
         # Unpack inputs
