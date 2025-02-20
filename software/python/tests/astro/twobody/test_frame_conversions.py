@@ -388,23 +388,23 @@ class TestAzEl:
         del_el = 0.0015655515448868324
         return rho, az, el, drho, daz, del_el
 
-    def test_raz2rvs(self, azel, rvsez):
+    def test_razel2rvsez(self, azel, rvsez):
         # Expected outputs
         rhosez_exp, drhosez_exp = rvsez
 
         # Call function with test inputs
-        rhosez, drhosez = fc.raz2rvs(*azel)
+        rhosez, drhosez = fc.razel2rvsez(*azel)
 
         # Check if output values are close
         assert np.allclose(rhosez, rhosez_exp, rtol=DEFAULT_TOL)
         assert np.allclose(drhosez, drhosez_exp, rtol=DEFAULT_TOL)
 
-    def test_rvs2raz(self, azel, rvsez):
+    def test_rvsez2razel(self, azel, rvsez):
         # Expected outputs
         rho_exp, az_exp, el_exp, drho_exp, daz_exp, del_el_exp = azel
 
         # Call function with test inputs
-        rho, az, el, drho, daz, del_el = fc.rvs2raz(*rvsez)
+        rho, az, el, drho, daz, del_el = fc.rvsez2razel(*rvsez)
 
         # Check if output values are close
         assert np.isclose(rho, rho_exp, rtol=DEFAULT_TOL)
@@ -439,6 +439,29 @@ class TestAzEl:
         assert np.isclose(drho, drho_exp, rtol=DEFAULT_TOL)
         assert custom_isclose(daz, daz_exp)
         assert custom_isclose(del_el, del_el_exp)
+
+    def test_rv2sez(self, rv, lla):
+        # Extract inputs
+        lat, lon, _ = lla
+
+        # Expected outputs
+        rsez_exp = np.array([602.8957315153393, 2981.7634632869376, 6304.411422641106])
+        vsez_exp = np.array([3.3317577939708922, 3.2551695824562303, 5.633130913056652])
+        transmat_exp = np.array(
+            [
+                [-0.1616628434376868, -0.6082999145309317, -0.7770690696671071],
+                [0.9664523296185664, -0.2568460522858898, 0],
+                [-0.1995871228974655, -0.7510002126543076, 0.6294153326434754],
+            ]
+        )
+
+        # Call function with test inputs
+        rsez, vsez, transmat = fc.rv2sez(*rv, lat, lon)
+
+        # Check if output values are close
+        assert np.allclose(rsez, rsez_exp, rtol=DEFAULT_TOL)
+        assert np.allclose(vsez, vsez_exp, rtol=DEFAULT_TOL)
+        assert custom_allclose(transmat, transmat_exp)
 
 
 class TestSatCoord:
