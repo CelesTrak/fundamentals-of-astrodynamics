@@ -38,6 +38,15 @@ def ecef_inputs():
     return ttt, jdut1, lod, xp, yp, ddpsi, ddeps
 
 
+# Site geodetic coordinates
+@pytest.fixture
+def lla():
+    latgd = np.radians(39.007)
+    lon = np.radians(-104.883)
+    alt = 2.102
+    return latgd, lon, alt
+
+
 class TestSpherical:
     @pytest.fixture
     def rv(self):
@@ -371,14 +380,6 @@ class TestAzEl:
         return rhosez, drhosez
 
     @pytest.fixture
-    def lla(self):
-        # Site geodetic coordinates
-        latgd = np.radians(39.007)
-        lon = np.radians(-104.883)
-        alt = 2.102
-        return latgd, lon, alt
-
-    @pytest.fixture
     def azel(self):
         rho = 4339.444884044615
         az = -1.5639427896150881
@@ -440,14 +441,18 @@ class TestAzEl:
         assert custom_isclose(daz, daz_exp)
         assert custom_isclose(del_el, del_el_exp)
 
-    def test_rv2sez(self, rv, lla):
-        # Extract inputs
-        lat, lon, _ = lla
 
-        # Expected outputs
-        rsez_exp = np.array([602.8957315153393, 2981.7634632869376, 6304.411422641106])
-        vsez_exp = np.array([3.3317577939708922, 3.2551695824562303, 5.633130913056652])
-        transmat_exp = np.array(
+class TestSiteTopocentric:
+    @pytest.fixture
+    def rvsez(self):
+        rsez = [602.8957315153393, 2981.7634632869376, 6304.411422641106]
+        vsez = [3.3317577939708922, 3.2551695824562303, 5.633130913056652]
+        return rsez, vsez
+
+    @pytest.fixture
+    def transmat(self):
+        """Transformation matrix from ECI to SEZ"""
+        return np.array(
             [
                 [-0.1616628434376868, -0.6082999145309317, -0.7770690696671071],
                 [0.9664523296185664, -0.2568460522858898, 0],
@@ -455,13 +460,35 @@ class TestAzEl:
             ]
         )
 
+    def test_rv2sez(self, rv, lla, rvsez, transmat):
+        # Extract lat and lon
+        lat, lon, _ = lla
+
+        # Expected outputs
+        rsez_exp, vsez_exp = rvsez
+
         # Call function with test inputs
-        rsez, vsez, transmat = fc.rv2sez(*rv, lat, lon)
+        rsez, vsez, transmat_out = fc.rv2sez(*rv, lat, lon)
 
         # Check if output values are close
         assert np.allclose(rsez, rsez_exp, rtol=DEFAULT_TOL)
         assert np.allclose(vsez, vsez_exp, rtol=DEFAULT_TOL)
-        assert custom_allclose(transmat, transmat_exp)
+        assert custom_allclose(transmat_out, transmat)
+
+    def test_sez2rv(self, rv, lla, rvsez, transmat):
+        # Extract lat and lon
+        lat, lon, _ = lla
+
+        # Expected outputs
+        reci_exp, veci_exp = rv
+
+        # Call function with test inputs
+        reci, veci, transmat_out = fc.sez2rv(*rvsez, lat, lon)
+
+        # Check if output values are close
+        assert np.allclose(reci, reci_exp, rtol=DEFAULT_TOL)
+        assert np.allclose(veci, veci_exp, rtol=DEFAULT_TOL)
+        assert custom_allclose(transmat_out.T, transmat)
 
 
 class TestSatCoord:

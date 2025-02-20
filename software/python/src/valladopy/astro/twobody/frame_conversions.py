@@ -1000,9 +1000,9 @@ def rv2radec(
     return rr, rtasc, decl, drr, drtasc, ddecl
 
 
-###############################################################################
+########################################################################################
 # Azimuth-Elevation Elements
-###############################################################################
+########################################################################################
 
 
 def razel2rvsez(
@@ -1218,6 +1218,29 @@ def rv2razel(
     return rho, az, el, drho, daz, del_el
 
 
+########################################################################################
+# Site Topocentric (SEZ) Elements
+########################################################################################
+
+
+def _sez_transformation_matrix(lat: float, lon: float) -> np.ndarray:
+    """Computes the transformation matrix from ECI to SEZ."""
+    # Zenith component
+    zvec = unit(
+        np.array([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)])
+    )
+
+    # East component
+    kvec = np.array([0, 0, 1])
+    evec = unit(np.cross(kvec, zvec))
+
+    # South component
+    svec = unit(np.cross(evec, zvec))
+
+    # Transformation matrix
+    return np.vstack([svec, evec, zvec])
+
+
 def rv2sez(
     reci: ArrayLike, veci: ArrayLike, lat: float, lon: float
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -1236,38 +1259,51 @@ def rv2sez(
 
     Returns:
         tuple: (rsez, vsez, transmat)
-            rsez (np.ndarray): Position vector in SEZ frame in km
-            vsez (np.ndarray): Velocity vector in SEZ frame in km/s
+            rsez (np.ndarray): SEZ position vector in km
+            vsez (np.ndarray): SEZ velocity vector in km/s
             transmat (np.ndarray): Transformation matrix from ECI to SEZ
     """
-    # Magnitude of the position vector
-    mag_reci = np.linalg.norm(reci)
-
-    # Zenith component
-    rs = np.array(
-        [
-            mag_reci * np.cos(lat) * np.cos(lon),
-            mag_reci * np.cos(lat) * np.sin(lon),
-            mag_reci * np.sin(lat),
-        ]
-    )
-    zvec = unit(rs)
-
-    # East component
-    kvec = np.array([0, 0, 1])
-    evec = unit(np.cross(kvec, zvec))
-
-    # South component
-    svec = unit(np.cross(evec, zvec))
-
-    # Assemble transformation matrix from ECI to SEZ
-    transmat = np.vstack([svec, evec, zvec])
+    # Transformation matrix from ECI to SEZ
+    transmat = _sez_transformation_matrix(lat, lon)
 
     # Transform position and velocity vectors
     rsez = transmat @ reci
     vsez = transmat @ veci
 
     return rsez, vsez, transmat
+
+
+def sez2rv(
+    rsez: ArrayLike, vsez: ArrayLike, lat: float, lon: float
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Converts site topocentric (SEZ) coordinates into ECI position and velocity
+    vectors.
+
+    References:
+        Vallado: 2004, p. 162
+
+    Args:
+        rsez (array_like): SEZ position vector in km
+        vsez (array_like): SEZ velocity vector in km/s
+        lat (float): Relative latitude of the second satellite w.r.t. the first
+                     in radians
+        lon (float): Relative longitude of the second satellite w.r.t the first
+                     in radians
+
+    Returns:
+        tuple: (reci, veci, transmat)
+            reci (np.ndarray): ECI position vector in km
+            veci (np.ndarray): ECI velocity vector in km/s
+            transmat (np.ndarray): Transformation matrix from SEZ to ECI
+    """
+    # Transformation matrix from SEZ to ECI
+    transmat = _sez_transformation_matrix(lat, lon).T
+
+    # Transform back to ECI
+    reci = transmat @ rsez
+    veci = transmat @ vsez
+
+    return reci, veci, transmat
 
 
 ########################################################################################
