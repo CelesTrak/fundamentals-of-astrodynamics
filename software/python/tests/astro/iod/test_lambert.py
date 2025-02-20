@@ -18,7 +18,7 @@ def lambert_inputs():
 
 def test_calculate_mag_and_angle(lambert_inputs):
     # Unpack inputs
-    r1, r2, _, _, _ = lambert_inputs
+    r1, r2, *_ = lambert_inputs
 
     # Compute magnitude and angle
     magr1, magr2, angle = lambert.calculate_mag_and_angle(r1, r2)
@@ -111,6 +111,28 @@ class TestLambert:
         assert np.allclose(tmin, tmin_exp, rtol=DEFAULT_TOL)
         assert np.allclose(tminp, tminp_exp, rtol=DEFAULT_TOL)
         assert np.allclose(tminenergy, tminenergy_exp, rtol=DEFAULT_TOL)
+
+    @pytest.mark.parametrize(
+        "dm, tmaxrp_exp, v1t_exp",
+        [
+            (lambert.DirectionOfMotion.LONG, 37850.19485964372, np.zeros(3)),
+            (
+                lambert.DirectionOfMotion.SHORT,
+                22264.820236293686,
+                np.array([-1.1835179322811704e-07, 4.999792624745, 0]),
+            ),
+        ],
+    )
+    def test_tmax_rp(self, lambert_inputs, dm, tmaxrp_exp, v1t_exp):
+        # Unpack inputs
+        r1, r2, _, nrev, _ = lambert_inputs
+
+        # Compute Lambert maximum radius of perigee
+        tmaxrp, v1t = lambert.tmax_rp(r1, r2, dm, nrev)
+
+        # Check results
+        assert np.isclose(tmaxrp, tmaxrp_exp, rtol=DEFAULT_TOL)
+        assert custom_allclose(v1t, v1t_exp)
 
 
 class TestLambertBattin:
@@ -240,7 +262,7 @@ class TestLambertUniversal:
 
     def test_get_kbiu(self, lambert_inputs):
         # Unpack inputs
-        r1, r2, _, _, _ = lambert_inputs
+        r1, r2, *_ = lambert_inputs
 
         # Expected values
         kbi_exp = np.array(
@@ -371,7 +393,7 @@ class TestLambertUniversal:
 
     def test_universal_bad_orbit(self, lambert_inputs, caplog):
         # Unpack inputs
-        _, _, v1, nrev, dtsec = lambert_inputs
+        *_, v1, nrev, dtsec = lambert_inputs
 
         # Define bad position vectors
         r1 = np.array([0.1, 0, 0])
