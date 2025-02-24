@@ -13,7 +13,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.special import ellipk, ellipe, ellipkinc, ellipeinc
 
-from ...constants import RE, MU, ECCEARTHSQRD, SMALL, TWOPI, J2000_UTC
+from ...constants import RE, MU, ECCEARTHSQRD, SMALL, TWOPI, J2000_UTC, TUSEC
 
 
 class OrbitType(Enum):
@@ -463,6 +463,38 @@ def checkhitearth(
                     return True, "Hyperbolic impact"
 
     return False, "No impact"
+
+
+def checkhitearthc(
+    altpadc: float,
+    r1c: ArrayLike,
+    v1c: ArrayLike,
+    r2c: ArrayLike,
+    v2c: ArrayLike,
+    nrev: int,
+) -> Tuple[bool, str]:
+    """Checks if the trajectory impacts Earth during the transfer.
+
+    References:
+        Vallado: 2022, p. 483-485, Algorithm 58
+
+    Args:
+        altpadc (float): Altitude pad above the Earth's surface in Earth radii
+        r1c (array_like): Initial position vector in Earth radii
+        v1c (array_like): Initial velocity vector in Earth radii per TU
+        r2c (array_like): Final position vector in Earth radii
+        v2c (array_like): Final velocity vector in Earth radii per TU
+        nrev (int): Number of revolutions (0, 1, 2, ...)
+
+    Returns:
+        tuple:
+            bool: True if Earth is impacted (False otherwise)
+            str: Explanation of the impact status
+    """
+    vconv = RE / TUSEC  # km/s to er/tu
+    return checkhitearth(
+        altpadc * RE, r1c * RE, v1c * vconv, r2c * RE, v2c * vconv, nrev
+    )
 
 
 def findtof(ro: ArrayLike, r: ArrayLike, p: float) -> float:

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import src.valladopy.astro.twobody.utils as utils
+import src.valladopy.constants as const
 from ...conftest import DEFAULT_TOL, custom_isclose, custom_allclose
 
 
@@ -191,7 +192,20 @@ def test_gd2gc():
 def test_checkhitearth(
     altpad, r1, v1, r2, v2, nrev, expected_hitearth, expected_hitearthstr
 ):
+    # Check function with regular units
     hitearth, hitearthstr = utils.checkhitearth(altpad, r1, v1, r2, v2, nrev)
+    assert hitearth == expected_hitearth
+    assert hitearthstr == expected_hitearthstr
+
+    # Check function with canonical units
+    hitearth, hitearthstr = utils.checkhitearthc(
+        altpad / const.RE,
+        np.array(r1) / const.RE,
+        np.array(v1) / const.RE * const.TUSEC,
+        np.array(r2) / const.RE,
+        np.array(v2) / const.RE * const.TUSEC,
+        nrev,
+    )
     assert hitearth == expected_hitearth
     assert hitearthstr == expected_hitearthstr
 
