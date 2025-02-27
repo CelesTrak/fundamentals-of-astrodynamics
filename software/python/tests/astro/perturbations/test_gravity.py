@@ -1,65 +1,60 @@
+import os
+
 import numpy as np
+import pytest
 
 import src.valladopy.astro.perturbations.gravity as gravity
 
-from ...conftest import DEFAULT_TOL
+from ...conftest import custom_allclose
 
 
-def test_trigpoly():
-    recef = np.array([6524.834, 6862.875, 6448.296])
-    latgc = np.radians(32.5)
-    lon = np.radians(44.4)
-    order = 8
+@pytest.mark.parametrize(
+    "filename, shape_exp, has_uncertainties",
+    # NOTE: These files are assumed to exist in the datalib directory!
+    [
+        ("EGM-08norm100.txt", (101, 101), False),  # 100x100 with no uncertainties
+        ("egm2008 norm 486.txt", (487, 487), True),  # 486x486 with uncertainties
+    ],
+)
+def test_read_gravity_field(data_dir, filename, shape_exp, has_uncertainties):
+    # Read gravity field data
+    filepath = os.path.join(data_dir, filename)
+    gravity_field_data = gravity.read_gravity_field(filepath, normalized=True)
 
-    # Call trigpoly method
-    trig_arr, v_arr, w_arr = gravity.trigpoly(recef, latgc, lon, order)
+    # Check the second row of the gravity field data
+    c_exp = [-0.484165143790815e-03, -0.206615509074176e-09, 0.243938357328313e-05]
+    s_exp = [0, 0.138441389137979e-08, -0.140027370385934e-05]
+    assert custom_allclose(gravity_field_data.c[2, :3], c_exp)
+    assert custom_allclose(gravity_field_data.s[2, :3], s_exp)
 
-    # Check results
-    assert np.allclose(
-        trig_arr,
-        [
-            [0, 1, 0],
-            [0.6996633405133654, 0.7144726796328034, 0],
-            [0.9997806834748455, 0.02094241988335699, 1.2741405216149864],
-            [0.7289686274214116, -0.6845471059286886, 1.9112107824224795],
-            [0.04187565372919955, -0.9991228300988583, 2.5482810432299727],
-            [-0.6691306063588583, -0.7431448254773941, 3.185351304037466],
-            [-0.9980267284282717, -0.06279051952931336, 3.8224215648449595],
-            [-0.7569950556517565, 0.6534206039901054, 4.459491825652452],
-            [-0.08367784333231543, 0.9964928592495043, 5.0965620864599455],
-        ],
-        rtol=DEFAULT_TOL,
-    )
-    assert np.allclose(
-        v_arr,
-        [
-            [0.5567229456811682, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0.16653087608144873, 0.17651964099167233, 0, 0, 0, 0, 0, 0, 0, 0],
-            [-0.002969423260645143, 0, 0.2298252355060661, 0, 0, 0, 0, 0, 0, 0],
-            [-0.036060252753553866, 0, 0, 0.4428821269662462, 0, 0, 0, 0, 0, 0],
-            [-0.020355149796396365, 0, 0, 0, 1.1330274550692048, 0, 0, 0, 0, 0],
-            [-0.0032778227992070457, 0, 0, 0, 0, 3.6155399106772506, 0, 0, 0, 0],
-            [0.0032533123531603395, 0, 0, 0, 0, 0.0, 13.827112909836652, 0, 0, 0],
-            [0.0028857346435441707, 0, 0, 0, 0, 0, 0, 61.6405956973825, 0, 0],
-            [0.0009221724880043109, 0, 0, 0, 0, 0, 0, 0, 313.8557548691445, 0],
-            [-0.00021411708825645867, 0, 0, 0, 0, 0, 0, 0, 0, 1796.9993339180005],
-        ],
-        rtol=DEFAULT_TOL,
-    )
+    if has_uncertainties:
+        c_unc_exp = [0.748123949e-11, 0.7063781502e-11, 0.7230231722e-11]
+        s_unc_exp = [0, 0.7348347201e-11, 0.7425816951e-11]
+        assert custom_allclose(gravity_field_data.c_unc[2, :3], c_unc_exp)
+        assert custom_allclose(gravity_field_data.s_unc[2, :3], s_unc_exp)
 
-    assert np.allclose(
-        w_arr,
-        [
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, -0.1856648354840481, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, -0.23547432602636975, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, -0.44995393839655023, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, -1.1463648047431974, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, -3.649151711480955, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, -13.933133407306409, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, -62.04224399565824, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, -315.63206073851455, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, -1805.9815419727986],
-        ],
-        rtol=DEFAULT_TOL,
-    )
+    # Check the last 3 elements of the 100th row
+    c_exp = [0.599897072379349e-09, 0.580871480377766e-10, 0.995655505739113e-09]
+    s_exp = [0.495325263424430e-09, 0.138141678432454e-08, -0.801941613138099e-09]
+    assert custom_allclose(gravity_field_data.c[100, 98:101], c_exp)
+    assert custom_allclose(gravity_field_data.s[100, 98:101], s_exp)
+
+    if has_uncertainties:
+        c_unc_exp = [0.1189226918e-09, 0.1194318875e-09, 0.119352849e-09]
+        s_unc_exp = [0.1189221187e-09, 0.119431496e-09, 0.119350785e-09]
+        assert custom_allclose(gravity_field_data.c_unc[100, 98:101], c_unc_exp)
+        assert custom_allclose(gravity_field_data.s_unc[100, 98:101], s_unc_exp)
+
+    # Check if uncertainties are included in the data
+    if not has_uncertainties:
+        assert not gravity_field_data.c_unc
+        assert not gravity_field_data.s_unc
+
+    # Structural checks
+    assert gravity_field_data.c.shape == shape_exp
+    assert gravity_field_data.s.shape == shape_exp
+    assert gravity_field_data.normalized
+
+    # Ensure all values are finite (not NaN or inf)
+    assert np.isfinite(gravity_field_data.c).all()
+    assert np.isfinite(gravity_field_data.s).all()
