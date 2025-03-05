@@ -69,7 +69,7 @@ function [rintEQCM, vintEQCM]  =  Hillseci2EQCMNTW(rtgtECI, vtgtECI, rintECI, vi
 
     %  find position component positions
     rintEQCM(1,1) = rintNTW3(1,1)-rtgtNTW2(1,1);
-    rintEQCM(2,1) = orbitarcsals(atgt,ecctgt,nu1,nu2);
+    rintEQCM(2,1) = orbit_arc_sal(atgt,ecctgt,nu1,nu2);
     rintEQCM(3,1) = phiint*norm(rtgtNTW2);
 
     %  find velocity component positions

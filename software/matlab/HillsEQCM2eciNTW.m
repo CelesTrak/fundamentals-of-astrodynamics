@@ -43,7 +43,7 @@ function [rintECI, vintECI] = HillsEQCM2eciNTW(rtgtECI, vtgtECI, rintEQCM, vintE
     %  reverse engineer position components
     %       find nu2 from orbit arc
 
-    nu2 = findnufromorbitarcsals(atgt, ecctgt, nu1, rintEQCM(2,1));
+    nu2 = find_nu_from_orbit_arc_sal(atgt, ecctgt, nu1, rintEQCM(2,1));
     lambdaint = nu2+lambdaperigee;
     %       find future position and velocity of target using nu2
     r2tgt = ptgt/(1.0+ecctgt*cos(nu2));

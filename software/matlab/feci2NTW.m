@@ -20,7 +20,7 @@
 %  rot_dv = feci2NTW(ra0 , a0);
 % ------------------------------------------------------------------------------
 
-function rot_dv = feci2NTW(ra0 , a0)
+function rot_dv = feci2NTW(ra0 , va0)
 
     % -------------------------  implementation   -----------------
     yprime = va0/norm(va0);
