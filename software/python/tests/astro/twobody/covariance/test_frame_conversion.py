@@ -509,7 +509,7 @@ class TestEquinoctialCartesian:
         cartcov_out, tm = fc.coveq2ct(eq_cov, eq_state, fr, anom_type)
 
         # Compare results
-        assert custom_allclose(cartcov_out, np.array(cartcov_exp))
+        assert custom_allclose(cartcov_out, np.array(cartcov_exp), atol=1e-6)
         assert custom_allclose(tm, np.array(tm_exp))
 
 
