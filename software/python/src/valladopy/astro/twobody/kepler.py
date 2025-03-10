@@ -158,7 +158,7 @@ def _process_coe(ro, vo):
     processed_output = tuple(
         0 if isinstance(x, float) and np.isnan(x) else x for x in output
     )
-    p, a, ecc, incl, raan, _, nu, m, arglat, truelon, lonper, _ = processed_output
+    p, a, ecc, incl, raan, argp, nu, m, arglat, truelon, lonper, _ = processed_output
 
     # Check for negative semi-major axis and set mean motion
     if a < 0:
@@ -167,7 +167,7 @@ def _process_coe(ro, vo):
     else:
         n = np.sqrt(MU / (a**3))
 
-    return p, a, ecc, incl, raan, nu, m, arglat, truelon, lonper, n
+    return p, a, ecc, incl, raan, argp, nu, m, arglat, truelon, lonper, n
 
 
 def _calc_rv_from_coe(
@@ -183,6 +183,7 @@ def _calc_rv_from_coe(
     m,
     dtsec,
     raan,
+    argp,
     arglat,
     lonper,
     nu,
@@ -216,7 +217,7 @@ def _calc_rv_from_coe(
         e0, nu = newtonm(ecc, m)
 
     # Convert updated orbital elements back to position and velocity vectors
-    r, v = coe2rv(p, ecc, incl, raan, nu, arglat, truelon, lonper)
+    r, v = coe2rv(p, ecc, incl, raan, argp, nu, arglat, truelon, lonper)
 
     return r, v
 
@@ -246,7 +247,9 @@ def pkepler(
         - Move to perturbations?
     """
     # Convert position and velocity to orbital elements
-    p, a, ecc, incl, raan, nu, m, arglat, truelon, lonper, n = _process_coe(ro, vo)
+    p, a, ecc, incl, raan, argp, nu, m, arglat, truelon, lonper, n = _process_coe(
+        ro, vo
+    )
 
     # Check for negative semi-major axis
     if n is None:
@@ -277,6 +280,7 @@ def pkepler(
         m,
         dtsec,
         raan,
+        argp,
         arglat,
         lonper,
         nu,
@@ -308,7 +312,9 @@ def pkeplerj4(
         - Move to perturbations?
     """
     # Convert position and velocity to orbital elements
-    p, a, ecc, incl, raan, nu, m, arglat, truelon, lonper, n = _process_coe(ro, vo)
+    p, a, ecc, incl, raan, argp, nu, m, arglat, truelon, lonper, n = _process_coe(
+        ro, vo
+    )
 
     # Check for negative semi-major axis
     if n is None:
@@ -409,6 +415,7 @@ def pkeplerj4(
         m,
         dtsec,
         raan,
+        argp,
         arglat,
         lonper,
         nu,

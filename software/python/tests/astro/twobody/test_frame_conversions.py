@@ -113,12 +113,11 @@ class TestClassical:
 
     def test_coe2rv(self, coe):
         # Vallado, 2007, Ex. 2-6
-        p, ecc, incl, raan, _, nu = coe
-        r_exp = np.array([-4.049198890323112e03, -4.479765179366826e03, 0])
-        v_exp = np.array([0.303279847002191, -0.274130533804499, 10.9917080783198])
+        r_exp = np.array([6525.368120986091, 6861.531834896055, 6449.118614160162])
+        v_exp = np.array([4.902278644574153, 5.533139566279278, -1.9757100987916154])
 
         # Call the function with test inputs
-        r_out, v_out = fc.coe2rv(p, ecc, incl, raan, nu)
+        r_out, v_out = fc.coe2rv(*coe)
 
         # Check if the output is close to the expected values
         assert np.allclose(r_out, r_exp, rtol=DEFAULT_TOL)
