@@ -66,8 +66,8 @@ def test_pkepler(pkepler_inputs):
 
 def test_pkeplerj4(pkepler_inputs):
     # Expected values
-    r_expected = [-6572.0008215804, -2287.2303999429923, -22.20855339792547]
-    v_expected = [2.4856477984610907, -7.1348653128460615, -0.26273020219802795]
+    r_expected = [-1383.5904028347597, -6815.535513225937, -219.3446195541128]
+    v_expected = [7.408454252834694, -1.505508309040779, -0.11337254628719902]
 
     # Compute the position and velocity vectors
     r, v = kepler.pkeplerj4(*pkepler_inputs)

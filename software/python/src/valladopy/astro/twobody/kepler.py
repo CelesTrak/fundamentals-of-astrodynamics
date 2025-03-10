@@ -211,6 +211,8 @@ def _calc_rv_from_coe(
             # Elliptical inclined
             raan += raandot * dtsec
             raan = np.mod(raan, TWOPI)
+            argp += argpdot * dtsec
+            argp = np.mod(argp, TWOPI)
 
         m += mdot * dtsec + ndot * dtsec**2 + nddot * dtsec**3
         m = np.mod(m, TWOPI)
