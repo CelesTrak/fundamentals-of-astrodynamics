@@ -141,6 +141,7 @@ def coe2rv(
     ecc: float,
     incl: float,
     raan: float,
+    argp: float,
     nu: float = 0.0,
     arglat: float = 0.0,
     truelon: float = 0.0,
@@ -157,6 +158,7 @@ def coe2rv(
         ecc (float): Eccentricity of the orbit
         incl (float): Inclination of the orbit in radians
         raan (float): Right ascension of the ascending node (RAAN) in radians
+        argp (float): Argument of perigee in radians
         nu (float, optional): True anomaly in radians
         arglat (float, optional): Argument of latitude in radians
         truelon (float, optional): True longitude in radians
@@ -182,10 +184,6 @@ def coe2rv(
         if utils.is_equatorial(incl):
             argp = lonper
             raan = 0
-        else:
-            # Rectilinear orbits
-            nu = arglat
-            argp = 0
 
     # Compute position and velocity in the perifocal coordinate system
     cosnu, sinnu = np.cos(nu), np.sin(nu)
@@ -372,15 +370,15 @@ def eq2rv(
     ecc = np.sqrt(af**2 + ag**2)
     p = a * (1 - ecc**2)
     incl = np.pi * ((1 - fr) * 0.5) + 2 * fr * np.arctan(np.sqrt(chi**2 + psi**2))
-    omega = np.arctan2(chi, psi)
-    argp = np.arctan2(ag, af) - fr * omega
+    raan = np.arctan2(chi, psi)
+    argp = np.arctan2(ag, af) - fr * raan
 
     if ecc < const.SMALL:
         # Circular orbits
         if utils.is_equatorial(incl):
             # Circular equatorial
-            truelon = omega
-            omega = 0
+            truelon = raan
+            raan = 0
         else:
             # Circular inclined
             arglat = argp
@@ -388,10 +386,10 @@ def eq2rv(
         # Elliptical equatorial
         if utils.is_equatorial(incl):
             lonper = argp
-            omega = 0
+            raan = 0
 
     # Mean anomaly
-    m = meanlon - fr * omega - argp
+    m = meanlon - fr * raan - argp
     m = np.mod(m, const.TWOPI)
 
     # Solve for eccentric anomaly and true anomaly
@@ -404,10 +402,10 @@ def eq2rv(
             truelon = nu
         else:
             # Circular inclined
-            arglat = nu - fr * omega
+            arglat = nu - fr * raan
 
     # Convert back to position and velocity vectors
-    return coe2rv(p, ecc, incl, omega, nu, arglat, truelon, lonper)
+    return coe2rv(p, ecc, incl, raan, argp, nu, arglat, truelon, lonper)
 
 
 def rv2eq(
