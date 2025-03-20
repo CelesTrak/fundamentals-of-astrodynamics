@@ -226,7 +226,7 @@ def min_time(
             + (3 - np.cos(alpha)) * (np.sin(xi) + eta)
             - 8 * np.sin(xi)
         ) * (-alp * np.tan(0.5 * alpha)) + (
-            (6 * nrev * np.pi + 3 * xi - eta) * (-np.cos(xi) - np.cos(alpha))
+            (6 * nrev * np.pi + 3 * xi - eta) * (-np.cos(xi) - np.cos(beta))
             + (-3 - np.cos(beta)) * (np.sin(xi) + eta)
             + 8 * np.sin(xi)
         ) * (
