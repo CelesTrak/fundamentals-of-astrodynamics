@@ -82,9 +82,9 @@ def accel_gott(
 
     Args:
         recef (array_like): Position vector in ECEF coordinates in km
-        gravarr (GravityFieldData): Gravity field data
+        gravarr (GravityFieldData): Normalized gravity field data
         degree (int): Maximum degree of the gravity field
-        order (int): Normalized gravity field data
+        order (int): Maximum order of the gravity field
 
     Returns:
         tuple: (leg_gott_n, accel)
@@ -92,7 +92,7 @@ def accel_gott(
             accel (np.ndarray): ECEF acceleration vector in km/s^2
 
     Notes:
-        - This function is able to handle degree and order terms larger then 170 due to
+        - This function is able to handle degree and order terms larger than 170 due to
           the formulation.
         - Includes two-body contribution
     """
