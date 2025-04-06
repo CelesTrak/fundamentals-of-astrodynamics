@@ -151,7 +151,6 @@ def min_time(
     r1: ArrayLike,
     r2: ArrayLike,
     dm: DirectionOfMotion,
-    de: DirectionOfEnergy,
     nrev: int,
     fa_tol: float = 1e-5,
     fa_iter: int = 20,
@@ -167,7 +166,6 @@ def min_time(
         r1 (array_like): Initial ECI position vector in km
         r2 (array_like): Final ECI position vector in km
         dm (DirectionOfMotion): Direction of motion (LONG or SHORT)
-        de (DirectionOfEnergy): Direction of energy (LOW or HIGH)
         nrev (int): Number of revolutions (0, 1, 2, ...)
         fa_tol (float, optional): Tolerance for the Prussing method min TOF
                                   (defaults to 1e-5)
@@ -181,7 +179,7 @@ def min_time(
             tminenergy (float): Minimum energy time of flight in seconds
     """
     # Validate the Pydantic model
-    _ = LambertParams(r1=r1, r2=r2, dm=dm, de=de, nrev=nrev)
+    _ = LambertParams(r1=r1, r2=r2, dm=dm, nrev=nrev)
 
     # Create numpy arrays and compute magnitudes of r1 and r2
     magr1, magr2, cosdeltanu = calculate_mag_and_angle(r1, r2)
@@ -191,11 +189,12 @@ def min_time(
     s = (magr1 + magr2 + chord) * 0.5
 
     # Multipliers based on direction of motion and energy
-    sign_dm = 1 if dm == DirectionOfMotion.LONG else -1
-    sign_de = 1 if de == DirectionOfEnergy.LOW else -1
+    sign_dm = 1 if dm == DirectionOfMotion.SHORT else -1
 
-    # Calculate minimum parabolic time of flight tasee if orbit is possible
-    tminp = (1 / 3) * np.sqrt(2 / MU) * ((s**1.5) + sign_dm * (s - chord) ** 1.5)
+    # Calculate minimum parabolic time of flight to see if orbit is possible
+    sindeltanu = sign_dm * np.linalg.norm(np.cross(r1, r2)) / (magr1 * magr2)
+    sign = -1 if sindeltanu > 0 else 1
+    tminp = (1 / 3) * np.sqrt(2 / MU) * ((s**1.5) + sign * (s - chord) ** 1.5)
 
     # Calculate minimum energy ellipse time of flight
     amin = 0.5 * s
@@ -215,7 +214,7 @@ def min_time(
         a = an
         alp = 1 / a
         alpha = 2 * np.arcsin(np.sqrt(0.5 * s * alp))
-        beta = sign_de * 2 * np.arcsin(np.sqrt(0.5 * (s - chord) * alp))
+        beta = sign_dm * 2 * np.arcsin(np.sqrt(0.5 * (s - chord) * alp))
         xi = alpha - beta
         eta = np.sin(alpha) - np.sin(beta)
         fa = (6 * nrev * np.pi + 3 * xi - eta) * (np.sin(xi) + eta) - 8 * (
@@ -236,7 +235,7 @@ def min_time(
         i += 1
 
     # Calculate the minimum time of flight
-    tmin = (an**1.5) * (TWOPI * nrev + xi + sign_dm * eta) / np.sqrt(MU)
+    tmin = (an**1.5) * (TWOPI * nrev + xi - eta) / np.sqrt(MU)
 
     return tmin, tminp, tminenergy
 

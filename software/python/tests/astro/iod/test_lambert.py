@@ -66,46 +66,28 @@ class TestLambert:
         assert np.isclose(tminabs, tminabs_exp, rtol=DEFAULT_TOL)
 
     @pytest.mark.parametrize(
-        "dm, de, tmin_exp, tminp_exp, tminenergy_exp",
+        "dm, tmin_exp, tminp_exp, tminenergy_exp",
         [
             (
                 lambert.DirectionOfMotion.LONG,
-                lambert.DirectionOfEnergy.LOW,
-                12468.267934737589,
+                16972.342827321045,
                 3139.7046602121873,
-                17488.265508772805,
+                15554.50821587732,
             ),
             (
                 lambert.DirectionOfMotion.SHORT,
-                lambert.DirectionOfEnergy.LOW,
                 15048.526030843928,
                 1534.8915813389815,
-                15554.50821587732,
-            ),
-            (
-                lambert.DirectionOfMotion.LONG,
-                lambert.DirectionOfEnergy.HIGH,
-                21648.968607538627,
-                3139.7046602121873,
                 17488.265508772805,
-            ),
-            (
-                lambert.DirectionOfMotion.SHORT,
-                lambert.DirectionOfEnergy.HIGH,
-                16972.342827321045,
-                1534.8915813389815,
-                15554.50821587732,
             ),
         ],
     )
-    def test_min_time(
-        self, lambert_inputs, dm, de, tmin_exp, tminp_exp, tminenergy_exp
-    ):
+    def test_min_time(self, lambert_inputs, dm, tmin_exp, tminp_exp, tminenergy_exp):
         # Unpack inputs
         r1, r2, _, nrev, _ = lambert_inputs
 
         # Compute Lambert minimum time
-        tmin, tminp, tminenergy = lambert.min_time(r1, r2, dm, de, nrev)
+        tmin, tminp, tminenergy = lambert.min_time(r1, r2, dm, nrev)
 
         # Check results
         assert np.allclose(tmin, tmin_exp, rtol=DEFAULT_TOL)
