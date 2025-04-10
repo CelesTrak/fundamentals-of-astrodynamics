@@ -66,6 +66,9 @@ J4 = -1.6198976e-06
 
 # Derived constants from the base values
 
+# Sidereal day in seconds
+SIDERALDAY_SEC = 86164.090524  # seconds
+
 # Approximate Earth rotation
 EARTHROT_APPROX = TWOPI / DAY2SEC  # rad/s
 
@@ -81,7 +84,7 @@ REFT = RE * 1e3 / FT2M
 TUSEC = np.sqrt(RE**3 / MU)
 TUMIN = TUSEC / MIN2SEC
 TUDAY = TUSEC / DAY2SEC
-TUDAYSID = TUSEC / 86164.090524
+TUDAYSID = TUSEC / SIDERALDAY_SEC
 
 # Earth rotation & rotational angular velocity
 OMEGAARTHPTU = EARTHROT * TUSEC
