@@ -121,7 +121,8 @@ def newtonm(ecc: float, m: float, n_iter: int = 50) -> Tuple[float, float]:
     Args:
         ecc (float): Eccentricity of the orbit
         m (float): Mean anomaly in radians
-        n_iter (int): Number of iterations for eccentric anomaly solving
+        n_iter (int, optional): Number of iterations for eccentric anomaly solving
+                                (default is 50)
 
     Returns:
         tuple: (e0, nu)
