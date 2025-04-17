@@ -1,8 +1,8 @@
 % ------------------------------------------------------------------------------
 %
-%                              Ex2_5.m
+%                              Ex2_4.m
 %
-%  this file demonstrates example 2-5.
+%  this file demonstrates example 2-4.
 %
 %                          companion code for
 %             fundamentals of astrodyanmics and applications
