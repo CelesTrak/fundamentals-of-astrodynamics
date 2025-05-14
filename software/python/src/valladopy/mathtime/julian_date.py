@@ -359,6 +359,7 @@ def convtime(
     float,
     float,
     float,
+    float,
 ]:
     """Convert UTC or UT1 to various time systems.
 
@@ -381,14 +382,15 @@ def convtime(
         dat (float): Delta of TAI - UTC in seconds
 
     Returns:
-        tuple: (ut1, tut1, jdut1, jdut1frac, utc, tai, tt, ttt, jdtt, jdttfrac, tdb,
-                ttdb, jdtdb, jdtdbfrac)
+        tuple: (ut1, tut1, jdut1, jdut1frac, utc, tai, gps, tt, ttt, jdtt, jdttfrac,
+                tdb, ttdb, jdtdb, jdtdbfrac)
             ut1 (float): UT1 in seconds (from start of day)
             tut1 (float): Julian centuries since J2000 for UT1
             jdut1 (float): Julian Date for UT1 (days only, days from 4713 BC)
             jdut1frac (float): Julian Date for UT1 (fractional part)
             utc (float): Coordinated Universal Time in seconds
             tai (float): International Atomic Time in seconds
+            gps (float): GPS Time in seconds
             tt (float): Terrestrial Time in seconds (from start of day)
             ttt (float): Julian centuries since J2000 for TT
             jdtt (float): Julian Date for TT (days only, days from 4713 BC)
@@ -410,6 +412,9 @@ def convtime(
 
     # TAI
     tai = utc + dat
+
+    # GPS
+    gps = tai + 19  # seconds
 
     # TT
     tt = tai + 32.184  # seconds
@@ -439,6 +444,7 @@ def convtime(
         jdut1frac,
         utc,
         tai,
+        gps,
         tt,
         ttt,
         jdtt,

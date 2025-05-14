@@ -73,6 +73,7 @@ def test_convtime():
         jdut1frac,
         utc,
         tai,
+        gps,
         tt,
         ttt,
         jdtt,
@@ -99,6 +100,7 @@ def test_convtime():
     assert np.isclose(jdut1frac, 0.6544386574074074, rtol=DEFAULT_TOL)
     assert np.isclose(utc, 56543.4, rtol=DEFAULT_TOL)
     assert np.isclose(tai, 56579.1, rtol=DEFAULT_TOL)
+    assert np.isclose(gps, 56598.1, rtol=DEFAULT_TOL)
     assert np.isclose(tt, 56611.284, rtol=DEFAULT_TOL)
     assert np.isclose(ttt, 0.24356345580272443, rtol=DEFAULT_TOL)
     assert np.isclose(jdtt, 2460440.5, rtol=DEFAULT_TOL)
