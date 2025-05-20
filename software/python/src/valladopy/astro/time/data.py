@@ -112,7 +112,7 @@ class SPWArray:
     mjd: np.ndarray = None
 
 
-def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
+def iau80in(data_dir: str = DATA_DIR, filename: str = "nut80.dat") -> IAU80Array:
     """Initializes the nutation matrices needed for reduction calculations.
 
     References:
@@ -120,7 +120,8 @@ def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
 
     Args:
         data_dir (str, optional): Directory containing the nutation data file
-                                  "nut80.dat" (default: DATA_DIR)
+                                  (default: DATA_DIR)
+        filename (str, optional): Name of the nutation data file (default: "nut80.dat")
 
     Returns:
         IAU80Array: Data object containing the nutation matrices
@@ -128,7 +129,7 @@ def iau80in(data_dir: str = DATA_DIR) -> IAU80Array:
             rar80 (np.ndarray): Reals for FK5 1980 in radians
     """
     # Load the nutation data and initialize data object
-    nut80 = np.loadtxt(os.path.join(data_dir, "nut80.dat"))
+    nut80 = np.loadtxt(os.path.join(data_dir, filename))
     iau80arr = IAU80Array()
 
     # Split into integer and real parts
@@ -221,6 +222,9 @@ def iau06in(data_dir: str = DATA_DIR) -> IAU06Array:
             - iau06ansofa.dat (file for SOFA luni-solar nutation coefficients)
             - iau06anplsofa.dat (file for SOFA planetary nutation coefficients)
             - iau06nlontab5.3.a.dat (file for nutation in obliquity coefficients
+
+    TODO:
+        - Add optional arguments to specify file names
     """
 
     def load_data(filename, cols_real, cols_int, conv_factor):
@@ -262,18 +266,19 @@ def iau06in(data_dir: str = DATA_DIR) -> IAU06Array:
     return iau06arr
 
 
-def readxys(data_dir: str = DATA_DIR) -> IAU06xysArray:
-    """Initializes the XYS IAU2006 data from the input file into a dataclass.
+def readxys(data_dir: str = DATA_DIR, filename: str = "xysdata.dat") -> IAU06xysArray:
+    """Initializes the XYS IAU 2006 data from the input file into a dataclass.
 
     Args:
-        data_dir (str, optional): Directory containing the XYS data file "xysdata.dat"
+        data_dir (str, optional): Directory containing the XYS data file
                                   (default: DATA_DIR)
+        filename (str, optional): Name of the XYS data file (default: "xysdata.dat")
 
     Returns:
         IAU06xysArray: Dataclass containing the XYS data
     """
     # Read the file as an np.ndarray
-    data = np.loadtxt(os.path.join(data_dir, "xysdata.dat"))
+    data = np.loadtxt(os.path.join(data_dir, filename))
 
     # Create instance and extract individual columns
     iau06xysarr = IAU06xysArray()

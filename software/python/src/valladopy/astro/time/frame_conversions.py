@@ -64,7 +64,7 @@ def calc_orbit_effects(
             nut (np.ndarray): Transformation matrix for TOD - MOD
             st (np.ndarray): Transformation matrix for PEF to TOD
             pm (np.ndarray): Transformation matrix for ECEF to PEF
-            omegaearth (np.ndarray): Earth angular rotation vecctor
+            omegaearth (np.ndarray): Earth angular rotation vecctor in rad/s
     """
     # Find matrices that account for various orbit effects
     prec, *_ = precess(ttt, opt="80")
