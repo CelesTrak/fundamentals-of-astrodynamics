@@ -38,6 +38,8 @@
     dat  = 32;
     xp   =  0.0;
     yp   =  0.0;
+    ddpsi = 0.0;
+    ddeps = 0.0;
     lod  =  0.0;
     timezone = 0;
     order =  106;
@@ -89,8 +91,7 @@
         % geoc
         fprintf(1,'r    %14.7f%14.7f%14.7f',reci );
         fprintf(1,' v %14.9f%14.9f%14.9f\n',veci );
-
-        [recef, vecef, aecef] = eci2ecef(reci, veci, aeci, iau80arr, ttt, jdut1, lod, xp, yp, 2, ddpsi, ddeps );
+        [recef, vecef, aecef] = eci2ecef(reci, veci, aeci, iau80arr, ttt, jdut1+jdut1frac, lod, xp, yp, 2, ddpsi, ddeps );
         fprintf(1,'ITRF rev      IAU-76/FK5  %15.11f  %15.11f  %15.11f %15.11f  %15.11f  %15.11f\n', ...
             recef(1), recef(2), recef(3), vecef(1), vecef(2), vecef(3));
 
@@ -112,9 +113,9 @@
         [rsecef, vsecef] = site ( latgd, lon, alt );
         % -------------------- convert ecef to eci --------------------
         a = [0;0;0];
-        [rseci, vseci, aeci] = ecef2eci(rsecef, vsecef, a, iau80arr, ttt, jdut1, lod, xp, yp, 2, ddpsi, ddeps);
+        [rseci, vseci, aeci] = ecef2eci(rsecef, vsecef, a, iau80arr, ttt, jdut1+jdut1frac, lod, xp, yp, 2, ddpsi, ddeps);
 
-        [trr, trtasc, tdecl, ddrr, tdrtasc, tddecl] = rv2tradec ( recef, vecef, rsecef, vsecef );
+        [trr, trtasc, tdecl, tdrr, tdrtasc, tddecl] = rv2tradec ( recef, vecef, rsecef);
         fprintf(1,'           trho km      trtasc deg    tdecl deg     tdrho km/s     tdrtasc deg/s  tddecl deg/s \n' );
         if trtasc < 0.0
             trtasc = trtasc + twopi;
@@ -153,10 +154,3 @@
         fprintf(1,'r    %14.7f %14.7f %14.7f',reci );
         fprintf(1,' v %14.9f %14.9f %14.9f\n',veci );
     end % for
-    
-
-    
-    
-
-    
-    
