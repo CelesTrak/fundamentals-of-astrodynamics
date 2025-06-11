@@ -23,6 +23,7 @@
     hr = 23;
     minute = 58;
     second = 59.816;
+    timezone = 0;
     dat = 28;
     dut1 = -0.0889721;
 
@@ -35,11 +36,10 @@
     fprintf(1,' %3i:%2i:%8.6f\n ',hr,minute,second );
     fprintf(1,' dut1 %8.6f s',dut1);
     fprintf(1,' dat %3i s',dat);
-    fprintf(1,' ddpsi %8.6f " ddeps  %8.6f\n',ddpsi/conv, ddeps/conv);
     fprintf(1,'tt  %8.6f ttt  %16.12f jdtt  %18.11f \n',tt,ttt,jdtt + jdttfrac );
     fprintf(1,'tut1  %8.6f tut1  %16.12f jdut1  %18.11f \n',tut1,tut1,jdut1 + jdut1frac );
 
-    [rmoon, rtasc, decl] = moon ( jd );
+    [rmoon, rtasc, decl] = moon ( jdut1 + jdut1frac );
     
     fprintf(1,'rmoon  rtasc %14.6f deg decl %14.6f deg\n',rtasc*rad,decl*rad );
     fprintf(1,'rmoon new      %11.9f%11.9f%11.9f er\n',rmoon );
@@ -49,6 +49,3 @@
     %  1994  4 28    -134038.3192       -311589.2121       -126061.1912
     rmoonaa = [-134038.3192  -311589.2121  -126061.1912 ];
     fprintf(1,'moon jplde430 -134038.3192  -311589.2121  -126061.1912 km\n' );
-
-    
-    
