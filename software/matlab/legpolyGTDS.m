@@ -11,13 +11,11 @@
 %
 %  inputs        description                                   range / units
 %    latgc       - Geocentric lat of satellite                   pi to pi rad
-%    normArr     - normalization coefficients               
 %    degree      - degree of gravity field                        1..85
 %    order       - order of gravity field                         1..85
 %
 %  outputs       :
 %    LegArrGU    - array of unnormalized Legendre polynomials gtds
-%    LegArrGN    - array of normalized Legendre polynomials gtds
 %
 %  locals :
 %    L,m         - degree and order indices
@@ -28,13 +26,12 @@
 %  references :
 %    vallado       2022, 600
 %
-%   [legarrGU, legarrGN] = legpolyGTDS (latgc, normArr, degree, order);
+%   [legarrGU] = legpolyGTDS (latgc, normArr, degree, order);
 %  ----------------------------------------------------------------------------
 
-function [legarrGU, legarrGN] = legpolyGTDS (latgc, normArr, degree, order)
+function [legarrGU] = legpolyGTDS (latgc, degree, order)
 
     legarrGU = zeros(degree+3, order+3);
-    legarrGN = zeros(degree+3, order+3);
 
     sinlat = sin(latgc);
 
@@ -65,19 +62,5 @@ function [legarrGU, legarrGN] = legpolyGTDS (latgc, normArr, degree, order)
 
         end   % for m
     end   % for L
-
-
-    %if order < 150
-    for L = 0 : degree
-        Li = L + 1;
-        for m = 0 : L
-            mi = m + 1;
-            % find normalized or unnormalized depending on which is already in file
-            % note that above n = 170, the factorial will return 0, thus affecting the results!!!!
-            legarrGN(Li, mi) = normArr(Li, mi) * legarrGU(Li, mi);
-
-        end   % for m
-    end   % for L
-    %end
 
 end

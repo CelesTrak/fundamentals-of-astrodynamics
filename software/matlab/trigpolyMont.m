@@ -39,7 +39,8 @@ function [VArr, WArr] = trigpolyMont(recef, latgc, degree)
     % initial zonal values
     temp = re / (magr * magr);
     VArr(0+1, 0+1) = re / magr;
-    VArr(1+1, 0+1) = VArr(0+1, 0+1) * VArr(0+1, 0+1) * sin(latgc);
+    %VArr(1+1, 0+1) = VArr(0+1, 0+1) * VArr(0+1, 0+1) * sin(latgc);
+    VArr(1+1, 0+1) = VArr(0+1, 0+1) * VArr(0+1, 0+1) * recef(3) / magr;
     WArr(0+1, 0+1) = 0.0;
     WArr(1+1, 0+1) = 0.0;
 

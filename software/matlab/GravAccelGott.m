@@ -11,25 +11,22 @@
 %  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
 %  inputs        description                                   range / units
-%    mu       gravitaional paramater
-%    xin      position ecef vector of satellite km
-%    c, s     gravity coefficients normalized
-%    nax      degree
-%    max      order
-%    rnp      3x3 identity matrix
+%    recef       position ecef vector of satellite             km
+%    gravarr     gravity coefficients normalized
+%    degree      degree of gravity field                       1..2159+
+%    order       order of gravity field                        1..2159+
 % 
 % outputs
 %    accel    eci frame acceeration (km/s^2
-%    LegGottN  normalized alfs   does not need to be passed back out - only
-%    for debugging.
+%    LegGottN  normalized alfs  (not need to pass back)
 %
 %  References
 %    Eckman, Brown, Adamo 2016 NASA report
 %
-%  [LegGottN, accel] = GravAccelGott(recef, gravarr, degree, order);
+%  [accel] = GravAccelGott(recef, gravarr, degree, order, norm1, norm2, norm11, normn10, norm1m, norm2m, normn1 );
 % ----------------------------------------------------------------------------
 
-function [LegGottN, accel] = GravAccelGott(recef, gravarr, degree, order)
+function [accel] = GravAccelGott(recef, gravarr, degree, order, norm1, norm2, norm11, normn10, norm1m, norm2m, normn1 )
     constastro;
     
     % calculate partial of acceleration wrt state
@@ -37,18 +34,18 @@ function [LegGottN, accel] = GravAccelGott(recef, gravarr, degree, order)
 
     % this can be done ahead of time
     % these are 0 based arrays since they start at 2
-    for L = 2:degree+1 %RAE
-        norm1(L) = sqrt((2*L+1.0) / (2*L-1.0)); % eq 3-1 RAE
-        norm2(L) = sqrt((2*L+1.0) / (2*L-3.0)); % eq 3-2 RAE
-        norm11(L) = sqrt((2*L+1.0) / (2*L))/(2*L-1.0); % eq 3-3 RAE
-        normn10(L) = sqrt((L+1.0)*L * 0.5); % RAE
-        
-        for m = 1:L %RAE
-            norm1m(L,m) = sqrt((L-m)*(2*L+1.0) / ((L+m)*(2*L-1.0))); % eq 3-4 RAE
-            norm2m(L,m) = sqrt((L-m)*(L-m-1.0)*(2*L+1.0) / ((L+m)*(L+m-1.0)*(2*L-3.0))); % eq 3-5 RAE
-            normn1(L,m) = sqrt((L+m+1.0)*(L-m)); % part of eq 3-9 RAE
-        end %RAE
-    end %RAE
+    % for L = 2:degree+1 %RAE
+    %     norm1(L) = sqrt((2*L+1.0) / (2*L-1.0)); % eq 3-1 RAE
+    %     norm2(L) = sqrt((2*L+1.0) / (2*L-3.0)); % eq 3-2 RAE
+    %     norm11(L) = sqrt((2*L+1.0) / (2*L))/(2*L-1.0); % eq 3-3 RAE
+    %     normn10(L) = sqrt((L+1.0)*L * 0.5); % RAE
+    % 
+    %     for m = 1:L %RAE
+    %         norm1m(L,m) = sqrt((L-m)*(2*L+1.0) / ((L+m)*(2*L-1.0))); % eq 3-4 RAE
+    %         norm2m(L,m) = sqrt((L-m)*(L-m-1.0)*(2*L+1.0) / ((L+m)*(L+m-1.0)*(2*L-3.0))); % eq 3-5 RAE
+    %         normn1(L,m) = sqrt((L+m+1.0)*(L-m)); % part of eq 3-9 RAE
+    %     end %RAE
+    % end %RAE
     
     %x = rnp*xin; %RAE
     r = sqrt(recef(1)^2 + recef(2)^2 + recef(3)^2);
@@ -94,7 +91,7 @@ function [LegGottN, accel] = GravAccelGott(recef, gravarr, degree, order)
         np1 = L + 1;
 
         % --------------- tesserals(ni, m=ni-1) initial value
-        LegGottN(Li,L) = normn1(L,L-1)*sinlat*LegGottN(Li,Li); %RAE %norm
+        LegGottN(Li,L) = normn1(L,L-1)*sinlat*LegGottN(Li,Li); % eq 3-16 RAE norm, but eq 3-9 is normn1 doesn't match eq 3-12???
 
         % --------------- zonals (ni, m=1)
         LegGottN(Li,1) = (n2m1*sinlat*norm1(L)*LegGottN(L,1) - nm1*norm2(L)*LegGottN(nm1,1))/L; % eq 3-17 RAE %norm

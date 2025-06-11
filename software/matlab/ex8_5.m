@@ -44,6 +44,8 @@
     conv = pi / (180.0*3600.0);
     
     % get time values
+%    2020 02 18 58897  0.030745  0.336090 -0.1990821  0.0000677 -0.108022 -0.007466  0.000323 -0.000062  37
+
     year = 2020;
     mon = 2;
     day = 18;
@@ -95,8 +97,7 @@
     [h, m, s] = sec2hms( ut1 );
     fprintf(1, 'hms %3i %3i %8.6f \n', h, m, s);
     fprintf(1, 'utc %8.6f ', utc );
-    [h, m, s] = sec2hms( utc );
-    fprintf(1, 'hms %3i %3i %8.6f \n', h, m, s);
+    [h, m, s] = sec2hms( utc );    fprintf(1, 'hms %3i %3i %8.6f \n', h, m, s);
     fprintf(1, 'tai %8.6f', tai );
     [h, m, s] = sec2hms( tai );
     fprintf(1, 'hms %3i %3i %8.6f \n', h, m, s);
@@ -118,7 +119,17 @@
     
     [pm] = polarm(xp,yp,ttt,'80');
     
+    % gravity test
+    recef = [ -2110.28953926559006504;  -5511.91602450908976607;  3491.91339855242995327];
+    vecef = [ -2.8625582997;    -3.0199822163;    -6.4824698032]; 
+    % two-body
+    aecef = -mu*recef/(mag(recef)^3);  
+    [reci, veci, aeci] = ecef2eci(recef, vecef, aecef, iau80arr, ttt, jdut1, lod, xp, yp, eqeterms, ddpsi, ddeps );
 
+    reci = [ -605.79120446;    -5870.23016547;    3493.05227627];
+    veci = [-1.568252366;    -3.702348317;   -6.479484538];
+    aeci = [7.483962e-04;     7.252325e-03;    -4.327587e-03];
+ 
     
     % -------- polarm      - transformation matrix for polar motion
     fprintf(1, 'polar motion matrix versions -------------------\n');
@@ -167,8 +178,8 @@
     % [legarr, Legarr1] = legPoly(latgc, order);
     degree = 6;
     order = 6;
-    [legarrGU, legarrGN] = legpolyGTDS(latgc, normArr, degree, order);
-    [legarrMU, legarrMN] = legpolyMont(latgc, normArr, degree, order);
+    [legarrGU] = legpolyGTDS(latgc, degree, order);
+    [legarrMU, legarrMN] = legpolyMont (latgc, normArr, degree, order);
 
     % this seems to show that the Montenbruck approach has smaller
     % (1e-15) diffs than the gtds approach (1e-12)
@@ -191,8 +202,6 @@
             %fprintf(1,' %3i  %3i  %16.11e ', L, m, legarr(L, m));
             s = num2str(legarrMN(L, m),'%19.10e ');
             str1 = [str1, ' ', s];
-            s = num2str(legarrGN(L, m),'%19.10e ');
-            str2 = [str2, ' ', s];
         end
         fprintf(1,' %s %s \n', str0, str1);
         fprintf(1,' %s %s \n\n', str0, str2);
@@ -296,7 +305,7 @@
     aeci2 = -mu*reci/(mag(reci)^3);
     fprintf(1, ' aeci2 %16.11f %16.11f %16.11f\n', aeci2 );
     
-    % totla acceleration
+    % total acceleration
     aeci = aeci2 + aeci;
     fprintf(1, 'total aeci %16.11f %16.11f %16.11f\n', aeci );
     

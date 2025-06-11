@@ -58,11 +58,11 @@ function [rsun,rtasc,decl] = sun ( jd )
         fprintf(1,'tut1 %14.9f \n',tut1);
     end
 
-    meanlong= 280.460  + 36000.77*tut1;
+    meanlong= 280.460  + 36000.771285*tut1;
     meanlong= rem( meanlong,360.0  );  %deg
 
     ttdb= tut1;
-    meananomaly= 357.5277233  + 35999.05034 *ttdb;
+    meananomaly= 357.528  + 35999.0509575 *ttdb;
     meananomaly= rem( meananomaly*deg2rad,twopi );  %rad
     if ( meananomaly < 0.0  )
         meananomaly= twopi + meananomaly;
