@@ -145,52 +145,51 @@ def accel_gott(
 
     sumh, sumgm, sumj, sumk = 0, 1, 0, 0
     for n in range(2, degree + 1):
-        ni = n
         reorn *= reor
         n2m1 = 2 * n - 1
         nm1 = n - 1
         np1 = n + 1
 
-        # Tesseral (ni, m=ni-1) initial value
-        leg_gott_n[ni, n - 1] = normn1[n - 1, n - 2] * sinlat * leg_gott_n[ni, ni]
+        # Tesseral (n, m=ni-1) initial value
+        leg_gott_n[n, nm1] = normn1[nm1, nm1 - 1] * sinlat * leg_gott_n[n, n]
 
-        # Zonal (ni, m=0)
-        leg_gott_n[ni, 0] = (
-            n2m1 * sinlat * norm1[n - 1] * leg_gott_n[n - 1, 0]
-            - nm1 * norm2[n - 1] * leg_gott_n[n - 2, 0]
+        # Zonal (n, m=0)
+        leg_gott_n[n, 0] = (
+            n2m1 * sinlat * norm1[nm1] * leg_gott_n[nm1, 0]
+            - nm1 * norm2[nm1] * leg_gott_n[nm1 - 1, 0]
         ) / n
 
-        # Tesseral (ni, m=1) initial value
-        leg_gott_n[ni, 1] = (
-            n2m1 * sinlat * norm1m[n - 1, 0] * leg_gott_n[n - 1, 1]
-            - n * norm2m[n - 1, 0] * leg_gott_n[n - 2, 1]
+        # Tesseral (n, m=1) initial value
+        leg_gott_n[n, 1] = (
+            n2m1 * sinlat * norm1m[nm1, 0] * leg_gott_n[nm1, 1]
+            - n * norm2m[nm1, 0] * leg_gott_n[nm1 - 1, 1]
         ) / nm1
 
-        sumhn = normn10[n - 1] * leg_gott_n[ni, 1] * gravarr.c[ni, 0]
-        sumgmn = leg_gott_n[ni, 0] * gravarr.c[ni, 0] * np1
+        sumhn = normn10[nm1] * leg_gott_n[n, 1] * gravarr.c[n, 0]
+        sumgmn = leg_gott_n[n, 0] * gravarr.c[n, 0] * np1
 
         if order > 0:
-            for m in range(2, n - 1):
-                leg_gott_n[ni, m] = (
-                    n2m1 * sinlat * norm1m[n - 1, m - 1] * leg_gott_n[n - 1, m]
-                    - (nm1 + m) * norm2m[n - 1, m - 1] * leg_gott_n[n - 2, m]
+            for m in range(2, nm1):
+                leg_gott_n[n, m] = (
+                    n2m1 * sinlat * norm1m[nm1, m - 1] * leg_gott_n[nm1, m]
+                    - (nm1 + m) * norm2m[nm1, m - 1] * leg_gott_n[nm1 - 1, m]
                 ) / (n - m)
 
             sumjn = sumkn = 0
-            ctil[ni] = ctil[1] * ctil[ni - 1] - stil[1] * stil[ni - 1]
-            stil[ni] = stil[1] * ctil[ni - 1] + ctil[1] * stil[ni - 1]
+            ctil[n] = ctil[1] * ctil[nm1] - stil[1] * stil[nm1]
+            stil[n] = stil[1] * ctil[nm1] + ctil[1] * stil[nm1]
 
             lim = min(n, order)
             for m in range(1, lim + 1):
-                mxpnm = m * leg_gott_n[ni, m]
-                bnmtil = gravarr.c[ni, m] * ctil[m] + gravarr.s[ni, m] * stil[m]
+                mxpnm = m * leg_gott_n[n, m]
+                bnmtil = gravarr.c[n, m] * ctil[m] + gravarr.s[n, m] * stil[m]
 
                 if m + 1 < leg_gott_n.shape[1]:
-                    sumhn += normn1[n - 1, m - 1] * leg_gott_n[ni, m + 1] * bnmtil
-                sumgmn += (n + m + 1) * leg_gott_n[ni, m] * bnmtil
+                    sumhn += normn1[nm1, m - 1] * leg_gott_n[n, m + 1] * bnmtil
+                sumgmn += (n + m + 1) * leg_gott_n[n, m] * bnmtil
 
-                bnmtm1 = gravarr.c[ni, m] * ctil[m - 1] + gravarr.s[ni, m] * stil[m - 1]
-                anmtm1 = gravarr.c[ni, m] * stil[m - 1] - gravarr.s[ni, m] * ctil[m - 1]
+                bnmtm1 = gravarr.c[n, m] * ctil[m - 1] + gravarr.s[n, m] * stil[m - 1]
+                anmtm1 = gravarr.c[n, m] * stil[m - 1] - gravarr.s[n, m] * ctil[m - 1]
                 sumjn += mxpnm * bnmtm1
                 sumkn -= mxpnm * anmtm1
 
@@ -205,4 +204,4 @@ def accel_gott(
         [lambda_val * xor - sumj, lambda_val * yor - sumk, lambda_val * zor - sumh]
     )
 
-    return leg_gott_n[: degree + 1, : degree + 1], accel
+    return leg_gott_n, accel
