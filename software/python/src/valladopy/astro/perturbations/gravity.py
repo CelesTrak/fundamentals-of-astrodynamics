@@ -109,34 +109,35 @@ def accel_gott(
     muor2 = const.MU * ri**2
 
     # Normalization arrays
-    size = degree + 2
+    size = degree + 1
     norm1, norm2, norm11, normn10 = (np.zeros(size) for _ in range(4))
     norm1m, norm2m, normn1 = (np.zeros((size, size)) for _ in range(3))
 
-    for n in range(2, size):
-        norm1[n] = np.sqrt((2 * n + 1) / (2 * n - 1))
-        norm2[n] = np.sqrt((2 * n + 1) / (2 * n - 3))
-        norm11[n] = np.sqrt((2 * n + 1) / (2 * n)) / (2 * n - 1)
-        normn10[n] = np.sqrt((n + 1) * n * 0.5)
+    for n in range(2, size + 1):
+        norm1[n - 1] = np.sqrt((2 * n + 1) / (2 * n - 1))
+        norm2[n - 1] = np.sqrt((2 * n + 1) / (2 * n - 3))
+        norm11[n - 1] = np.sqrt((2 * n + 1) / (2 * n)) / (2 * n - 1)
+        normn10[n - 1] = np.sqrt((n + 1) * n * 0.5)
         for m in range(1, n + 1):
-            norm1m[n, m] = np.sqrt((n - m) * (2 * n + 1) / ((n + m) * (2 * n - 1)))
-            norm2m[n, m] = np.sqrt(
+            norm1m[n - 1, m - 1] = np.sqrt(
+                (n - m) * (2 * n + 1) / ((n + m) * (2 * n - 1))
+            )
+            norm2m[n - 1, m - 1] = np.sqrt(
                 (n - m)
                 * (n - m - 1)
                 * (2 * n + 1)
                 / ((n + m) * (n + m - 1) * (2 * n - 3))
             )
-            normn1[n, m] = np.sqrt((n + m + 1) * (n - m))
+            normn1[n - 1, m - 1] = np.sqrt((n + m + 1) * (n - m))
 
-    # Legendre terms
+    # Legendre terms initialization
     leg_gott_n = np.zeros((size, size))
     leg_gott_n[0, 0] = 1
     leg_gott_n[1, 1] = np.sqrt(3)
     leg_gott_n[1, 0] = np.sqrt(3) * sinlat
 
     for n in range(2, degree + 1):
-        ni = n
-        leg_gott_n[ni, ni] = norm11[n] * leg_gott_n[n - 1, n - 1] * (2 * n - 1)
+        leg_gott_n[n, n] = norm11[n - 1] * leg_gott_n[n - 1, n - 1] * (2 * n - 1)
 
     ctil, stil = np.zeros(size), np.zeros(size)
     ctil[0], ctil[1] = 1, xor
@@ -151,30 +152,28 @@ def accel_gott(
         np1 = n + 1
 
         # Tesseral (ni, m=ni-1) initial value
-        leg_gott_n[ni, n - 1] = normn1[n, n - 1] * sinlat * leg_gott_n[ni, ni]
+        leg_gott_n[ni, n - 1] = normn1[n - 1, n - 2] * sinlat * leg_gott_n[ni, ni]
 
         # Zonal (ni, m=0)
         leg_gott_n[ni, 0] = (
-            n2m1 * sinlat * norm1[n] * leg_gott_n[n - 1, 0]
-            - nm1 * norm2[n] * leg_gott_n[n - 2, 0]
+            n2m1 * sinlat * norm1[n - 1] * leg_gott_n[n - 1, 0]
+            - nm1 * norm2[n - 1] * leg_gott_n[n - 2, 0]
         ) / n
 
         # Tesseral (ni, m=1) initial value
         leg_gott_n[ni, 1] = (
-            n2m1 * sinlat * norm1m[n, 1] * leg_gott_n[n - 1, 1]
-            - n * norm2m[n, 1] * leg_gott_n[n - 2, 1]
+            n2m1 * sinlat * norm1m[n - 1, 0] * leg_gott_n[n - 1, 1]
+            - n * norm2m[n - 1, 0] * leg_gott_n[n - 2, 1]
         ) / nm1
 
-        sumhn = normn10[n] * leg_gott_n[ni, 1] * gravarr.c[ni, 0]
+        sumhn = normn10[n - 1] * leg_gott_n[ni, 1] * gravarr.c[ni, 0]
         sumgmn = leg_gott_n[ni, 0] * gravarr.c[ni, 0] * np1
 
         if order > 0:
             for m in range(2, n - 1):
-                mi = m
-                # Tesseral (n, m)
-                leg_gott_n[ni, mi] = (
-                    n2m1 * sinlat * norm1m[n, m] * leg_gott_n[n - 1, mi]
-                    - (nm1 + m) * norm2m[n, m] * leg_gott_n[n - 2, mi]
+                leg_gott_n[ni, m] = (
+                    n2m1 * sinlat * norm1m[n - 1, m - 1] * leg_gott_n[n - 1, m]
+                    - (nm1 + m) * norm2m[n - 1, m - 1] * leg_gott_n[n - 2, m]
                 ) / (n - m)
 
             sumjn = sumkn = 0
@@ -183,19 +182,15 @@ def accel_gott(
 
             lim = min(n, order)
             for m in range(1, lim + 1):
-                mi = m
-                mp1 = m + 1
-                mxpnm = m * leg_gott_n[ni, mi]
-                bnmtil = gravarr.c[ni, mi] * ctil[mi] + gravarr.s[ni, mi] * stil[mi]
-                sumhn += normn1[n, m] * leg_gott_n[ni, mp1] * bnmtil
-                sumgmn += (n + m + 1) * leg_gott_n[ni, mi] * bnmtil
+                mxpnm = m * leg_gott_n[ni, m]
+                bnmtil = gravarr.c[ni, m] * ctil[m] + gravarr.s[ni, m] * stil[m]
 
-                bnmtm1 = (
-                    gravarr.c[ni, mi] * ctil[mi - 1] + gravarr.s[ni, mi] * stil[mi - 1]
-                )
-                anmtm1 = (
-                    gravarr.c[ni, mi] * stil[mi - 1] - gravarr.s[ni, mi] * ctil[mi - 1]
-                )
+                if m + 1 < leg_gott_n.shape[1]:
+                    sumhn += normn1[n - 1, m - 1] * leg_gott_n[ni, m + 1] * bnmtil
+                sumgmn += (n + m + 1) * leg_gott_n[ni, m] * bnmtil
+
+                bnmtm1 = gravarr.c[ni, m] * ctil[m - 1] + gravarr.s[ni, m] * stil[m - 1]
+                anmtm1 = gravarr.c[ni, m] * stil[m - 1] - gravarr.s[ni, m] * ctil[m - 1]
                 sumjn += mxpnm * bnmtm1
                 sumkn -= mxpnm * anmtm1
 
