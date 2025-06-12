@@ -72,42 +72,30 @@ def read_gravity_field(filename: str, normalized: bool) -> GravityFieldData:
     return gravarr
 
 
-def accel_gott(
-    recef: ArrayLike, gravarr: GravityFieldData, degree: int, order: int
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute gravity acceleration using the normalized Gottlieb approach.
+def get_norm_gott(
+    degree: int,
+) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
+    """Get normalization arrays for the Gottlieb approach.
 
     References:
+        Vallado: 2022, p. 600, Eq. 8-56
         Eckman, Brown, Adamo 2016 NASA report
 
     Args:
-        recef (array_like): Position vector in ECEF coordinates in km
-        gravarr (GravityFieldData): Normalized gravity field data
-        degree (int): Maximum degree of the gravity field
-        order (int): Maximum order of the gravity field
+        degree (int): Maximum degree of the gravity field (zonals)
 
     Returns:
-        tuple: (leg_gott_n, accel)
-            leg_gott_n (np.ndarray): Legendre terms
-            accel (np.ndarray): ECEF acceleration vector in km/s^2
-
-    Notes:
-        - This function is able to handle degree and order terms larger than 170 due to
-          the formulation.
-        - Includes two-body contribution
+        tuple: (norm1, norm2, norm11, normn10, norm1m, norm2m, normn1)
+            norm1 (np.ndarray): Normalization Legendre polynomial (1 x degree)
+            norm2 (np.ndarray): Normalization Legendre polynomial (1 x degree)
+            norm11 (np.ndarray): Normalization Legendre polynomial (1 x degree)
+            normn10 (np.ndarray): Normalization Legendre polynomial (1 x degree)
+            norm1m (np.ndarray): Normalization Legendre polynomial (degree x degree)
+            norm2m (np.ndarray): Normalization Legendre polynomial (degree x degree)
+            normn1 (np.ndarray): Normalization Legendre polynomial (degree x degree)
     """
-    # Check to make sure gravity field data is normalized
-    if not gravarr.normalized:
-        raise ValueError("Gravity field data must be normalized")
-
-    # Definitions
-    ri = 1 / np.linalg.norm(recef)
-    xor, yor, zor = recef * ri
-    sinlat = zor
-    reor = const.RE * ri
-    reorn = reor
-    muor2 = const.MU * ri**2
-
     # Normalization arrays
     size = degree + 1
     norm1, norm2, norm11, normn10 = (np.zeros(size) for _ in range(4))
@@ -130,13 +118,59 @@ def accel_gott(
             )
             normn1[n - 1, m - 1] = np.sqrt((n + m + 1) * (n - m))
 
+    return norm1, norm2, norm11, normn10, norm1m, norm2m, normn1
+
+
+def accel_gott(
+    recef: ArrayLike, gravarr: GravityFieldData, degree: int, order: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute gravity acceleration using the normalized Gottlieb approach.
+
+    References:
+        Eckman, Brown, Adamo 2016 NASA report
+
+    Args:
+        recef (array_like): Position vector in ECEF coordinates in km
+        gravarr (GravityFieldData): Normalized gravity field data
+        degree (int): Maximum degree of the gravity field
+        order (int): Maximum order of the gravity field
+
+    Returns:
+        tuple: (leg_gott_n, accel)
+            leg_gott_n (np.ndarray): Legendre terms ([degree + 1 x degree + 1] array)
+            accel (np.ndarray): ECEF acceleration vector in km/s^2 (1 x 3 array)
+
+    Notes:
+        - This function is able to handle degree and order terms larger than 170 due to
+          the formulation.
+        - Includes two-body contribution
+
+    TODO:
+        - Add support for partials?
+    """
+    # Check to make sure gravity field data is normalized
+    if not gravarr.normalized:
+        raise ValueError("Gravity field data must be normalized")
+
+    # Definitions
+    ri = 1 / np.linalg.norm(recef)
+    xor, yor, zor = recef * ri
+    sinlat = zor
+    reor = const.RE * ri
+    reorn = reor
+    muor2 = const.MU * ri**2
+
+    # Normalization arrays
+    norm1, norm2, norm11, normn10, norm1m, norm2m, normn1 = get_norm_gott(degree)
+
     # Legendre terms initialization
+    size = degree + 1
     leg_gott_n = np.zeros((size, size))
     leg_gott_n[0, 0] = 1
     leg_gott_n[1, 1] = np.sqrt(3)
     leg_gott_n[1, 0] = np.sqrt(3) * sinlat
 
-    for n in range(2, degree + 1):
+    for n in range(2, size):
         leg_gott_n[n, n] = norm11[n - 1] * leg_gott_n[n - 1, n - 1] * (2 * n - 1)
 
     ctil, stil = np.zeros(size), np.zeros(size)
@@ -144,7 +178,7 @@ def accel_gott(
     stil[1] = yor
 
     sumh, sumgm, sumj, sumk = 0, 1, 0, 0
-    for n in range(2, degree + 1):
+    for n in range(2, size):
         reorn *= reor
         n2m1 = 2 * n - 1
         nm1 = n - 1
