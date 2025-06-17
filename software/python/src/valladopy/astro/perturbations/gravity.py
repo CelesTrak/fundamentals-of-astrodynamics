@@ -13,6 +13,8 @@ from typing import Tuple
 import numpy as np
 from numpy.typing import ArrayLike
 
+from .utils import legpolyn, trigpoly
+from ..twobody.frame_conversions import ecef2ll
 from ... import constants as const
 
 
@@ -165,7 +167,7 @@ def accel_gott(
         Eckman, Brown, Adamo 2016 NASA report
 
     Args:
-        recef (array_like): Position vector in ECEF coordinates in km
+        recef (array_like): ECEF position vector in km
         gravarr (GravityFieldData): Normalized gravity field data
         degree (int): Maximum degree of the gravity field
         order (int): Maximum order of the gravity field
@@ -274,3 +276,79 @@ def accel_gott(
     )
 
     return leg_gott_n, accel
+
+
+def accel_gtds(recef: ArrayLike, gravarr, degree: int) -> np.ndarray:
+    """Compute gravity acceleration using the GTDS approach.
+
+    References:
+        Vallado: 2022, p. 600-602
+
+    Args:
+        recef (array_like): ECEF position vector in km
+        gravarr (GravityFieldData): Normalized gravity field data
+        degree (int): Maximum degree of the gravity field (1 to ~85)
+
+    Returns:
+        np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+    """
+    # Check to make sure gravity field data is normalized
+    if not gravarr.normalized:
+        raise ValueError("Gravity field data must be normalized")
+
+    # Get normalization coefficients
+    norm_arr = get_norm(degree)
+
+    # Find latitude and longitude
+    latgc, _, lon, _ = ecef2ll(recef)
+
+    # Find Legendre and trigonometric polynomials
+    _, legarr_gu, *_ = legpolyn(latgc, degree + 2)
+    trig_arr, *_ = trigpoly(recef, latgc, lon, degree + 2)
+
+    # Intermediate variables
+    r_mag = np.linalg.norm(recef)
+    oor = 1 / r_mag
+    reor = const.RE * oor
+    d_r_dr = d_r_dlat = d_r_dlon = 0
+
+    for n in range(2, degree + 1):
+        temp = reor**2
+        sum1 = sum2 = sum3 = 0
+
+        for m in range(0, n + 1):
+            cnm = gravarr.c[n, m]
+            snm = gravarr.s[n, m]
+            norm = np.array(norm_arr)[n, m]
+
+            # Take normalized coefficients and revert to unnormalized
+            temparg = norm * (cnm * trig_arr[m, 1] + snm * trig_arr[m, 0])
+            sum1 += legarr_gu[n, m] * temparg
+            sum2 += (legarr_gu[n, m + 1] - trig_arr[m, 2] * legarr_gu[n, m]) * temparg
+            sum3 += (
+                m
+                * legarr_gu[n, m]
+                * norm
+                * (snm * trig_arr[m, 1] - cnm * trig_arr[m, 0])
+            )
+
+        d_r_dr += temp * (n + 1) * sum1
+        d_r_dlat += temp * sum2
+        d_r_dlon += temp * sum3
+
+    muor = const.MU * oor
+    d_r_dr *= -muor * oor
+    d_r_dlat *= muor
+    d_r_dlon *= muor
+
+    # Non-spherical perturbative acceleration
+    x, y, z = recef
+    r_delta = np.sqrt(x**2 + y**2)
+    oor_delta = 1 / r_delta
+    temp1 = oor * d_r_dr - z * oor**2 * oor_delta * d_r_dlat
+
+    ax = temp1 * x - oor_delta**2 * d_r_dlon * y
+    ay = temp1 * y + oor_delta**2 * d_r_dlon * x
+    az = oor * d_r_dr * z + oor**2 * r_delta * d_r_dlat
+
+    return np.array([ax, ay, az])

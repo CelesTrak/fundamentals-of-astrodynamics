@@ -16,7 +16,7 @@ from ... import constants as const
 
 
 def legpolyn(
-    latgc: float, order: int
+    latgc: float, degree: int
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Computes Legendre polynomials for the gravity field.
 
@@ -25,7 +25,7 @@ def legpolyn(
 
     Args:
         latgc: Geocentric latitude of the satellite in radians (-pi to pi)
-        order: Size of the gravity field (1 to ~170)
+        degree: Size of the gravity field (1 to ~85)
 
     Returns:
         tuple: (legarr_mu, legarr_gu, legarr_mn, legarr_gn)
@@ -41,7 +41,7 @@ def legpolyn(
         - For satellite operations, orders up to about 120 are valid.
     """
     # Initialize arrays
-    size = order + 1
+    size = degree + 1
     legarr_mu = np.zeros((size, size))
     legarr_gu = np.zeros((size, size))
     legarr_mn = np.zeros((size, size))
@@ -114,7 +114,7 @@ def legpolyn(
 
 
 def trigpoly(
-    recef: ArrayLike, latgc: float, lon: float, order: int
+    recef: ArrayLike, latgc: float, lon: float, degree: int
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Computes accumulated Legendre polynomials and trigonometric terms.
 
@@ -125,21 +125,24 @@ def trigpoly(
         recef (array_like): ECEF satellite position vector in km
         latgc (float): Geocentric latitude of the satellite in radians
         lon (float): Longitude of the satellite in radians
-        order (int): Size of the gravity field (1.. 2160..)
+        degree (int): Size of the gravity field (1 to ~85)
 
     Returns:
         tuple: (trig_arr, v_arr, w_arr)
             trig_arr (np.ndarray): Array of trigonometric terms
             v_arr (np.ndarray): V array of trigonometric terms
             w_arr (np.ndarray): W array of trigonometric terms
+
+    TODO:
+        - Separate GTDS and Montenbruck approaches for clarity.
     """
     magr = np.linalg.norm(recef)
-    l_ = 0
+    n = 0
 
     # Initialize arrays
-    trig_arr = np.zeros((order + 1, 3))
-    v_arr = np.zeros((order + 2, order + 2))
-    w_arr = np.zeros((order + 2, order + 2))
+    trig_arr = np.zeros((degree + 1, 3))
+    v_arr = np.zeros((degree + 2, degree + 2))
+    w_arr = np.zeros((degree + 2, degree + 2))
 
     # Trigonometric terms (GTDS approach)
     trig_arr[0, 0] = 0  # sin terms
@@ -149,7 +152,7 @@ def trigpoly(
     trig_arr[1, 1] = np.cos(lon)
     clon = np.cos(lon)
 
-    for m in range(2, order + 1):
+    for m in range(2, degree + 1):
         # Sine terms
         trig_arr[m, 0] = 2 * clon * trig_arr[m - 1, 0] - trig_arr[m - 2, 0]
         # Cosine terms
@@ -162,26 +165,26 @@ def trigpoly(
     v_arr[0, 0] = const.RE / magr
     v_arr[1, 0] = v_arr[0, 0] ** 2 * np.sin(latgc)
 
-    for l_ in range(2, order + 2):
-        x1 = ((2 * l_ - 1) / l_) * recef[1] * temp
-        x2 = ((l_ - 1) / l_) * temp * const.RE
-        v_arr[l_, 0] = x1 * v_arr[l_ - 1, 0] - x2 * v_arr[l_ - 2, 0]
+    for n in range(2, degree + 2):
+        x1 = ((2 * n - 1) / n) * recef[1] * temp
+        x2 = ((n - 1) / n) * temp * const.RE
+        v_arr[n, 0] = x1 * v_arr[n - 1, 0] - x2 * v_arr[n - 2, 0]
 
     # Tesseral and sectoral values for L = m
-    for l_ in range(1, order + 2):
-        m = l_
+    for n in range(1, degree + 2):
+        m = n
         x1 = (2 * m - 1) * recef[0] * temp
         x2 = recef[1] * temp
-        v_arr[l_, m] = x1 * v_arr[l_ - 1, m - 1] - x2 * w_arr[l_ - 1, m - 1]
-        w_arr[l_, m] = x1 * w_arr[l_ - 1, m - 1] - x2 * v_arr[l_ - 1, m - 1]
+        v_arr[n, m] = x1 * v_arr[n - 1, m - 1] - x2 * w_arr[n - 1, m - 1]
+        w_arr[n, m] = x1 * w_arr[n - 1, m - 1] - x2 * v_arr[n - 1, m - 1]
 
-    for m in range(l_ + 1, order + 1):
-        if m <= order:
-            x = (2 * l_ - 1) / (l_ - m) * recef[1] * temp
-            v_arr[l_ + 1, m] = x * v_arr[l_, m]
-            w_arr[l_ + 1, m] = x * w_arr[l_, m]
+    for m in range(n + 1, degree + 1):
+        if m <= degree:
+            x = (2 * n - 1) / (n - m) * recef[1] * temp
+            v_arr[n + 1, m] = x * v_arr[n, m]
+            w_arr[n + 1, m] = x * w_arr[n, m]
 
-        for l2 in range(m + 2, order + 2):
+        for l2 in range(m + 2, degree + 2):
             x1 = ((2 * l2 - 1) / (l2 - m)) * recef[1] * temp
             x2 = ((l2 + m - 1) / (l2 - m)) * temp * const.RE
             v_arr[l2, m] = x1 * v_arr[l2 - 1, m] - x2 * v_arr[l2 - 2, m]

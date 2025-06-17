@@ -8,6 +8,12 @@ import src.valladopy.astro.perturbations.gravity as gravity
 from ...conftest import custom_allclose
 
 
+@pytest.fixture
+def recef():
+    # Example position vector in ECEF coordinates
+    return np.array([-2110.289523, -5511.916033, 3491.913394])
+
+
 @pytest.mark.parametrize(
     "filename, shape_exp, has_uncertainties",
     # NOTE: These files are assumed to exist in the datalib directory!
@@ -192,11 +198,8 @@ def test_get_norm_gott():
     )
 
 
-def test_accel_gott(gravarr):
-    # Test acceleration calculation
-    recef = np.array([-2110.289523, -5511.916033, 3491.913394])
-    degree = 5
-    order = 5
+def test_accel_gott(gravarr, recef):
+    degree = order = 5
     leg_gott_n, accel = gravity.accel_gott(recef, gravarr, degree, order)
 
     # Expected results
@@ -227,3 +230,19 @@ def test_accel_gott(gravarr):
     gravarr.normalized = False
     with pytest.raises(ValueError):
         gravity.accel_gott(recef, gravarr, degree, order)
+
+
+def test_accel_gtds(gravarr, recef):
+    # Test acceleration calculation
+    accel = gravity.accel_gtds(recef, gravarr, degree=5)
+    assert custom_allclose(
+        accel,
+        np.array(
+            [-1.1714564875876532e-06, -3.0093063370147093e-06, -1.0300884561681294e-05]
+        ),
+    )
+
+    # Check that we get an error if the gravity field data is not normalized
+    gravarr.normalized = False
+    with pytest.raises(ValueError):
+        gravity.accel_gtds(recef, gravarr, degree=5)
