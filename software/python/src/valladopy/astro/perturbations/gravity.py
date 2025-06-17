@@ -6,6 +6,7 @@
 # For license information, see LICENSE file
 # --------------------------------------------------------------------------------------
 
+import math
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -70,6 +71,40 @@ def read_gravity_field(filename: str, normalized: bool) -> GravityFieldData:
             gravarr.s_unc[n, m] = row[5]
 
     return gravarr
+
+
+def get_norm(degree: int) -> np.ndarray:
+    """Computes normalization constants for the gravity field.
+
+    This normalization is useful for GTDS and Montenbruck-based gravity models.
+
+    References:
+        Vallado: 2022, p. 550
+
+    Args:
+        degree (int): Maximum degree of the gravity field (2 to 120)
+
+    Returns:
+        norm_arr (np.ndarray): Normalization array of shape (degree + 1, degree + 1)
+
+    Notes:
+        - Above degree 170, the factorial will return 0, thus affecting the results.
+    """
+    size = degree + 1
+    norm_arr = np.zeros((size, size))
+
+    for n in range(degree + 1):
+        for m in range(n + 1):
+            if m == 0:
+                norm_arr[n, m] = np.sqrt(
+                    (math.factorial(n) * (2 * n + 1)) / math.factorial(n)
+                )
+            else:
+                norm_arr[n, m] = np.sqrt(
+                    (math.factorial(n - m) * 2 * (2 * n + 1)) / math.factorial(n + m)
+                )
+
+    return norm_arr
 
 
 def get_norm_gott(

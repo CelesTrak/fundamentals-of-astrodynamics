@@ -40,20 +40,22 @@ def legpolyn(
           as the remaining equations are consistent.
         - For satellite operations, orders up to about 120 are valid.
     """
-    legarr_mu = np.zeros((order + 1, order + 1))
-    legarr_gu = np.zeros((order + 1, order + 1))
-    legarr_mn = np.zeros((order + 1, order + 1))
-    legarr_gn = np.zeros((order + 1, order + 1))
+    # Initialize arrays
+    size = order + 1
+    legarr_mu = np.zeros((size, size))
+    legarr_gu = np.zeros((size, size))
+    legarr_mn = np.zeros((size, size))
+    legarr_gn = np.zeros((size, size))
 
     # Perform recursions (Montenbruck approach)
     legarr_mu[:2, :2] = [[1, 0], [np.sin(latgc), np.cos(latgc)]]
 
     # Legendre functions, zonal
-    for n in range(2, order + 1):
+    for n in range(2, size):
         legarr_mu[n, n] = (2 * n - 1) * legarr_mu[1, 1] * legarr_mu[n - 1, n - 1]
 
     # Associated Legendre functions
-    for n in range(2, order + 1):
+    for n in range(2, size):
         for m in range(n):
             if n == m + 1:
                 legarr_mu[n, m] = (2 * m + 1) * legarr_mu[1, 0] * legarr_mu[m, m]
@@ -64,7 +66,7 @@ def legpolyn(
                 )
 
     # Normalize the Legendre polynomials
-    for n in range(order + 1):
+    for n in range(size):
         for m in range(n + 1):
             factor = 1 if m == 0 else 2
             conv = np.sqrt(
@@ -75,11 +77,11 @@ def legpolyn(
     # Perform recursions (GTDS approach)
     legarr_gu[:2, :2] = [[1, 0], [np.sin(latgc), np.cos(latgc)]]
 
-    for n in range(2, order + 1):
+    for n in range(2, size):
         for m in range(n + 1):
             legarr_gu[n, m] = 0
 
-    for n in range(2, order + 1):
+    for n in range(2, size):
         for m in range(n + 1):
             # Legendre functions, zonal
             if m == 0:
@@ -100,7 +102,7 @@ def legpolyn(
                     )
 
     # Normalize the Legendre polynomials
-    for n in range(order + 1):
+    for n in range(size):
         for m in range(n + 1):
             factor = 1 if m == 0 else 2
             conv1 = np.sqrt(
