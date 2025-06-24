@@ -175,7 +175,7 @@ def accel_gott(
     Returns:
         tuple: (leg_gott_n, accel)
             leg_gott_n (np.ndarray): Legendre terms ([degree + 1 x degree + 1] array)
-            accel (np.ndarray): ECEF acceleration vector in km/s^2 (1 x 3 array)
+            accel (np.ndarray): ECEF acceleration vector in km/s² (1 x 3 array)
 
     Notes:
         - This function is able to handle degree and order terms larger than 170 due to
@@ -278,7 +278,7 @@ def accel_gott(
     return leg_gott_n, accel
 
 
-def accel_gtds(recef: ArrayLike, gravarr, degree: int) -> np.ndarray:
+def accel_gtds(recef: ArrayLike, gravarr: GravityFieldData, degree: int) -> np.ndarray:
     """Compute gravity acceleration using the GTDS approach.
 
     References:
@@ -352,3 +352,85 @@ def accel_gtds(recef: ArrayLike, gravarr, degree: int) -> np.ndarray:
     az = oor * d_r_dr * z + oor**2 * r_delta * d_r_dlat
 
     return np.array([ax, ay, az])
+
+
+def accel_mont(
+    recef: ArrayLike, gravarr: GravityFieldData, degree: int, order: int
+) -> np.ndarray:
+    """Compute gravity acceleration using the Montenbruck approach.
+
+    References:
+        Vallado: 2022, p. 600-602
+
+    Args:
+        recef (array_like): ECEF position vector in km
+        gravarr (GravityFieldData): Normalized gravity field data
+        degree (int): Maximum degree of the gravity field
+        order (int): Maximum order of the gravity field
+
+    Returns:
+        np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+    """
+    # Check to make sure gravity field data is normalized
+    if not gravarr.normalized:
+        raise ValueError("Gravity field data must be normalized")
+
+    # Initialize acceleration vector
+    apert = np.zeros(3)
+
+    # Get normalization coefficients
+    norm_arr = get_norm(degree + 1)
+
+    # Body-fixed position and auxiliary quantities
+    r2 = np.dot(recef, recef)
+    rho = (const.RE**2) / r2
+    r0 = const.RE * np.array(recef) / r2
+    x0, y0, z0 = r0
+
+    # Zonal terms
+    v = np.zeros((degree + 3, order + 3))
+    w = np.zeros_like(v)
+    v[0, 0] = const.RE / np.sqrt(r2)
+    w[0, 0] = 0
+    v[1, 0] = z0 * v[0, 0]
+    w[1, 0] = 0
+
+    for n in range(2, degree + 2):
+        v[n, 0] = (
+            (2 * (n - 1) + 1) * z0 * v[n - 1, 0] - (n - 1) * rho * v[n - 2, 0]
+        ) / n
+        w[n, 0] = 0
+
+    # Tesseral and sectoral terms
+    for m in range(1, order + 2):
+        v[m, m] = (2 * m - 1) * (x0 * v[m - 1, m - 1] - y0 * w[m - 1, m - 1])
+        w[m, m] = (2 * m - 1) * (x0 * w[m - 1, m - 1] + y0 * v[m - 1, m - 1])
+        if m <= degree:
+            v[m + 1, m] = (2 * m + 1) * z0 * v[m, m]
+            w[m + 1, m] = (2 * m + 1) * z0 * w[m, m]
+        for n in range(m + 2, degree + 2):
+            v[n, m] = (
+                (2 * (n - 1) + 1) * z0 * v[n - 1, m] - (n + m - 1) * rho * v[n - 2, m]
+            ) / (n - m)
+            w[n, m] = (
+                (2 * (n - 1) + 1) * z0 * w[n - 1, m] - (n + m - 1) * rho * w[n - 2, m]
+            ) / (n - m)
+
+    # Calculate acceleration contributions
+    for m in range(order + 1):
+        for n in range(m, degree + 1):
+            c = gravarr.c[n, m] * norm_arr[n, m]
+            s = gravarr.s[n, m] * norm_arr[n, m]
+            if m == 0:
+                apert[0] -= c * v[n + 1, 1]
+                apert[1] -= c * w[n + 1, 1]
+                apert[2] -= (n + 1) * c * v[n + 1, 0]
+            else:
+                fac = 0.5 * (n - m + 1) * (n - m + 2)
+                apert[0] += 0.5 * (-c * v[n + 1, m + 1] - s * w[n + 1, m + 1])
+                apert[0] += fac * (c * v[n + 1, m - 1] + s * w[n + 1, m - 1])
+                apert[1] += 0.5 * (-c * w[n + 1, m + 1] + s * v[n + 1, m + 1])
+                apert[1] += fac * (-c * w[n + 1, m - 1] + s * v[n + 1, m - 1])
+                apert[2] += (n - m + 1) * (-c * v[n + 1, m] - s * w[n + 1, m])
+
+    return const.MU / (const.RE**2) * apert

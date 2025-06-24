@@ -246,3 +246,20 @@ def test_accel_gtds(gravarr, recef):
     gravarr.normalized = False
     with pytest.raises(ValueError):
         gravity.accel_gtds(recef, gravarr, degree=5)
+
+
+def test_accel_mont(gravarr, recef):
+    # Test acceleration calculation
+    degree = order = 5
+    accel = gravity.accel_mont(recef, gravarr, degree, order)
+    assert custom_allclose(
+        accel,
+        np.array(
+            [-1.1626002716621266e-06, -2.9917123154285114e-06, -1.0290159919003271e-05]
+        ),
+    )
+
+    # Check that we get an error if the gravity field data is not normalized
+    gravarr.normalized = False
+    with pytest.raises(ValueError):
+        gravity.accel_mont(recef, gravarr, degree, order)
