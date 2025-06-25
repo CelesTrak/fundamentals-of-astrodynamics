@@ -232,6 +232,28 @@ def test_accel_gott(gravarr, recef):
         gravity.accel_gott(recef, gravarr, degree, order)
 
 
+@pytest.mark.parametrize(
+    "degree, order, accel_exp",
+    [
+        # Case for degree >= 3
+        (5, 5, [0.0026070624549907437, 0.006809494130544517, -0.004326141565980874]),
+        # Case for degree < 3
+        (2, 2, [0.0026071051591998254, 0.006809600898729126, -0.004326106163547526]),
+    ],
+)
+def test_accel_lear(gravarr, recef, degree, order, accel_exp):
+    # Test acceleration calculation
+    accel = gravity.accel_lear(recef, gravarr, degree, order)
+    assert custom_allclose(accel, np.array(accel_exp))
+
+
+def test_accel_lear_bad(gravarr, recef):
+    # Check that we get an error if the gravity field data is not normalized
+    gravarr.normalized = False
+    with pytest.raises(ValueError):
+        gravity.accel_lear(recef, gravarr, degree=5, order=5)
+
+
 def test_accel_gtds(gravarr, recef):
     # Test acceleration calculation
     accel = gravity.accel_gtds(recef, gravarr, degree=5)

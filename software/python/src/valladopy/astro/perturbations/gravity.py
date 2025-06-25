@@ -114,7 +114,7 @@ def get_norm_gott(
 ) -> Tuple[
     np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
 ]:
-    """Get normalization arrays for the Gottlieb approach.
+    """Get normalization arrays for the Gottlieb (and Lear) approach.
 
     References:
         Vallado: 2022, p. 600, Eq. 8-56
@@ -276,6 +276,140 @@ def accel_gott(
     )
 
     return leg_gott_n, accel
+
+
+def accel_lear(
+    recef: ArrayLike, gravarr: GravityFieldData, degree: int, order: int
+) -> np.ndarray:
+    """Compute gravity acceleration using the normalized Lear approach.
+
+    References:
+        Eckman, Brown, Adamo 2016 NASA report
+
+    Args:
+        recef (array_like): ECEF position vector in km
+        gravarr (GravityFieldData): Normalized gravity field data
+        degree (int): Maximum degree of the gravity field
+        order (int): Maximum order of the gravity field
+
+    Returns:
+        np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+    """
+    # Check to make sure gravity field data is normalized
+    if not gravarr.normalized:
+        raise ValueError("Gravity field data must be normalized")
+
+    # Normalization arrays
+    norm1, norm2, norm11, _, norm1m, norm2m, _ = get_norm_gott(degree)
+
+    # Definitions
+    pnm = np.zeros((degree + 1, degree + 1))
+    ppnm = np.zeros((degree + 1, degree + 1))
+
+    e1 = recef[0] ** 2 + recef[1] ** 2
+    magr2 = e1 + recef[2] ** 2
+    magr = np.sqrt(magr2)
+    r1 = np.sqrt(e1)
+    sphi = recef[2] / magr
+    cphi = r1 / magr
+
+    sm = np.zeros(degree + 2)
+    cm = np.zeros(degree + 2)
+    sm[0] = recef[1] / r1 if r1 != 0 else 0
+    cm[0] = recef[0] / r1 if r1 != 0 else 1
+    sm[1] = 2 * cm[0] * sm[0]
+    cm[1] = 2 * cm[0] ** 2 - 1
+
+    reor = np.zeros(degree + 2)
+    reor[0] = const.RE / magr
+    reor[1] = reor[0] ** 2
+
+    root3, root5 = np.sqrt(3), np.sqrt(5)
+    pn = np.zeros(degree + 2)
+    ppn = np.zeros(degree + 2)
+    pn[0] = root3 * sphi
+    pn[1] = root5 * (3 * sphi**2 - 1) * 0.5
+    ppn[0] = root3
+    ppn[1] = root5 * 3 * sphi
+
+    pnm[0, 0] = root3
+    pnm[1, 1] = root5 * root3 * cphi * 0.5
+    pnm[1, 0] = root5 * root3 * sphi
+    ppnm[0, 0] = -root3 * sphi
+    ppnm[1, 1] = -root3 * root5 * sphi * cphi
+    ppnm[1, 0] = root5 * root3 * (1 - 2 * sphi**2)
+
+    if degree >= 3:
+        for n in range(3, degree + 1):
+            nm1, nm2 = n - 1, n - 2
+            reor[nm1] = reor[nm2] * reor[0]
+            sm[n - 1] = 2 * cm[0] * sm[nm1 - 1] - sm[nm2 - 1]
+            cm[n - 1] = 2 * cm[0] * cm[nm1 - 1] - cm[nm2 - 1]
+            e1 = 2 * n - 1
+            pn[n - 1] = (
+                e1 * sphi * norm1[n - 1] * pn[nm1 - 1]
+                - nm1 * norm2[n - 1] * pn[nm2 - 1]
+            ) / n
+            ppn[n - 1] = norm1[n - 1] * (sphi * ppn[nm1 - 1] + n * pn[nm1 - 1])
+            pnm[n - 1, n - 1] = e1 * cphi * norm11[n - 1] * pnm[nm1 - 1, nm1 - 1]
+            ppnm[n - 1, n - 1] = -n * sphi * pnm[n - 1, n - 1]
+
+        for n in range(3, degree + 1):
+            nm1 = n - 1
+            e1 = (2 * n - 1) * sphi
+            e2 = -n * sphi
+            for m in range(1, nm1 + 1):
+                e3 = norm1m[n - 1, m - 1] * pnm[nm1 - 1, m - 1]
+                e4 = n + m
+                e5 = (e1 * e3 - (e4 - 1) * norm2m[n - 1, m - 1] * pnm[n - 3, m - 1]) / (
+                    n - m
+                )
+                pnm[n - 1, m - 1] = e5
+                ppnm[n - 1, m - 1] = e2 * e5 + e4 * e3
+
+    asph = np.zeros(3)
+    asph[0] = -1
+    for n in range(2, degree + 1):
+        e1 = gravarr.c[n, 0] * reor[n - 1]
+        asph[0] -= (n + 1) * e1 * pn[n - 1]
+        asph[2] += e1 * ppn[n - 1]
+    asph[2] *= cphi
+
+    t1 = t3 = 0
+    for n in range(2, degree + 1):
+        e1 = e2 = e3 = 0
+        nmodel = min(n, order)
+        for m in range(1, nmodel + 1):
+            tsnm = gravarr.s[n, m]
+            tcnm = gravarr.c[n, m]
+            tsm = sm[m - 1]
+            tcm = cm[m - 1]
+            tpnm = pnm[n - 1, m - 1]
+            e4 = tsnm * tsm + tcnm * tcm
+            e1 += e4 * tpnm
+            e2 += m * (tsnm * tcm - tcnm * tsm) * tpnm
+            e3 += e4 * ppnm[n - 1, m - 1]
+
+        t1 += (n + 1) * reor[n - 1] * e1
+        asph[1] += reor[n - 1] * e2
+        t3 += reor[n - 1] * e3
+
+    e4 = const.MU / magr2
+    asph[0] = e4 * (asph[0] - cphi * t1)
+    asph[1] = e4 * asph[1]
+    asph[2] = e4 * (asph[2] + t3)
+    e5 = asph[0] * cphi - asph[2] * sphi
+
+    # Compute acceleration vector
+    accel = np.array(
+        [
+            e5 * cm[0] - asph[1] * sm[0],
+            e5 * sm[0] + asph[1] * cm[0],
+            asph[0] * sphi + asph[2] * cphi,
+        ]
+    )
+
+    return accel
 
 
 def accel_gtds(recef: ArrayLike, gravarr: GravityFieldData, degree: int) -> np.ndarray:
