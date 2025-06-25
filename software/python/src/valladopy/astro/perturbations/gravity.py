@@ -303,8 +303,9 @@ def accel_lear(
     norm1, norm2, norm11, _, norm1m, norm2m, _ = get_norm_gott(degree)
 
     # Definitions
-    pnm = np.zeros((degree + 1, degree + 1))
-    ppnm = np.zeros((degree + 1, degree + 1))
+    size = degree + 1
+    pnm = np.zeros((size, size))
+    ppnm = np.zeros((size, size))
 
     e1 = recef[0] ** 2 + recef[1] ** 2
     magr2 = e1 + recef[2] ** 2
@@ -313,20 +314,20 @@ def accel_lear(
     sphi = recef[2] / magr
     cphi = r1 / magr
 
-    sm = np.zeros(degree + 2)
-    cm = np.zeros(degree + 2)
+    sm = np.zeros(size + 1)
+    cm = np.zeros(size + 1)
     sm[0] = recef[1] / r1 if r1 != 0 else 0
     cm[0] = recef[0] / r1 if r1 != 0 else 1
     sm[1] = 2 * cm[0] * sm[0]
     cm[1] = 2 * cm[0] ** 2 - 1
 
-    reor = np.zeros(degree + 2)
+    reor = np.zeros(size + 1)
     reor[0] = const.RE / magr
     reor[1] = reor[0] ** 2
 
     root3, root5 = np.sqrt(3), np.sqrt(5)
-    pn = np.zeros(degree + 2)
-    ppn = np.zeros(degree + 2)
+    pn = np.zeros(size + 1)
+    ppn = np.zeros(size + 1)
     pn[0] = root3 * sphi
     pn[1] = root5 * (3 * sphi**2 - 1) * 0.5
     ppn[0] = root3
@@ -340,7 +341,7 @@ def accel_lear(
     ppnm[1, 0] = root5 * root3 * (1 - 2 * sphi**2)
 
     if degree >= 3:
-        for n in range(3, degree + 1):
+        for n in range(3, size):
             nm1, nm2 = n - 1, n - 2
             reor[nm1] = reor[nm2] * reor[0]
             sm[n - 1] = 2 * cm[0] * sm[nm1 - 1] - sm[nm2 - 1]
@@ -354,7 +355,7 @@ def accel_lear(
             pnm[n - 1, n - 1] = e1 * cphi * norm11[n - 1] * pnm[nm1 - 1, nm1 - 1]
             ppnm[n - 1, n - 1] = -n * sphi * pnm[n - 1, n - 1]
 
-        for n in range(3, degree + 1):
+        for n in range(3, size):
             nm1 = n - 1
             e1 = (2 * n - 1) * sphi
             e2 = -n * sphi
@@ -369,14 +370,14 @@ def accel_lear(
 
     asph = np.zeros(3)
     asph[0] = -1
-    for n in range(2, degree + 1):
+    for n in range(2, size):
         e1 = gravarr.c[n, 0] * reor[n - 1]
         asph[0] -= (n + 1) * e1 * pn[n - 1]
         asph[2] += e1 * ppn[n - 1]
     asph[2] *= cphi
 
     t1 = t3 = 0
-    for n in range(2, degree + 1):
+    for n in range(2, size):
         e1 = e2 = e3 = 0
         nmodel = min(n, order)
         for m in range(1, nmodel + 1):
@@ -568,3 +569,91 @@ def accel_mont(
                 apert[2] += (n - m + 1) * (-c * v[n + 1, m] - s * w[n + 1, m])
 
     return const.MU / (const.RE**2) * apert
+
+
+def accel_pines(
+    recef: ArrayLike, gravarr: GravityFieldData, degree: int, order: int
+) -> np.ndarray:
+    """Compute gravity acceleration using the normalized Pines approach.
+
+    References:
+        Eckman, Brown, Adamo 2016 NASA report
+
+    Args:
+        recef (array_like): ECEF position vector in km
+        gravarr (GravityFieldData): Normalized gravity field data
+        degree (int): Maximum degree of the gravity field
+        order (int): Maximum order of the gravity field
+
+    Returns:
+        np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+    """
+    # Check to make sure gravity field data is normalized
+    if not gravarr.normalized:
+        raise ValueError("Gravity field data must be normalized")
+
+    # Definitions
+    size = degree + 3
+    magr = np.linalg.norm(recef)
+    s, t, u = recef / magr
+    leg_pines_n = np.zeros((size, size))
+
+    leg_pines_n[0, 0] = np.sqrt(2)
+    for m in range(size):
+        if m != 0:  # diagonal recursion
+            leg_pines_n[m, m] = np.sqrt(1 + 1 / (2 * m)) * leg_pines_n[m - 1, m - 1]
+        if m != degree + 2:  # first off-diagonal recursion
+            leg_pines_n[m + 1, m] = np.sqrt(2 * m + 3) * u * leg_pines_n[m, m]
+        if m < degree + 1:
+            for n in range(m + 2, size):
+                alpha = np.sqrt((2 * n + 1) * (2 * n - 1) / ((n - m) * (n + m)))
+                beta = np.sqrt(
+                    (2 * n + 1)
+                    * (n - m - 1)
+                    * (n + m - 1)
+                    / ((2 * n - 3) * (n + m) * (n - m))
+                )
+                leg_pines_n[n, m] = (
+                    alpha * u * leg_pines_n[n - 1, m] - beta * leg_pines_n[n - 2, m]
+                )
+
+    leg_pines_n[:size, 0] *= np.sqrt(0.5)
+    rm = np.zeros(order + 2)
+    im = np.zeros(order + 2)
+    rm[1] = 1
+    for m in range(1, order + 1):
+        rm[m + 1] = s * rm[m] - t * im[m]
+        im[m + 1] = s * im[m] + t * rm[m]
+
+    rho = const.MU / (const.RE * magr)
+    reor = const.RE / magr
+    g1 = g2 = g3 = g4 = 0
+
+    for n in range(degree + 1):
+        g1temp = g2temp = g3temp = g4temp = 0
+        sm = 0.5
+        nmodel = min(order, n)
+
+        for m in range(nmodel + 1):
+            dnm = gravarr.c[n, m] * rm[m + 1] + gravarr.s[n, m] * im[m + 1]
+            enm = gravarr.c[n, m] * rm[m] + gravarr.s[n, m] * im[m]
+            fnm = gravarr.s[n, m] * rm[m] - gravarr.c[n, m] * im[m]
+            alpha = np.sqrt(sm * (n - m) * (n + m + 1))
+
+            g1temp += leg_pines_n[n, m] * m * enm
+            g2temp += leg_pines_n[n, m] * m * fnm
+            g3temp += alpha * leg_pines_n[n, m + 1] * dnm
+            g4temp += (
+                (n + m + 1) * leg_pines_n[n, m] + alpha * u * leg_pines_n[n, m + 1]
+            ) * dnm
+
+            if m == 0:
+                sm = 1
+
+        rho *= reor
+        g1 += rho * g1temp
+        g2 += rho * g2temp
+        g3 += rho * g3temp
+        g4 += rho * g4temp
+
+    return np.array([g1 - g4 * s, g2 - g4 * t, g3 - g4 * u])
