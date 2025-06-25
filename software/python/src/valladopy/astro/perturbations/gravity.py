@@ -160,7 +160,7 @@ def get_norm_gott(
 
 def accel_gott(
     recef: ArrayLike, gravarr: GravityFieldData, degree: int, order: int
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """Compute gravity acceleration using the normalized Gottlieb approach.
 
     References:
@@ -173,9 +173,7 @@ def accel_gott(
         order (int): Maximum order of the gravity field
 
     Returns:
-        tuple: (leg_gott_n, accel)
-            leg_gott_n (np.ndarray): Legendre terms ([degree + 1 x degree + 1] array)
-            accel (np.ndarray): ECEF acceleration vector in km/s² (1 x 3 array)
+        np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
 
     Notes:
         - This function is able to handle degree and order terms larger than 170 due to
@@ -275,7 +273,7 @@ def accel_gott(
         [lambda_val * xor - sumj, lambda_val * yor - sumk, lambda_val * zor - sumh]
     )
 
-    return leg_gott_n, accel
+    return accel
 
 
 def accel_lear(

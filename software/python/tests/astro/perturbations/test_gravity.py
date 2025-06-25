@@ -199,32 +199,13 @@ def test_get_norm_gott():
 
 
 def test_accel_gott(gravarr, recef):
+    # Test acceleration calculation
     degree = order = 5
-    leg_gott_n, accel = gravity.accel_gott(recef, gravarr, degree, order)
-
-    # Expected results
-    # fmt: off
-    leg_gott_n_exp = np.array(
-        [
-            [1, 0, 0, 0, 0, 0],
-            [0.8819538072013969, 1.7320508075688772, 0, 0, 0, 0],
-            [-0.24837961568968236, 1.972108665917067, 1.9364916731037085, 0, 0, 0],
-            [-1.147547834722164, 0.4802296852291552, 2.608854544205961,
-             2.0916500663351894, 0, 0],
-            [-0.9095609259590189, -1.4311242208979975, 1.3667393225859021,
-             3.1951812232228924, 2.218529918662356, 0],
-            [0.22917490142604802, -1.955966243255054, -0.9611189873469996,
-             2.312742992243308, 3.746682091224139, 2.3268138086232857]
-        ]
+    accel = gravity.accel_gott(recef, gravarr, degree, order)
+    assert custom_allclose(
+        accel,
+        np.array([0.0026070624549907433, 0.006809494130544516, -0.004326141565980874]),
     )
-    accel_exp = np.array(
-        [0.0026070624549907433, 0.006809494130544516, -0.004326141565980874]
-    )
-    # fmt: on
-
-    # Check the acceleration values
-    assert custom_allclose(leg_gott_n, leg_gott_n_exp)
-    assert custom_allclose(accel, accel_exp)
 
     # Check that we get an error if the gravity field data is not normalized
     gravarr.normalized = False
