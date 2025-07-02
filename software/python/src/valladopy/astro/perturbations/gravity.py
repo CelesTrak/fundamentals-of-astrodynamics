@@ -8,6 +8,7 @@
 
 import math
 from dataclasses import dataclass
+from enum import Enum
 from typing import Tuple
 
 import numpy as np
@@ -25,6 +26,14 @@ class GravityFieldData:
     c_unc: np.ndarray = None
     s_unc: np.ndarray = None
     normalized: bool = False
+
+
+class GravityAccelMethod(Enum):
+    GOTT = "gott"
+    LEAR = "lear"
+    GTDS = "gtds"
+    MONTENBRUCK = "mont"
+    PINES = "pines"
 
 
 def read_gravity_field(filename: str, normalized: bool) -> GravityFieldData:
@@ -655,3 +664,59 @@ def accel_pines(
         g4 += rho * g4temp
 
     return np.array([g1 - g4 * s, g2 - g4 * t, g3 - g4 * u])
+
+
+def _parse_method(method: str | GravityAccelMethod) -> GravityAccelMethod:
+    if isinstance(method, GravityAccelMethod):
+        return method
+    try:
+        return GravityAccelMethod(method.lower())
+    except ValueError as e:
+        raise ValueError(f"Unknown gravity acceleration method: {method}") from e
+
+
+def accel(
+    recef: ArrayLike,
+    gravarr: GravityFieldData,
+    degree: int,
+    order: int,
+    method: GravityAccelMethod = GravityAccelMethod.LEAR,
+) -> np.ndarray:
+    """Compute gravity acceleration using the specified method.
+
+    Args:
+        recef (array_like): ECEF position vector in km
+        gravarr (GravityFieldData): Gravity field data
+        degree (int): Maximum degree of the gravity field
+        order (int): Maximum order of the gravity field
+        method (GravityAccelMethod | str, optional): Method to use for acceleration
+                                                     calculation (default is LEAR)
+
+    Returns:
+        np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+    """
+    # Parse the method to handle strings
+    method = _parse_method(method)
+
+    # Full-body acceleration methods (includes two-body contribution)
+    if method == GravityAccelMethod.GOTT:
+        return accel_gott(recef, gravarr, degree, order)
+    elif method == GravityAccelMethod.LEAR:
+        return accel_lear(recef, gravarr, degree, order)
+
+    # Perturbation-only acceleration methods (no two-body contribution)
+    elif method == GravityAccelMethod.GTDS:
+        accel = accel_gtds(recef, gravarr, degree)
+    elif method == GravityAccelMethod.MONTENBRUCK:
+        accel = accel_mont(recef, gravarr, degree, order)
+    elif method == GravityAccelMethod.PINES:
+        accel = accel_pines(recef, gravarr, degree, order)
+
+    # Un-recognized method
+    else:
+        raise ValueError(f"Unknown gravity acceleration method: {method}")
+
+    # Add two-body contribution to perturbation acceleration
+    accel -= const.MU / np.linalg.norm(recef) ** 3 * np.array(recef)
+
+    return accel

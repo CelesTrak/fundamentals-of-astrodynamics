@@ -283,3 +283,24 @@ def test_accel_pines(gravarr, recef):
     gravarr.normalized = False
     with pytest.raises(ValueError):
         gravity.accel_pines(recef, gravarr, degree, order)
+
+
+@pytest.mark.parametrize(
+    "method, accel_exp",
+    [
+        ("gott", [0.0026070624549907433, 0.006809494130544516, -0.004326141565980874]),
+        ("lear", [0.0026070624549907437, 0.006809494130544517, -0.004326141565980874]),
+        ("gtds", [0.0026070535987748173, 0.006809476536522929, -0.004326152290623551]),
+        ("mont", [0.002607062454990743, 0.006809494130544515, -0.004326141565980873]),
+        ("pines", [0.002607062454990743, 0.006809494130544515, -0.004326141565980873]),
+        ("vallado", None),
+    ],
+)
+def test_accel(gravarr, recef, method, accel_exp):
+    degree = order = 5
+    if method == "vallado":
+        with pytest.raises(ValueError):
+            gravity.accel(recef, gravarr, degree, order, method)
+    else:
+        accel = gravity.accel(recef, gravarr, degree, order, method=method)
+        assert custom_allclose(accel, np.array(accel_exp))
