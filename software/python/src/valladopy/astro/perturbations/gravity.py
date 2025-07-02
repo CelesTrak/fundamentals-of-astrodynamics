@@ -172,6 +172,8 @@ def accel_gott(
 ) -> np.ndarray:
     """Compute gravity acceleration using the normalized Gottlieb approach.
 
+    This returns the full acceleration that contains the two-body contribution.
+
     References:
         Eckman, Brown, Adamo 2016 NASA report
 
@@ -184,10 +186,8 @@ def accel_gott(
     Returns:
         np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
 
-    Notes:
-        - This function is able to handle degree and order terms larger than 170 due to
-          the formulation.
-        - Includes two-body contribution
+    Raises:
+        ValueError: If the gravity field data is not normalized
 
     TODO:
         - Add support for partials?
@@ -290,6 +290,8 @@ def accel_lear(
 ) -> np.ndarray:
     """Compute gravity acceleration using the normalized Lear approach.
 
+    This returns the full acceleration that contains the two-body contribution.
+
     References:
         Eckman, Brown, Adamo 2016 NASA report
 
@@ -301,6 +303,9 @@ def accel_lear(
 
     Returns:
         np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+
+    Raises:
+        ValueError: If the gravity field data is not normalized
     """
     # Check to make sure gravity field data is normalized
     if not gravarr.normalized:
@@ -421,7 +426,9 @@ def accel_lear(
 
 
 def accel_gtds(recef: ArrayLike, gravarr: GravityFieldData, degree: int) -> np.ndarray:
-    """Compute gravity acceleration using the GTDS approach.
+    """Compute gravity acceleration perturbation using the GTDS approach.
+
+    This returns the acceleration perturbation only (no two-body contribution).
 
     References:
         Vallado: 2022, p. 600-602
@@ -432,7 +439,10 @@ def accel_gtds(recef: ArrayLike, gravarr: GravityFieldData, degree: int) -> np.n
         degree (int): Maximum degree of the gravity field (1 to ~85)
 
     Returns:
-        np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+        np.ndarray: ECEF acceleration perturbation vector in km/s² (1 x 3 array)
+
+    Raises:
+        ValueError: If the gravity field data is not normalized
     """
     # Check to make sure gravity field data is normalized
     if not gravarr.normalized:
@@ -499,7 +509,9 @@ def accel_gtds(recef: ArrayLike, gravarr: GravityFieldData, degree: int) -> np.n
 def accel_mont(
     recef: ArrayLike, gravarr: GravityFieldData, degree: int, order: int
 ) -> np.ndarray:
-    """Compute gravity acceleration using the Montenbruck approach.
+    """Compute gravity acceleration perturbation using the Montenbruck approach.
+
+    This returns the acceleration perturbation only (no two-body contribution).
 
     References:
         Vallado: 2022, p. 600-602
@@ -512,6 +524,9 @@ def accel_mont(
 
     Returns:
         np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+
+    Raises:
+        ValueError: If the gravity field data is not normalized
     """
     # Check to make sure gravity field data is normalized
     if not gravarr.normalized:
@@ -581,7 +596,9 @@ def accel_mont(
 def accel_pines(
     recef: ArrayLike, gravarr: GravityFieldData, degree: int, order: int
 ) -> np.ndarray:
-    """Compute gravity acceleration using the normalized Pines approach.
+    """Compute gravity acceleration perturbation using the normalized Pines approach.
+
+    This returns the acceleration perturbation only (no two-body contribution).
 
     References:
         Eckman, Brown, Adamo 2016 NASA report
@@ -594,6 +611,9 @@ def accel_pines(
 
     Returns:
         np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+
+    Raises:
+        ValueError: If the gravity field data is not normalized
     """
     # Check to make sure gravity field data is normalized
     if not gravarr.normalized:
@@ -694,6 +714,9 @@ def accel(
 
     Returns:
         np.ndarray: ECEF acceleration vector in km/s² (1 x 3 array)
+
+    Raises:
+        ValueError: If an unknown method is specified.
     """
     # Parse the method to handle strings
     method = _parse_method(method)
