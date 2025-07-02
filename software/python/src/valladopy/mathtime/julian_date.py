@@ -414,7 +414,7 @@ def convtime(
     tai = utc + dat
 
     # GPS
-    gps = tai + 19  # seconds
+    gps = tai - 19  # seconds
 
     # TT
     tt = tai + 32.184  # seconds
