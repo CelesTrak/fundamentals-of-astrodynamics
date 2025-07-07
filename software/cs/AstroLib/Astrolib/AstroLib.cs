@@ -37,7 +37,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 using MathTimeMethods;  // Edirection, globals
-using EOPSPWMethods;    // EOPDataClass, SPWDataClass, iau80Class, iau06Class
+using EOPSPWMethods;
+using System.CodeDom;    // EOPDataClass, SPWDataClass, iau80Class, iau06Class
 
 
 namespace AstroLibMethods
@@ -84,12 +85,14 @@ namespace AstroLibMethods
         {
             public double speedoflight = 2.99792458e8;  // speed of light m/s
             public double au = 149597870.7;  // km
-            public double mum = 3.986004415e14; // m^3/s^2 stk uses .4415 
-            public double mu = 398600.4415;     // km^3/s^2 stk uses .4415
-            public double re = 6378.1363;       // km  stk uses .1363
+            public double mum = 3.986004415e14; // m^3/s^2   
+            public double mu = 398600.4415;     // km^3/s^2  
+            public double re = 6378.1363;       // km   
             public double rem = 6378136.3;      // default equatorial radius[m], set with each model
-            public double velkmps = 7.905366149846074;
-            public double earthrot = 7.292115e-05;  // 7.29211514670698e-05 older rad/s        
+            public double earthrot = 7.292115e-05;  // 7.29211514670698e-05 older rad/s
+            // derived quantities
+            public double velkmps = 7.905366149846074;  // sqrt(mu / re)
+            public double tusec = 806.8109913067327;   // sqrt(re^3 / mu);
         };
         public astroConst astroConsts = new astroConst();
 
@@ -6705,8 +6708,8 @@ namespace AstroLibMethods
             double magr1 = MathTimeLibr.mag(r1);
             double magr2 = MathTimeLibr.mag(r2);
 
-            hitearth = 'x';
-            hitearthstr = "xno";
+            hitearth = 'n';
+            hitearthstr = "no";
 
             // check whether Lambert transfer trajectory hits the Earth
             if (magr1 < radiuspad || magr2 < radiuspad)
@@ -6751,7 +6754,7 @@ namespace AstroLibMethods
                     if (rp < radiuspad)
                     {
                         hitearth = 'y';
-                        hitearthstr = hitearth + "Sub_Earth_nrrp";
+                        hitearthstr = hitearth + "Sub_Earth_nrev";
                     }
                 }
                 // nrev = 0, 3 cases:
@@ -6791,7 +6794,7 @@ namespace AstroLibMethods
                             if (rp < radiuspad)
                             {
                                 hitearth = 'y';
-                                hitearthstr = hitearth + "Sub_Earth_para";
+                                hitearthstr = hitearth + "Sub_Earth_parb";
                             }
                         }
                         else
@@ -6815,7 +6818,7 @@ namespace AstroLibMethods
                                 if (rp < radiuspad)
                                 {
                                     hitearth = 'y';
-                                    hitearthstr = hitearth + "Sub_Earth_ell";
+                                    hitearthstr = hitearth + "Sub_Earth_ecc";
                                 }
                             }
                             else
@@ -6964,7 +6967,7 @@ namespace AstroLibMethods
                         if (rp < radiuspadc)
                         {
                             hitearth = 'y';
-                            hitearthstr = hitearth + "Sub_Earth_Para";
+                            hitearthstr = hitearth + "Sub_Earth_Parb";
                         }
                     }
                     else  // hyperbolic or elliptical orbit
@@ -6986,7 +6989,7 @@ namespace AstroLibMethods
                             if (rp < radiuspadc)
                             {
                                 hitearth = 'y';
-                                hitearthstr = hitearth + "Sub_Earth_ell";
+                                hitearthstr = hitearth + "Sub_Earth_ecc";
                             }
                         }
                         else
@@ -7467,14 +7470,13 @@ namespace AstroLibMethods
         //    dtsec       - time between r1 and r2                    sec
         //    nrev        - number of revs to complete                0, 1, 2, 3,  
         //    kbi         - psi value for min                     
-        //    altpad      - altitude pad for hitearth calc            km
         //    show        - control output don't output for speed      'y', 'n'
         //
         //  outputs       :
         //    v1t         - ijk transfer velocity vector              km/s
         //    v2t         - ijk transfer velocity vector              km/s
-        //    hitearth    - flag if hit or not                        'y', 'n'
-        //    error       - error flag                                1, 2, 3,   use numbers since c++ is so horrible at strings
+        //    detailSum   - summary of iterations
+        //    detailAll   - details of iterations
         //
         //  locals        :
         //    vara        - variable of the iteration,
@@ -7507,19 +7509,18 @@ namespace AstroLibMethods
 
         public void lambertuniv
                (
-               double[] r1, double[] r2, double[] v1, char dm, char de, Int32 nrev, double dtsec, double kbi,
-               double altpad, char show,
-               out double[] v1t, out double[] v2t, out char hitearth, out string errorsum, out string errorout
+               double[] r1, double[] r2, double[] v1, char dm, char de, Int32 nrev, double dtsec, double kbi, char show,
+               out double[] v1t, out double[] v2t, out string detailSum, out string detailAll
                )
         {
-            const double small = 0.0000001;
+            const double small = 0.000001;
             const int numiter = 40;
 
             int loops, ynegktr;
             double rp, vara, y, upper, lower, cosdeltanu, f, g, gdot, xold, xoldcubed, magr1, magr2,
                 psiold, psinew, psilast, c2new, c3new, dtnew, dtold, c2dot, c3dot, dtdpsi, psiold2, a;
-            string hitearthstr, errorstr, estr;
-            //int error;
+            string errorstr, estr;
+            errorstr = "";
 
             // needed since assignments aren't at root level in procedure
             v1t = new double[] { 0.0, 0.0, 0.0 };
@@ -7527,10 +7528,8 @@ namespace AstroLibMethods
 
             // --------------------  initialize values    // ---------------------
             estr = "";  // determine various cases
-            hitearth = 'x';
-            errorstr = "ok";
-            errorsum = "ok";
-            errorout = "ok";
+            detailSum = "ok";
+            detailAll = "";
             //error = 0;
             psilast = 0.0;
             psinew = 0.0;
@@ -7543,7 +7542,7 @@ namespace AstroLibMethods
             magr2 = MathTimeLibr.mag(r2);
 
             cosdeltanu = MathTimeLibr.dot(r1, r2) / (magr1 * magr2);
-            if (dm == 'L')  //~works de == 'h'   
+            if (dm == 'L')  //  ~works de == 'h'   
                 vara = -Math.Sqrt(magr1 * magr2 * (1.0 + cosdeltanu));
             else
                 vara = Math.Sqrt(magr1 * magr2 * (1.0 + cosdeltanu));
@@ -7625,7 +7624,7 @@ namespace AstroLibMethods
 
                             // show loop iteration if ynegktr
                             if (show == 'y')
-                                errorout = errorout + "\r\nyneg" + ynegktr.ToString().PadLeft(3) + "   " + psiold.ToString("0.0000000").PadLeft(12) + "  " +
+                                detailAll = detailAll + "\r\nyneg" + ynegktr.ToString().PadLeft(3) + "   " + psiold.ToString("0.0000000").PadLeft(12) + "  " +
                                     y.ToString("0.0000000").PadLeft(15) + " " + xold.ToString("0.00000").PadLeft(13) + " " +
                                     dtnew.ToString("0.#######").PadLeft(15) + " " + vara.ToString("0.#######").PadLeft(15) + " " +
                                     upper.ToString("0.#######").PadLeft(15) + " " + lower.ToString("0.#######").PadLeft(15) + " " + ynegktr.ToString();
@@ -7661,7 +7660,6 @@ namespace AstroLibMethods
                         }
                         dtdpsi = (xoldcubed * (c3dot - 3.0 * c3new * c2dot / (2.0 * c2new)) + vara / 8.0 * (3.0 * c3new * Math.Sqrt(y) / c2new + vara / xold)) * oosqrtmu;
                         psinew = psiold - (dtnew - dtsec) / dtdpsi;
-                        double psitmp = psinew;
 
                         // check if newton guess for psi is outside bounds(too steep a slope), then use bisection
                         if (psinew > upper || psinew < lower)
@@ -7690,11 +7688,12 @@ namespace AstroLibMethods
 
                         // save info of each iteration
                         if (show == 'y')
-                            errorout = errorout + "\r\n" + loops.ToString().PadLeft(3) + "   " + y.ToString("0.0000000").PadLeft(12) + "  " +
-                                xold.ToString("0.0000000").PadLeft(15) + " " + dtsec.ToString("0.00000").PadLeft(13) + " " +
-                                dtnew.ToString("0.#######").PadLeft(15) + " " + lower.ToString("0.#######").PadLeft(15) + " " +
-                                upper.ToString("0.#######").PadLeft(15) + " " + dtdpsi.ToString("0.#######").PadLeft(15) + " " +
-                                psitmp.ToString() + " " + psinew.ToString() + " " + psilast.ToString() + " " + estr;
+                            detailAll = detailAll + "\r\n" + loops.ToString().PadLeft(3) + "  y " + y.ToString("0.0000000").PadLeft(12) + " x " +
+                                xold.ToString("0.0000000") + " " + dtsec.ToString("0.#######") + " dtnew " +
+                                dtnew.ToString("0.#######") + " " + lower.ToString("0.#######") + " " +
+                                upper.ToString("0.#######") + " psinew " + psinew.ToString("0.#######") + " "
+                                + dtdpsi.ToString("0.#######"); // + " " +
+                                //psitmp.ToString() + " " + psinew.ToString() + " " + psilast.ToString() + " " + estr;
 
                         // -------------- find c2 and c3 functions ---------- 
                         findc2c3(psinew, out c2new, out c3new);
@@ -7731,7 +7730,6 @@ namespace AstroLibMethods
                         v1t[i] = ((r2[i] - f * r1[i]) * g);
                         v2t[i] = ((gdot * r2[i] - r1[i]) * g);
                     }
-                    checkhitearth(altpad, r1, v1t, r2, v2t, nrev, out hitearth, out hitearthstr, out rp, out a);
                 }
             }
             else
@@ -7739,7 +7737,7 @@ namespace AstroLibMethods
                 errorstr = "impossible180";
                 // use battin and hodograph
                 string errorsumb, erroroutb;
-                lambertbattin(r1, r2, v1, dm, de, nrev, dtsec, altpad, show, out v1t, out v2t, out hitearth, out errorsumb, out erroroutb);
+                lambertbattin(r1, r2, v1, dm, de, nrev, dtsec, show, out v1t, out v2t, out errorsumb, out erroroutb);
             }
 
             double dnu;
@@ -7753,14 +7751,12 @@ namespace AstroLibMethods
             }
 
             if (show == 'y')
-                errorsum = errorstr;
-            else
-                errorsum = errorstr + " " + nrev.ToString().PadLeft(3) + "   " + dm + "  " + de + " " +
-                dtsec.ToString("0.000000").PadLeft(15) + " " + psinew.ToString("0.000000").PadLeft(15) +
-                v1t[0].ToString("0.0000000").PadLeft(15) + v1t[1].ToString("0.0000000").PadLeft(15) + v1t[2].ToString("0.0000000").PadLeft(15) +
-                v2t[0].ToString("0.0000000").PadLeft(15) + v2t[1].ToString("0.0000000").PadLeft(15) + v2t[2].ToString("0.0000000").PadLeft(15) +
-                " " + loops.ToString().PadLeft(4) + " " + rp.ToString("0.0000000").PadLeft(15) + " " + a.ToString("0.0000000").PadLeft(15) +
-                " " + dnu.ToString("0.0000000").PadLeft(15) + " " + hitearth;
+                detailSum = errorstr + " " + nrev.ToString().PadLeft(3) + "   " + dm + "  " + de + " " +
+                    dtsec.ToString("0.#######").PadLeft(15) + " " + psinew.ToString("0.000000").PadLeft(15) +
+                    v1t[0].ToString("0.0000000").PadLeft(15) + v1t[1].ToString("0.0000000").PadLeft(15) + v1t[2].ToString("0.0000000").PadLeft(15) +
+                    v2t[0].ToString("0.0000000").PadLeft(15) + v2t[1].ToString("0.0000000").PadLeft(15) + v2t[2].ToString("0.0000000").PadLeft(15) +
+                    " " + loops.ToString().PadLeft(4) + " " + rp.ToString("0.0000000").PadLeft(15) + " " + a.ToString("0.0000000").PadLeft(15) +
+                    " " + dnu.ToString("0.0000000").PadLeft(15);
         }  //  lambertuniv
 
 
@@ -8010,15 +8006,13 @@ namespace AstroLibMethods
         //                  only affects nrev >= 1 solutions
         //    dtsec       - time between r1 and r2                     sec
         //    nrev        - number of revs to complete                 0, 1, 2, 3,  
-        //    altpad      - altitude pad for hitearth calc             km
         //    show        - control output don't output for speed      'y', 'n'
         //
         //  outputs       :
         //    v1t         - ijk transfer velocity vector               km/s
         //    v2t         - ijk transfer velocity vector               km/s
-        //    hitearth    - flag if hti or not                         'y', 'n'
-        //    errorsum    - error flag                                 'ok',  
-        //    errorout    - text for iterations / last loop
+        //    detailSum   - summary of iterations
+        //    detailAll   - details of iterations
         //
         //  references    :
         //    vallado       2022, 505, Alg 61, ex 7-5
@@ -8027,9 +8021,8 @@ namespace AstroLibMethods
 
         public void lambertbattin
                (
-               double[] r1, double[] r2, double[] v1, char dm, char de, Int32 nrev, double dtsec,
-               double altpad, char show,
-               out double[] v1t, out double[] v2t, out char hitearth, out string errorsum, out string errorout
+               double[] r1, double[] r2, double[] v1, char dm, char de, Int32 nrev, double dtsec, char show,
+               out double[] v1t, out double[] v2t, out string detailSum, out string detailAll
                )
         {
             const double small = 0.0000000001;
@@ -8041,11 +8034,8 @@ namespace AstroLibMethods
             double[] v1dvl = new double[3];
             double[] v2dvl = new double[3];
             double[] v2 = new double[3];
-            string errorstr;
-            hitearth = 'x';
-            errorstr = "ok";
-            errorsum = "ok";
-            errorout = "ok";
+            detailSum = "ok";
+            detailAll = "";
 
             // needed since assignments aren't at root level in procedure
             v1t = new double[] { 0.0, 0.0, 0.0 };
@@ -8128,12 +8118,9 @@ namespace AstroLibMethods
 
                     // output to show all iterations, and also uncomment errorsum in show == 'n'
                     if (show == 'y')
-                        errorout = errorout + "\n       ok " + loops.ToString().PadLeft(4) + nrev.ToString().PadLeft(3) + "   " + dm + "  " + de +
-                            (Math.Acos(cosdeltanu) * 180.0 / Math.PI).ToString("0.0000000").PadLeft(15) + " " +
-                             dtsec.ToString("0.######").PadLeft(15) + " yh " + y.ToString("0.#######").PadLeft(11) + " x " + x.ToString("0.#######").PadLeft(11) +
-                             " h1 " + h1.ToString("0.#######").PadLeft(11) + " h2 " + h2.ToString("0.#######").PadLeft(11) +
-                             " b " + b.ToString("0.#######").PadLeft(11) + " f " + f.ToString("0.#######").PadLeft(11) +
-                             " dt " + dtsec.ToString("0.######");
+                        detailAll = detailAll + "\n " + loops + " yh " + y.ToString("0.#######") + " x " + x.ToString("0.#######") +
+                             " h1 " + h1.ToString("0.#######") + " h2 " + h2.ToString("0.#######") +
+                             " b " + b.ToString("0.#######") + " f " + f.ToString("0.#######");
 
                     loops = loops + 1;
                 }  // while
@@ -8144,14 +8131,6 @@ namespace AstroLibMethods
                 ecc = Math.Sqrt(1.0 - p / a);
                 rp = a * (1.0 - ecc);
                 lambhodograph(r1, r2, v1, p, ecc, dnu, dtsec, out v1t, out v2t);
-
-                if (show == 'y')
-                    errorsum = errorstr + "high " + nrev.ToString().PadLeft(3) + "   " + dm + "  " + de + "  " +
-                        dtsec.ToString("0.#######").PadLeft(15) + " " + x.ToString("0.#######").PadLeft(15) + " " +
-                        v1t[0].ToString("0.0000000").PadLeft(15) + v1t[1].ToString("0.0000000").PadLeft(15) + v1t[2].ToString("0.0000000").PadLeft(15) +
-                        v2t[0].ToString("0.0000000").PadLeft(15) + v2t[1].ToString("0.0000000").PadLeft(15) + v2t[2].ToString("0.0000000").PadLeft(15) +
-                        " " + loops.ToString().PadLeft(4) + " " + rp.ToString("0.0000000").PadLeft(15) + " " + a.ToString("0.0000000").PadLeft(15) +
-                        " " + dnu.ToString("0.0000000").PadLeft(15) + " " + hitearth;
             }
             else
             {
@@ -8201,28 +8180,16 @@ namespace AstroLibMethods
 
                     // output to show all iterations, and also uncomment errorsum in show == 'n'
                     if (show == 'y')
-                        errorout = errorout + "\n       ok " + loops.ToString().PadLeft(4) + nrev.ToString().PadLeft(3) + "   " + dm + "  " + de +
-                            (Math.Acos(cosdeltanu) * 180.0 / Math.PI).ToString("0.0000000").PadLeft(15) + " " +
-                            dtsec.ToString("0.######").PadLeft(15) + " yb " + y.ToString("0.######").PadLeft(11) + " x " + x.ToString("0.######").PadLeft(11) +
-                            " k2 " + k2.ToString("0.######").PadLeft(11) + " b " + b.ToString("0.######").PadLeft(11) +
-                            " u " + u.ToString("0.######").PadLeft(11) + " y1 " + y1.ToString("0.######").PadLeft(11);
+                        detailAll = detailAll + "\n " + loops + " yb " + y.ToString("0.#######") + " x " + x.ToString("0.#######") +
+                            " k2 " + k2.ToString("0.#######") + " b " + b.ToString("0.#######") +
+                            " u " + u.ToString("0.#######") + " y1 " + y1.ToString("0.#######");
                 }  // while
 
                 if (loops < 30)
                 {
                     p = (2.0 * magr1 * magr2 * y * y * Math.Pow(1.0 + x, 2) * Math.Pow(Math.Sin(dnu * 0.5), 2)) / (m * s * Math.Pow(1.0 + lam, 2));  // thompson
                     ecc = Math.Sqrt((eps * eps + 4.0 * magr2 / magr1 * Math.Pow(Math.Sin(dnu * 0.5), 2) * Math.Pow((L - x) / (L + x), 2)) / (eps * eps + 4.0 * magr2 / magr1 * Math.Pow(Math.Sin(dnu * 0.5), 2)));
-                    a = 1.0;   // fix
-                    rp = a * (1.0 - ecc);
                     lambhodograph(r1, r2, v1, p, ecc, dnu, dtsec, out v1t, out v2t);
-
-                    if (show == 'y')
-                        errorsum = errorstr + "low " + nrev.ToString().PadLeft(3) + "   " + dm + "  " + de + " " +
-                            dtsec.ToString("0.00000").PadLeft(15) + " " + x.ToString("0.000000").PadLeft(15) + " " +
-                            v1t[0].ToString("0.0000000").PadLeft(15) + v1t[1].ToString("0.0000000").PadLeft(15) + v1t[2].ToString("0.0000000").PadLeft(15) +
-                            v2t[0].ToString("0.0000000").PadLeft(15) + v2t[1].ToString("0.0000000").PadLeft(15) + v2t[2].ToString("0.0000000").PadLeft(15) +
-                            " " + loops.ToString().PadLeft(4) + " " + rp.ToString("0.0000000").PadLeft(15) + " " + a.ToString("0.0000000").PadLeft(15) +
-                            " " + dnu.ToString("0.0000000").PadLeft(15) + " " + hitearth;
                 }  // if loops converged < 30
             }  // if nrev and r
 
@@ -11041,7 +11008,7 @@ namespace AstroLibMethods
             out double[] r1, out double[] r3, out double[] rho2sez, out string errstr
         )
         {
-            char hitearth, dm, de;
+            char dm, de;
             int nrev;
             string detailSum, detailAll;
             rho2sez = new double[] { 0.0, 0.0, 0.0 };
@@ -11101,19 +11068,18 @@ namespace AstroLibMethods
             errstr = errstr + "r3 " + r3[0].ToString() + " " + r3[1].ToString() + " " + r3[2].ToString()
                 + tau13.ToString() + "\n";
 
-            lambertuniv(r1, r3, v1, dm, de, nrev, 0.0, 0.0, altpadc, 'y',
-                out v1t, out v2t, out hitearth, out detailSum, out detailAll);
-            lambertbattin(r1, r3, v1, dm, de, nrev, 0.0, altpadc, 'y',
-                out v1t, out v2t, out hitearth, out detailSum, out detailAll);
-
-            errstr = errstr + "Lambert " + hitearth + " " + detailSum + "\n";
+            lambertuniv(r1, r3, v1, dm, de, nrev, 0.0, 0.0, 'y',
+                out v1t, out v2t, out detailSum, out detailAll);
+            lambertbattin(r1, r3, v1, dm, de, nrev, 0.0, 'y',
+                out v1t, out v2t, out detailSum, out detailAll);
+            errstr = errstr + "Lambert " + " " + detailSum + "\n";
             // hardwire for now, numsoltns of solutions
             numsoltns = 1;
 
             // proceed if at least one solution exists 
             // check hitearth...
             // if (numsoltns > 0)
-            if (hitearth != 'y')
+            //if (hitearth != 'y')
             {
                 // extract solution of interest 
                 // if only 1 root, overwrite W one
@@ -11159,7 +11125,7 @@ namespace AstroLibMethods
                 rho2sez[1] = r2[1] - rs2eci[1];
                 rho2sez[2] = r2[2] - rs2eci[2];
             }
-            else
+            //else
             {
                 // need to do something if no roots were found - perhaps delete guess?
             }
@@ -12082,7 +12048,6 @@ namespace AstroLibMethods
             Int32 maxsizeGravField = 2500;
             Int32 L, m, ktr, begincol;
             string line, line1;
-            char hasuncdata = 'n';
             L = 0;
 
             gravData = new gravityConst();
@@ -12146,10 +12111,9 @@ namespace AstroLibMethods
                         gravData.sSig[L] = new double[L + 1];
                         oldL = L;
                     }
+
                     gravData.cSig[L][m] = Convert.ToDouble(linesplt[begincol + 4]);
                     gravData.sSig[L][m] = Convert.ToDouble(linesplt[begincol + 5]);
-                    
-                    hasuncdata = 'y';
                 }
                 catch
                 { }
@@ -12276,7 +12240,7 @@ namespace AstroLibMethods
                     {
                         // associated Legendre functions
                         if (m == L)
-                            legarrGU[L][ L] = (2.0 * L - 1) * legarrGU[1][ 1] * legarrGU[L - 1][ m - 1];  // sectoral part
+                            legarrGU[L][L] = (2.0 * L - 1) * legarrGU[1][ 1] * legarrGU[L - 1][ m - 1];  // sectoral part
                         else
                             legarrGU[L][m] = legarrGU[L - 2][ m] + (2.0 * L - 1) * legarrGU[1][ 1] * legarrGU[L - 1][ m - 1];  // tesseral part
                     }
@@ -12304,9 +12268,6 @@ namespace AstroLibMethods
         //
         //  locals :
         //    L,m         - degree and order indices
-        //
-        //  coupling      :
-        //   none
         //
         //  references :
         //    eckman, brown, adamo 2016 paper and code in matlab
@@ -12354,7 +12315,6 @@ namespace AstroLibMethods
                     normn1[L][m] = Math.Sqrt((L + m + 1.0) * (L - m));    // part of eq 3-9 
                 }
             }
-
         } // getnormGottN
 
 
@@ -12375,9 +12335,6 @@ namespace AstroLibMethods
         //
         //  locals :
         //    L,m         - degree and order indices
-        //
-        //  coupling      :
-        //   none
         //
         //  references :
         //    eckman, brown, adamo 2016 paper and code in matlab
@@ -12417,7 +12374,6 @@ namespace AstroLibMethods
                         ((L + m) * (L + m - 1.0) * (2 * L - 3.0)));   // eq 3-5 
                 }
             }
-
         } // getnormLearN
 
 
@@ -12433,7 +12389,7 @@ namespace AstroLibMethods
         //
         //  author        : david vallado             davallado @gmail.com      20 jan 2025
         //
-        //  inputs description                                   range / units
+        //  inputs description                                          range / units
         //    latgc       - Geocentric lat of satellite                   pi to pi rad
         //    lon         - longitude of satellite                        0 - 2pi rad
         //    degree      - degree of gravity field                        1..2160
@@ -12443,7 +12399,7 @@ namespace AstroLibMethods
         //    LegGottN    - array of normalized Legendre polynomials gottlieb
         //
         //  locals :
-        //    L, m         - degree and order indices
+        //    L, m        - degree and order indices
         //
         //  coupling      :
         //   none
@@ -12453,13 +12409,13 @@ namespace AstroLibMethods
         //  ----------------------------------------------------------------------------
 
         public void LegPolyGott
-   (
-       double latgc,
-       Int32 degree, Int32 order,
-                out double[][] LegGottN
-  )
+        (
+            double latgc,
+            Int32 degree, Int32 order,
+            out double[][] LegGottN
+        )
         {
-            Int32 L, m;
+            Int32 L;
             // could do as jagged array
             LegGottN = new double[degree + 3][];
 
@@ -12517,7 +12473,6 @@ namespace AstroLibMethods
                 // --------------- tesseral(L][m = 2) initial value
                 LegGottN[L][1] = (n2m1 * sinlat * norm1m[L][1] * LegGottN[L - 1][1]
                     - L * norm2m[L][1] * LegGottN[nm1 - 1][1]) / (nm1);  // eq 3-
-
             }
         }  //  LegPolyGott
 
@@ -12915,9 +12870,10 @@ namespace AstroLibMethods
                out double[] accel
            )
         {
+            double[][] LegPinesN = new double[degree + 5][];
             accel = new double[3];
             double magr, S, T, U, ALPHA_NUM, ALPHA_DEN, ALPHA, BETA_NUM, BETA_DEN, BETA;
-            double reor, RHO, G1, G2, G3, G4, G5, G1TEMP, G2TEMP, G3TEMP, G4TEMP, SM;
+            double reor, RHO, G1, G2, G3, G4, G1TEMP, G2TEMP, G3TEMP, G4TEMP, SM;
             double DNM, ENM, FNM;
             int nmodel, m, mp2, L;
             double[] RM = new double[order + 2];
@@ -12929,38 +12885,42 @@ namespace AstroLibMethods
             T = recef[1] / magr;
             U = recef[2] / magr;
 
-            double[,] LegPinesN = new double[degree + 3, degree + 3];
-            LegPinesN[0, 0] = Math.Sqrt(2.0);
+            LegPinesN[0] = new double[2];
+            LegPinesN[1] = new double[3];
+            LegPinesN[0][0] = Math.Sqrt(2.0);
 
             // Legendre polynomial calculations
             for (m = 0; m <= degree + 2; m++)
             {
+                if (m+2 > 1)
+                    LegPinesN[m+2] = new double[m + 2];
                 if (m != 0) // Diagonal recursion
                 {
-                    LegPinesN[m, m] = Math.Sqrt(1.0 + (1.0 / (2.0 * m))) * LegPinesN[m - 1, m - 1];
+                    LegPinesN[m][m] = Math.Sqrt(1.0 + (1.0 / (2.0 * m))) * LegPinesN[m - 1][m - 1];
                 }
                 if (m != degree + 2) // First off-diagonal recursion
                 {
-                    LegPinesN[m + 1, m] = Math.Sqrt(2.0 * m + 3.0) * U * LegPinesN[m, m];
+                    LegPinesN[m + 1][m] = Math.Sqrt(2.0 * m + 3.0) * U * LegPinesN[m][m];
                 }
                 if (m < degree + 1) // Column recursion
                 {
                     for (L = m + 2; L <= degree + 2; L++)
                     {
+                        LegPinesN[L] = new double[L + 2];
                         ALPHA_NUM = (2.0 * L + 1.0) * (2.0 * L - 1.0);
                         ALPHA_DEN = (L - m) * (L + m);
                         ALPHA = Math.Sqrt(ALPHA_NUM / ALPHA_DEN);
                         BETA_NUM = (2.0 * L + 1.0) * (L - m - 1.0) * (L + m - 1.0);
                         BETA_DEN = (2.0 * L - 3.0) * (L + m) * (L - m);
                         BETA = Math.Sqrt(BETA_NUM / BETA_DEN);
-                        LegPinesN[L, m] = ALPHA * U * LegPinesN[L - 1, m] - BETA * LegPinesN[L - 2, m];
+                        LegPinesN[L][m] = ALPHA * U * LegPinesN[L - 1][m] - BETA * LegPinesN[L - 2][m];
                     }
                 }
             }
 
             // Normalize first column
             for (L = 0; L <= degree + 2; L++)
-                LegPinesN[L, 0] = LegPinesN[L, 0] * Math.Sqrt(0.5);
+                LegPinesN[L][0] = LegPinesN[L][0] * Math.Sqrt(0.5);
 
             // Initialize RM and IM arrays
             RM[0] = 0.0;
@@ -13006,10 +12966,10 @@ namespace AstroLibMethods
                     ENM = gravData.c[L][m] * RM[mp2 - 1] + gravData.s[L][m] * IM[mp2 - 1];
                     FNM = gravData.s[L][m] * RM[mp2 - 1] - gravData.c[L][m] * IM[mp2 - 1];
                     ALPHA = Math.Sqrt(SM * (L - m) * (L + m + 1.0));
-                    G1TEMP = G1TEMP + LegPinesN[L, m] * m * ENM;
-                    G2TEMP = G2TEMP + LegPinesN[L, m] * m * FNM;
-                    G3TEMP = G3TEMP + ALPHA * LegPinesN[L, m + 1] * DNM;
-                    G4TEMP = G4TEMP + ((L + m + 1.0) * LegPinesN[L, m] + ALPHA * U * LegPinesN[L, m + 1]) * DNM;
+                    G1TEMP = G1TEMP + LegPinesN[L][m] * m * ENM;
+                    G2TEMP = G2TEMP + LegPinesN[L][m] * m * FNM;
+                    G3TEMP = G3TEMP + ALPHA * LegPinesN[L][m + 1] * DNM;
+                    G4TEMP = G4TEMP + ((L + m + 1.0) * LegPinesN[L][m] + ALPHA * U * LegPinesN[L][m + 1]) * DNM;
                     if (m == 0)
                         SM = 1.0;
                 }
@@ -13072,8 +13032,8 @@ namespace AstroLibMethods
                out double[] accel
            )
         {
-            double[,] pnm = new double[degree + 1, degree + 1];
-            double[,] ppnm = new double[degree + 1, degree + 1];
+            double[][] pnm = new double[degree + 1][];
+            double[][] ppnm = new double[degree + 1][];
             double[] pn = new double[degree + 1];
             double[] ppn = new double[degree + 1];
             double[] reor = new double[degree + 1];
@@ -13102,9 +13062,9 @@ namespace AstroLibMethods
             //    }
             //}
 
-            // Initialize pnm diagonal
-            for (L = 2; L <= degree; L++)
-                pnm[L - 1, L] = 0.0;
+            //// Initialize pnm diagonal
+            //for (L = 2; L <= degree; L++)
+            //    pnm[L - 1][L] = 0.0;
 
             // Compute position-related terms
             e1 = recef[0] * recef[0] + recef[1] * recef[1];
@@ -13132,18 +13092,24 @@ namespace AstroLibMethods
             pn[1] = root5 * (3.0 * sphi * sphi - 1.0) * 0.5;
             ppn[0] = root3;
             ppn[1] = root5 * 3.0 * sphi;
-            pnm[0, 0] = root3;
-            pnm[1, 1] = root5 * root3 * cphi * 0.5;
-            pnm[1, 0] = root5 * root3 * sphi;
-            ppnm[0, 0] = -root3 * sphi;
-            ppnm[1, 1] = -root3 * root5 * sphi * cphi;
-            ppnm[1, 0] = root5 * root3 * (1.0 - 2.0 * sphi * sphi);
+            pnm[0] = new double[2];
+            pnm[1] = new double[3];
+            pnm[0][0] = root3;
+            pnm[1][1] = root5 * root3 * cphi * 0.5;
+            pnm[1][0] = root5 * root3 * sphi;
+            ppnm[0] = new double[2];
+            ppnm[1] = new double[3];
+            ppnm[0][0] = -root3 * sphi;
+            ppnm[1][1] = -root3 * root5 * sphi * cphi;
+            ppnm[1][0] = root5 * root3 * (1.0 - 2.0 * sphi * sphi);
 
             // Higher degree terms
             if (degree >= 3)
             {
                 for (L = 3; L <= degree; L++)
                 {
+                    pnm[L-1] = new double[L + 2];
+                    ppnm[L-1] = new double[L + 2];
                     int nm1 = L - 1;
                     int nm2 = L - 2;
                     reor[L-1] = reor[nm1 - 1] * reor[0];
@@ -13152,8 +13118,8 @@ namespace AstroLibMethods
                     e1Temp = 2.0 * L - 1.0;
                     pn[L-1] = (e1Temp * sphi * norm1[L] * pn[nm1 - 1] - nm1 * norm2[L] * pn[nm2 - 1]) / L;
                     ppn[L-1] = norm1[L] * (sphi * ppn[nm1 - 1] + L * pn[nm1 - 1]);
-                    pnm[L-1, L-1] = e1Temp * cphi * norm11[L] * pnm[nm1 - 1, nm1 - 1];
-                    ppnm[L-1, L-1] = -L * sphi * pnm[L - 1, L - 1];
+                    pnm[L-1][L-1] = e1Temp * cphi * norm11[L] * pnm[nm1 - 1][nm1 - 1];
+                    ppnm[L-1][L-1] = -L * sphi * pnm[L - 1][ L - 1];
                 }
                 for (L = 3; L <= degree; L++)
                 {
@@ -13162,10 +13128,10 @@ namespace AstroLibMethods
                     e2Temp = -L * sphi;
                     for (m = 1; m <= nm1; m++)
                     {
-                        e3Temp = norm1m[L][m] * pnm[nm1 - 1, m - 1];
+                        e3Temp = norm1m[L][m] * pnm[nm1 - 1][m - 1];
                         e4Temp = L + m;
-                        pnm[L-1, m-1] = (e1Temp * e3Temp - (e4Temp - 1.0) * norm2m[L][m] * pnm[L - 2 - 1, m - 1]) / (L - m);  // eq 3-9?
-                        ppnm[L-1, m-1] = e2Temp * pnm[L - 1, m - 1] + e4Temp * e3Temp;
+                        pnm[L-1][m-1] = (e1Temp * e3Temp - (e4Temp - 1.0) * norm2m[L][m] * pnm[L - 2 - 1][m - 1]) / (L - m);  // eq 3-9?
+                        ppnm[L-1][m-1] = e2Temp * pnm[L - 1][m - 1] + e4Temp * e3Temp;
                     }
                 }
             }
@@ -13200,11 +13166,11 @@ namespace AstroLibMethods
                     tcnm = gravData.c[L][m];
                     tsm = sm[m - 1];
                     tcm = cm[m - 1];
-                    tpnm = pnm[L - 1, m - 1];
+                    tpnm = pnm[L - 1][m - 1];
                     e4Temp = tsnm * tsm + tcnm * tcm;
                     e1Temp = e1Temp + e4Temp * tpnm;
                     e2Temp = e2Temp + m * (tsnm * tcm - tcnm * tsm) * tpnm;
-                    e3Temp = e3Temp + e4Temp * ppnm[L - 1, m - 1];
+                    e3Temp = e3Temp + e4Temp * ppnm[L - 1][m - 1];
                 }
                 t1 = t1 + (L + 1.0) * reor[L - 1] * e1Temp;
                 asph[1] = asph[1] + reor[L - 1] * e2Temp;

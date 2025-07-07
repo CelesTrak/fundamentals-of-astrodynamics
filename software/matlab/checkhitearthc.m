@@ -107,7 +107,7 @@ function [hitearth, hitearthstr] = checkhitearthc ( altpadc, r1c, v1tc, r2c, v2t
                     rp = magh * magh * 0.5 / mu;
                     if (rp < rpadc)
                         hitearth = 'y';
-                        hitearthstr = strcat(hitearth, ' Sub_Earth_para');
+                        hitearthstr = strcat(hitearth, ' Sub_Earth_parb');
                     end
                 else
                     % for both elliptical & hyperbolic
@@ -122,7 +122,7 @@ function [hitearth, hitearthstr] = checkhitearthc ( altpadc, r1c, v1tc, r2c, v2t
                         rp = a * (1.0 - ecc);
                         if (rp < rpadc)
                             hitearth = 'y';
-                            hitearthstr = strcat(hitearth, ' Sub_Earth_ell');
+                            hitearthstr = strcat(hitearth, ' Sub_Earth_ecc');
                         end
                     else
                         % hyperbolic heading towards the earth

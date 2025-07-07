@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "valladopy"
-version = "0.2.0"
+version = "0.3.0"
 description = "Routines from Fundamentals of Astrodynamics and Applications by David Vallado"
 readme = { file = "PYPI_DESCRIPTION.md", content-type = "text/markdown" }
 authors = [{name = "David Vallado", email = "davallado@gmail.com"}]

@@ -3,16 +3,17 @@
 %                           function pkepler
 %
 %  this function propagates a satellite's position and velocity vector over
-%    a given time period accounting for perturbations caused by j2.
+%    a given time period accounting for perturbations caused by j2 and
+%    optionally drag if ndot and nddot are known.
 %
-%  author        : david vallado                  719-573-2600    1 mar 2001
+%  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
 %  inputs          description                    range / units
 %    ro          - original position vector       km
 %    vo          - original velocity vector       km/sec
+%    dtsec       - change in time                 sec
 %    ndot        - time rate of change of n       rad/sec
 %    nddot       - time accel of change of n      rad/sec2
-%    dtsec       - change in time                 sec
 %
 %  outputs       :
 %    r           - updated position vector        km
@@ -51,34 +52,33 @@
 %    vallado       2007, 687, alg 64
 %
 % [r,v] = pkepler( ro,vo, dtsec, ndot,nddot );
-% ----------------------------------------------------------------------------- }
+% -----------------------------------------------------------------------------
 
-    function [r,v] = pkepler( ro,vo, dtsec, ndot,nddot );
-    
-    re = 6378.1363;         % km
-    mu = 398600.4415;      % km3/s2
-    j2 = 0.00108262617;
+function [r,v] = pkepler( ro,vo, dtsec, ndot,nddot )
+
     constmath;
-    
+    constastro;
+    j2 = 0.001826267;
+
     [p,a,ecc,incl,raan,argp,nu,m,arglat,truelon,lonper ] = rv2coe (ro,vo);
     %     fprintf(1,'          p km       a km      ecc      incl deg     raan deg     argp deg      nu deg      m deg      arglat   truelon    lonper\n');
     %     fprintf(1,'coes %11.4f%11.4f%13.9f%13.7f%11.5f%11.5f%11.5f%11.5f%11.5f%11.5f%11.5f\n',...
     %             p,a,ecc,incl*rad,raan*rad,argp*rad,nu*rad,m*rad, ...
     %             arglat*rad,truelon*rad,lonper*rad );
-    
+
     n= sqrt(mu/(a*a*a));
-    
+
     % ------------- find the value of j2 perturbations -------------
     j2op2   = (n*1.5*re^2*j2) / (p*p);
     % nbar    = n*( 1.0 + j2op2*sqrt(1.0-ecc*ecc)* (1.0 - 1.5*sin(incl)*sin(incl)) );
     raandot = -j2op2 * cos(incl);
     argpdot =  j2op2 * (2.0-2.5*sin(incl)*sin(incl));
     mdot    =  n;
-    
+
     a     = a - 2.0*ndot*dtsec * a / (3.0*n);
     ecc   = ecc - 2.0*(1.0 - ecc)*ndot*dtsec / (3.0*n);
     p     = a*(1.0 - ecc*ecc);
-    
+
     % ----- update the orbital elements for each orbit type --------
     if ecc < small
         % -------------  circular equatorial  ----------------
@@ -114,7 +114,7 @@
             [e0, nu] = newtonm(ecc, m);
         end
     end
-    
+
     % ------------- use coe2rv to find new vectors ---------------
     [r, v] = coe2rv(p, ecc, incl, raan, argp, nu, arglat, truelon, lonper);
     r = r';
@@ -122,3 +122,4 @@
     %        fprintf(1,'r    %15.9f%15.9f%15.9f',r );
     %        fprintf(1,' v %15.10f%15.10f%15.10f\n',v );
 
+end

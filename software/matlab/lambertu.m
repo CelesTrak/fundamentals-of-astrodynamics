@@ -28,15 +28,13 @@
 %                  only affects nrev >= 1 upper/lower bounds
 %    dtsec       - time between r1 and r2                    sec
 %    nrev        - number of revs to complete                0, 1, 2, 3,
-%    kbi         - psi value for min
-%    altpad      - altitude pad for hitearth calc            km
+%    kbi         - time value for min
 %    show        - control output don't output for speed      'y', 'n'
 %
 %  outputs       :
 %    v1t         - ijk transfer velocity vector              km/s
 %    v2t         - ijk transfer velocity vector              km/s
-%    hitearth    - flag if hit or not                        'y', 'n'
-%    error       - error flag                                1, 2, 3,   use numbers since c++ is so horrible at strings
+%    detailAll   - detail all output 
 %
 %  locals        :
 %    vara        - variable of the iteration,
@@ -66,17 +64,16 @@
 %  references    :
 %    vallado       2022, 499, alg 60, ex 7-5
 %
-% [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, outfile );
+% [v1tu, v2tu, detailAll] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, kbi, show );
 % ------------------------------------------------------------------------------
 
-function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, outfile )
+function [v1tu, v2tu, detailAll] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, kbi, show )
 
     % -------------------------  implementation   -------------------------
     constastro;
-    small = 0.00001; % can affect cases where znew is multiples of 2pi^2
-    numiter= 20;
-    errorl  = '      ok';
-    show = 'n';
+    small = 0.000001; % can affect cases where znew is multiples of 2pi^2
+    numiter= 40;
+    detailAll = 'lambertu\n';
     for i= 1 : 3
         v1tu(i) = 0.0;
         v2tu(i) = 0.0;
@@ -121,9 +118,9 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
         %if ((dm == 'l') && (df == 'd')) || ((dm == 's') && (df == 'r'))
         %if ((df == 'r') && (dm == 's')) || ((df == 'd') && (dm == 'l'))
         if (de == 'H') %  && (dm == 'L')) || ((de == 'L') && (dm == 'L'))
-            upper = tbi;
+            upper = kbi;
         else
-            lower = tbi;
+            lower = kbi;
         end
     end
 
@@ -219,7 +216,8 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
                     end
                     % outfile
                     if show == 'y'
-                        fprintf(1,'yneg %3i  y %11.7f lower %11.7f c2 %11.7f psinew %11.7f yneg %3i \n',loops,y,lower,c2new,psinew,ynegktr );
+                        detailAll = sprintf('%s %s',detailAll, sprintf('yneg %3i  y %11.7f lower %11.7f c2 %11.7f psinew %11.7f yneg %3i \n', ...
+                            loops,y,lower,c2new,psinew,ynegktr) );
                     end
                     ynegktr = ynegktr + 1;
                 end % while
@@ -271,8 +269,10 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
                 % ------------- find c2 and c3 functions ----------
                 [c2new,c3new] = findc2c3( psinew );
                 %if nrev > 0
-                % fprintf(1,'%3i  y %11.7f x %11.7f %11.7f dtnew %11.7f %11.7f %11.7f psinew %11.7f %11.7f \n', ...
-                %     loops,y,xold,dtsec, dtnew, lower, upper, psinew, dtdpsi); %(dtnew - dtsec)/dtdpsi );  % c2dot, c3dot
+                    if (show == 'y')
+                        detailAll = sprintf('%s %s', detailAll, sprintf('%3i  y %11.7f x %11.7f %11.7f dtnew %11.7f %11.7f %11.7f psinew %11.7f %11.7f \n', ...
+                            loops,y,xold,dtsec, dtnew, lower, upper, psinew, dtdpsi) ); %(dtnew - dtsec)/dtdpsi );  % c2dot, c3dot
+                    end
                 %end
                 psilast = psiold;  % keep previous iteration
                 psiold = psinew;
@@ -291,9 +291,9 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
         end % while loop
 
         if ( (loops >= numiter) || (ynegktr >= 10) )
-            errorl= strcat('gnotconv dtsec dtnew delta (s) ', dtsec, ' ', num2str(abs(dtnew - dtsec)));
+            detailAll= sprintf('%s %s',detailAll, 'gnotconv dtsec dtnew delta (s) ', dtsec, ' ', num2str(abs(dtnew - dtsec)));
             if ( ynegktr >= 10 )
-                errorl= 'y negati';
+                detailAll= sprintf('%s %s',detailAll, 'y negati');
             end
         else
             % --- use f and g series to find velocity vectors -----
@@ -310,7 +310,7 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
             end
         end   % if  the answer has converged
     else
-        errorl= 'impos180';
+        detailAll= sprintf('%s %s',detailAll, 'impos180');
 
         %call Battin...
 
@@ -348,15 +348,10 @@ function [v1tu, v2tu, errorl] = lambertu(r1, r2, v1, dm, de, nrev, dtsec, tbi, o
     end  % if  var a > 0.0
 
     if show == 'y'
-        if (strcmp(errorl, '      ok') ~= 0)
+        if (strcmp(detailAll, '      ok') ~= 0)
             [p,a,ecc,incl,omega,argp,nu,m,arglat,truelon,lonper ] = rv2coe (r1,v1tu);
-            fprintf(outfile,'%10s %3i %3i %2s %2s %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f case %11.7f %11.7f %11.7f %11.7f %11.7f ', ...
-                errorl, loops, nrev, dm, de, dtnew, y, xold, v1tu(1), v1tu(2), v1tu(3), v2tu(1), v2tu(2), v2tu(3), lower, upper, psinew, dtdpsi, ecc); %(dtnew - dtsec)/dtdpsi, ecc );  % c2dot, c3dot
-            % fprintf(1,'C%3i %3i %2s %2s %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f  %11.7f dnu %11.7f \n', ...
-            %     loops, nrev, dm, de, dtnew, magr1, magr2, vara, y, xold, psinew, acos(cosdeltanu)*180.0/pi)
-        else
-            fprintf(outfile,'#%s \n',errorl);
-            fprintf(1,'#%s \n',errorl);
+            detailAll= sprintf('%s %s',detailAll, sprintf('%10s %3i %3i %2s %2s %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f %11.7f case %11.7f %11.7f %11.7f %11.7f %11.7f ', ...
+                detailAll, loops, nrev, dm, de, dtnew, y, xold, v1tu(1), v1tu(2), v1tu(3), v2tu(1), v2tu(2), v2tu(3), lower, upper, psinew, dtdpsi, ecc) ); %(dtnew - dtsec)/dtdpsi, ecc );  % c2dot, c3dot
         end
     end
 end

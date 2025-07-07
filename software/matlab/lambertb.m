@@ -20,34 +20,30 @@
 %                  only affects nrev >= 1 solutions
 %    dtsec       - time between r1 and r2                     sec
 %    nrev        - number of revs to complete                 0, 1, 2, 3,
-%    altpad      - altitude pad for hitearth calc             km
 %    show        - control output don't output for speed      'y', 'n'
 %
 %  outputs       :
 %    v1t         - ijk transfer velocity vector               km/s
 %    v2t         - ijk transfer velocity vector               km/s
-%    hitearth    - flag if hti or not                         'y', 'n'
-%    errorsum    - error flag                                 'ok',
-%    errorout    - text for iterations / last loop
+%    detailAll   - detail text for iterations 
 %
 %  references    :
 %    vallado       2022, 505, Alg 61, ex 7-5
 %    thompson      AAS GNC 2018
 %
-% [v1dv, v2dv, errorb] = lambertb ( r1, r2, v1, dm, de, nrev, dtsec );
+% [v1dv, v2dv, detailAll] = lambertb ( r1, r2, v1, dm, de, nrev, dtsec, show );
 % ------------------------------------------------------------------------------
 
-function [v1t, v2t, errorb] = lambertb ( r1, r2, v1, dm, de, nrev, dtsec )
+function [v1t, v2t, detailAll] = lambertb ( r1, r2, v1, dm, de, nrev, dtsec, show )
     constmath;
     constastro;
 
-    errorb = '      ok';
-    show = 'n';
+    detailAll = sprintf('%s \n', 'lambertb ');
     y = 0.0;
     k2 = 0.0;
     u = 0.0;
-    v1t = [1000,1000,1000];
-    v2t = [1000,1000,1000];
+    v1t = [0.0; 0.0; 0.0];
+    v2t = [0.0; 0.0; 0.0];
 
     magr1 = mag(r1);
     magr2 = mag(r2);
@@ -102,7 +98,7 @@ function [v1t, v2t, errorb] = lambertb ( r1, r2, v1, dm, de, nrev, dtsec )
     if (de == 'H') && (nrev > 0)  % old dm == 'l'
         xn = 1e-20;  % be sure to reset this here!!
         x    = 10.0;  % starting value
-        loops = 1;
+        loops = 0;
         while ((abs(xn-x) >= small) && (loops <= 20))
             x = xn;
             temp = 1.0 / (2.0*(L - x*x));
@@ -126,11 +122,17 @@ function [v1t, v2t, errorb] = lambertb ( r1, r2, v1, dm, de, nrev, dtsec )
                 y = 75.0;
                 xn = 1.0;
             end
-            %fprintf(1,' %3i yh %11.6f x %11.6f h1 %11.6f h2 %11.6f b %11.6f f %11.7f \n',loops, y, x, h1, h2, b, f );
+            if (show == 'y')
+                detailAll = sprintf('%s %s ',detailAll, sprintf(' %3i yh %11.7f x %11.7f h1 %11.7f h2 %11.7f b %11.7f f %11.7f \n', ...
+                    loops, y, x, h1, h2, b, f) );
+            end
             loops = loops + 1;
         end  % while
 
-        %fprintf(1,' %3i yh %11.6f x %11.6f h1 %11.6f h2 %11.6f b %11.6f f %11.7f \n',loops, y, x, h1, h2, b, f );
+        if (show == 'y')
+            detailAll = sprintf('%s %s ',detailAll, sprintf(' %3i yh %11.6f x %11.6f h1 %11.6f h2 %11.6f b %11.6f f %11.7f \n', ...
+                loops, y, x, h1, h2, b, f) );
+        end
         x = xn;
         a = s*(1.0 + lam)^2*(1.0 + x)*(L + x) / (8.0*x);
         p = (2.0*magr1*magr2*(1.0 + x)*sin(dnu*0.5)^2) / (s*(1 + lam)^2 * (L + x));  % thompson (1.0 + x)*
@@ -180,19 +182,17 @@ function [v1t, v2t, errorb] = lambertb ( r1, r2, v1, dm, de, nrev, dtsec )
 
             y1=  sqrt( m/((L + x)*(1.0 + x)) );
 
-            if isnan(y)
+            if isnan(y) == 1
                 y = 75.0;
                 xn = 1.0;
             end
 
             loops = loops + 1;
             if show == 'y'
-                fprintf(1,' %3i yb %11.6f x %11.6f k2 %11.6f b %11.6f u %11.6f y1 %11.7f \n',loops,y, x, k2, b, u, y1 );
+                detailAll = sprintf('%s %s ',detailAll, sprintf(' %3i yb %11.7f x %11.7f k2 %11.7f b %11.7f u %11.7f y1 %11.7f \n', ...
+                    loops,y, x, k2, b, u, y1) );
             end
         end  % while
-        if show == 'y'
-            fprintf(1,' %3i yb %11.6f x %11.6f k2 %11.6f b %11.6f u %11.6f y1 %11.7f \n',loops,y, x, k2, b, u, y1 );
-        end
 
         if (loops < 30)
             % blair approach use y from solution
@@ -201,7 +201,7 @@ function [v1t, v2t, errorb] = lambertb ( r1, r2, v1, dm, de, nrev, dtsec )
             %       L = ((1.0 - lam)/(1.0 + lam))^2;
             %a = s*(1.0 + lam)^2*(1.0 + x)*(lam + x) / (8.0*x);
             % p = (2.0*magr1*magr2*(1.0 + x)*sin(dnu*0.5)^2)^2 / (s*(1 + lam)^2*(lam + x));  % loechler, not right?
-            p = (2.0*magr1*magr2*y*y*(1.0 + x)^2*sin(dnu*0.5)^2) / (m*s*(1 + lam)^2);  % thompson
+            p = (2.0*magr1*magr2*y*y*(1.0 + x)^2*sin(dnu*0.5)^2) / (m*s*(1.0 + lam)^2);  % thompson
             ecc = sqrt( (eps^2 + 4.0*magr2/magr1*sin(dnu*0.5)^2*((L-x)/(L+x))^2) / (eps^2 + 4.0*magr2/magr1*sin(dnu*0.5)^2)  );
             [v1t, v2t] = lambhodograph( r1, v1, r2, p, ecc, dnu, dtsec );
             %            fprintf(1,'oldb v1t %16.8f %16.8f %16.8f %16.8f\n',v1dv, mag(v1dv) );
@@ -263,7 +263,7 @@ function kbatt = kbat( v )
     i = 2;
 
     ktr = 21;
-    while ((i <= ktr) && (abs(termold) > 0.00000001 ))
+    while ((i <= ktr) && (abs(termold) > 0.000000001 ))
         del  = 1.0 / ( 1.0 + d(i)*v*delold );
         term = termold * ( del - 1.0 );
         sum1 = sum1 + term;
@@ -338,7 +338,7 @@ function seebatt = seebatt( v )
     termold= c(1);   % * eta
     sum1   = termold;
     i= 2;
-    while ((i <= 21) && (abs(termold) > 0.00000001 ))
+    while ((i <= 21) && (abs(termold) > 0.000000001 ))
         del  = 1.0 / ( 1.0 + c(i)*eta*delold );
         term = termold * (del - 1.0);
         sum1 = sum1 + term;

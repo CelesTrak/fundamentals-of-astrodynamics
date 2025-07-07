@@ -27,15 +27,23 @@
 % ------------------------------------------------------------------------------
 
 function [v1t, v2t] = lambhodograph( r1, v1, r2, p, ecc, dnu, dtsec )
-    mu  = 3.986004418e5;   % e14 m3/s2
+    constastro;
     twopi = 2.0 * pi;
 
     magr1 = mag(r1);
     magr2 = mag(r2);
-    eps = 0.001 / magr2;  % 1.0e-8;  % -14 -8 seems to be the same
 
-    a = mu*(1.0/magr1 - 1.0/p);  % not the semi-major axis
-    b = (mu*ecc/p)^2 - a^2;
+    oop = 1.0 / p;
+
+    magr1 = mag(r1);
+    oomagr1 = 1.0 / magr1;
+    magr2 = mag(r2);
+    oomagr2 = 1.0 / magr2;
+    eps = 0.001 / magr2;  % 1e-14
+
+    a = mu * (1.0 * oomagr1 - 1.0 * oop);  % not the semi - major axis
+    b = (mu * ecc * oop)^2 - a * a;
+
     if b <= 0.0
         x1 = 0.0;
     else
@@ -43,7 +51,8 @@ function [v1t, v2t] = lambhodograph( r1, v1, r2, p, ecc, dnu, dtsec )
     end
     % 180 deg, and multiple 180 deg transfers
     if abs(sin(dnu)) < eps
-        nvec = cross(r1,v1) / mag(cross(r1,v1));
+        rcrv = cross(r1, v1);
+        nvec = rcrv / mag(rcrv);
         if ecc < 1.0
             ptx = twopi * sqrt(p^3/( mu*(1.0-ecc^2)^3));
             if (mod(dtsec,ptx) > ptx*0.5)
@@ -53,23 +62,24 @@ function [v1t, v2t] = lambhodograph( r1, v1, r2, p, ecc, dnu, dtsec )
         fprintf(1,'less than\n');
     else
         % more common path?
-        y2a = mu/p - x1*sin(dnu) + a*cos(dnu);
-        y2b = mu/p + x1*sin(dnu) + a*cos(dnu);
+        y2a = mu*oop - x1*sin(dnu) + a*cos(dnu);
+        y2b = mu*oop + x1*sin(dnu) + a*cos(dnu);
         if abs(mu/magr2 - y2b) < abs(mu/magr2 - y2a)
             x1 = -x1;
         end
         % depending on the cross product, this will be normal or in plane,
         % or could even be a fan
-        nvec = cross(r1,r2) / mag(cross(r1,r2)); % if this is r1, v1, the transfer is coplanar!
+        rcrr = cross(r1, r2);
+        nvec = rcrr / mag(rcrr); % if this is r1, v1, the transfer is coplanar!
         if (mod(dnu, twopi) > pi)
             nvec = -nvec;
         end
         %       fprintf(1,'gtr than\n');
     end
 
-    v1t = (sqrt(mu*p) / magr1) * ((x1/mu)*r1 + cross(nvec,r1)/magr1 );
+    v1t = (sqrt(mu*p) * oomagr1) * ((x1/mu)*r1 + cross(nvec,r1)*oomagr1 );
     x2  = x1*cos(dnu) + a*sin(dnu);
-    v2t = (sqrt(mu*p) / magr2) * ((x2/mu)*r2 + cross(nvec,r2)/magr2 );
+    v2t = (sqrt(mu*p) * oomagr2) * ((x2/mu)*r2 + cross(nvec,r2)*oomagr2 );
 
 end
 
