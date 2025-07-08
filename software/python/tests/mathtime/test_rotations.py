@@ -30,6 +30,19 @@ def test_quat_multiply(quats, dir_a, dir_b, expected):
 def test_quat_multiply_invalid_direction(quats):
     qa, qb = quats
     with pytest.raises(ValueError):
-        rot.quat_multiply(qa, qb, dir_a=2)  # Invalid direction sign
+        rot.quat_multiply(qa, qb, dir_a=2)
     with pytest.raises(ValueError):
-        rot.quat_multiply(qa, qb, dir_b=-3)  # Invalid direction sign
+        rot.quat_multiply(qa, qb, dir_b=-3)
+
+
+def test_quat_transform(quats):
+    qi, qf = quats
+    assert custom_allclose(
+        rot.quat_transform(qi, qf),
+        [
+            -0.07643616004405838,
+            0.9223296645316378,
+            -0.31593612818210803,
+            0.20892550412042618,
+        ],
+    )

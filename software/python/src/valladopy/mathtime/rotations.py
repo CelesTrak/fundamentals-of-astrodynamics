@@ -10,6 +10,8 @@
 import numpy as np
 from numpy.typing import ArrayLike
 
+from .vector import unit
+
 
 def quat_multiply(
     qa: ArrayLike, qb: ArrayLike, dir_a: int = 1, dir_b: int = 1
@@ -24,6 +26,9 @@ def quat_multiply(
 
     Returns:
         np.ndarray: Resulting quaternion as a 4-element array [x, y, z, w]
+
+    Raises:
+        ValueError: If direction signs are not -1 or 1.
     """
     # Validate input direction signs
     if dir_a not in (-1, 1) or dir_b not in (-1, 1):
@@ -46,3 +51,22 @@ def quat_multiply(
         q = -q
 
     return q
+
+
+def quat_transform(qi: ArrayLike, qf: ArrayLike) -> np.ndarray:
+    """Computes the transformation quaternion qt such that qf = qi * qt.
+
+    Args:
+        qi (array_like): Initial quaternion as a 4-element array [x, y, z, w]
+        qf (array_like): Final quaternion as a 4-element array [x, y, z, w]
+
+    Returns:
+        np.ndarray: Transformation quaternion qt as a 4-element array [x, y, z, w]
+    """
+    dq = np.zeros(4)
+    dq[0] = qi[3] * qf[0] - qi[0] * qf[3] - qi[1] * qf[2] + qi[2] * qf[1]
+    dq[1] = qi[3] * qf[1] - qi[1] * qf[3] - qi[2] * qf[0] + qi[0] * qf[2]
+    dq[2] = qi[3] * qf[2] - qi[2] * qf[3] - qi[0] * qf[1] + qi[1] * qf[0]
+    dq[3] = qi[0] * qf[0] + qi[1] * qf[1] + qi[2] * qf[2] + qi[3] * qf[3]
+
+    return unit(dq)
