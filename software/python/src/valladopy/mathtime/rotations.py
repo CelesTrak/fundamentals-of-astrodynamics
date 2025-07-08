@@ -70,3 +70,23 @@ def quat_transform(qi: ArrayLike, qf: ArrayLike) -> np.ndarray:
     dq[3] = qi[0] * qf[0] + qi[1] * qf[1] + qi[2] * qf[2] + qi[3] * qf[3]
 
     return unit(dq)
+
+
+def quat2body(q: ArrayLike) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Computes body-frame unit vectors from a quaternion.
+
+    Args:
+        q (array_like): Quaternion as a 4-element array [x, y, z, w]
+
+    Returns:
+        tuple: (x_axis, y_axis, z_axis)
+            x_axis (np.ndarray): Unit vector in the x direction
+            y_axis (np.ndarray): Unit vector in the y direction
+            z_axis (np.ndarray): Unit vector in the z direction
+    """
+    x, y, z, w = q
+    x_axis = np.array([1 - 2 * (y**2 + z**2), 2 * (x * y + z * w), 2 * (x * z - y * w)])
+    y_axis = np.array([2 * (x * y - z * w), 1 - 2 * (x**2 + z**2), 2 * (y * z + x * w)])
+    z_axis = np.array([2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x**2 + y**2)])
+
+    return x_axis, y_axis, z_axis

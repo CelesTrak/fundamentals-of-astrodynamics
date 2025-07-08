@@ -46,3 +46,11 @@ def test_quat_transform(quats):
             0.20892550412042618,
         ],
     )
+
+
+def test_quat2body(quats):
+    q = quats[0]
+    x_axis, y_axis, z_axis = rot.quat2body(q)
+    assert custom_allclose(x_axis, [0.18, 0.26, 0.94])
+    assert custom_allclose(y_axis, [-0.86, 0.5, 0.02])
+    assert custom_allclose(z_axis, [-0.46, -0.82, 0.32])
