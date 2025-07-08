@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 import src.valladopy.mathtime.rotations as rot
@@ -67,3 +68,24 @@ def test_vec_by_quat(quats, direction, expected):
 def test_vec_by_quat_invalid_direction(quats):
     with pytest.raises(ValueError):
         rot.vec_by_quat(quats[0], vec=[1, 2, 3], direction=3)
+
+
+def test_quat2rv(quats):
+    # Get orbit quantities from test state vectors
+    ro = [-6518.1083, -2403.8479, -22.1722]
+    vo = [2.604057, -7.105717, -0.263218]
+    rmag = np.linalg.norm(ro)
+    dot = np.dot(ro, vo) / rmag
+    omega = np.linalg.norm(np.cross(ro, vo)) / rmag**2
+
+    # Create orbit state quaternion
+    q = [*quats[0], rmag, dot, omega]
+
+    # Compute position and velocity vectors
+    r, v = rot.quat2rv(q)
+
+    # Compare with expected values
+    r_expected = [3228.0295171104126, 5754.3134870229105, -2175.4111963135388]
+    v_expected = [1.307894892614813, 2.0022297314596504, 7.184851961675554]
+    assert custom_allclose(r, r_expected)
+    assert custom_allclose(v, v_expected)

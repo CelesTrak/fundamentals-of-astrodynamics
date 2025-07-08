@@ -120,3 +120,46 @@ def vec_by_quat(q: ArrayLike, vec: ArrayLike, direction: int = 1) -> np.ndarray:
     vec_out[2] = vec[2] + 2 * (t3 * w + t1 * y - t2 * x)
 
     return vec_out
+
+
+def quat2rv(q: ArrayLike) -> tuple[np.ndarray, np.ndarray]:
+    """Converts a 7-element orbit state quaternion to position and velocity vectors.
+
+    Args:
+        q (array_like): Orbit state quaternion as a 7-element array
+                        [x, y, z, w, rmag, dot, omega], where:
+                        - x, y, z, w (floats): Quaternion components
+                        - rmag (float): Magnitude of the position vector
+                        - dot (float): Radial velocity component
+                        - omega (float): Angular velocity component
+
+    Returns:
+        tuple: (r, v)
+            r (np.ndarray): Position vector in the inertial frame as a 3-element array
+            v (np.ndarray): Velocity vector in the inertial frame as a 3-element array
+    """
+    x, y, z, w, rmag, dot, omega = q
+
+    # Intermediate quantities
+    p = 1 / (x**2 + y**2 + z**2 + w**2)
+    rot = np.array(
+        [
+            [x**2 - y**2 - z**2 + w**2, 2 * (x * y - z * w), 2 * (x * z + y * w)],
+            [2 * (x * y + z * w), -(x**2) + y**2 - z**2 + w**2, 2 * (y * z - x * w)],
+            [2 * (x * z - y * w), 2 * (y * z + x * w), -(x**2) - y**2 + z**2 + w**2],
+        ]
+    )
+
+    # Velocity in local frame
+    vel_local = np.array([rmag * omega, 0, -dot])
+
+    # Construct position vector
+    rx = -2 * p * rmag * (x * z + y * w)
+    ry = -2 * p * rmag * (y * z - x * w)
+    rz = p * rmag * (-(z**2) - w**2 + x**2 + y**2)
+    r = np.array([rx, ry, rz])
+
+    # Convert local velocity to inertial frame
+    v = p * rot @ vel_local
+
+    return r, v
