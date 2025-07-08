@@ -21,8 +21,8 @@ def quat_multiply(
     Args:
         qa (array_like): First quaternion as a 4-element array [x, y, z, w]
         qb (array_like): Second quaternion as a 4-element array [x, y, z, w]
-        dir_a (int, optional): Direction of first quaternion (1=direct, -1=inverse)
-        dir_b (int, optional): Direction of second quaternion (1=direct, -1=inverse)
+        dir_a (int, optional): Direction of first quaternion (+1 or -1)
+        dir_b (int, optional): Direction of second quaternion (+1 or -1)
 
     Returns:
         np.ndarray: Resulting quaternion as a 4-element array [x, y, z, w]
@@ -90,3 +90,33 @@ def quat2body(q: ArrayLike) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     z_axis = np.array([2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x**2 + y**2)])
 
     return x_axis, y_axis, z_axis
+
+
+def vec_by_quat(q: ArrayLike, vec: ArrayLike, direction: int = 1) -> np.ndarray:
+    """Rotates a 3D vector by a quaternion.
+
+    Args:
+        q (array_like): Quaternion as a 4-element array [x, y, z, w]
+        vec (array_like): 3D vector to rotate as a 3-element array
+        direction (int, optional): Direction of rotation (+1 or -1)
+
+    Returns:
+        np.ndarray: Rotated vector as a 3-element array
+    """
+    # Validate input quaternion and vector
+    if direction not in (-1, 1):
+        raise ValueError("Direction must be +1 or -1.")
+
+    x, y, z, w = q
+    w *= direction
+
+    t1 = z * vec[1] - y * vec[2]
+    t2 = x * vec[2] - z * vec[0]
+    t3 = y * vec[0] - x * vec[1]
+
+    vec_out = np.zeros(3)
+    vec_out[0] = vec[0] + 2 * (t1 * w + t2 * z - t3 * y)
+    vec_out[1] = vec[1] + 2 * (t2 * w + t3 * x - t1 * z)
+    vec_out[2] = vec[2] + 2 * (t3 * w + t1 * y - t2 * x)
+
+    return vec_out

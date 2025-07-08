@@ -54,3 +54,16 @@ def test_quat2body(quats):
     assert custom_allclose(x_axis, [0.18, 0.26, 0.94])
     assert custom_allclose(y_axis, [-0.86, 0.5, 0.02])
     assert custom_allclose(z_axis, [-0.46, -0.82, 0.32])
+
+
+@pytest.mark.parametrize(
+    "direction, expected", [(1, [3.52, 0.2, -1.14]), (-1, [-2.92, -1.2, 1.94])]
+)
+def test_vec_by_quat(quats, direction, expected):
+    rotated_vec = rot.vec_by_quat(quats[0], vec=[1, 2, 3], direction=direction)
+    assert custom_allclose(rotated_vec, expected)
+
+
+def test_vec_by_quat_invalid_direction(quats):
+    with pytest.raises(ValueError):
+        rot.vec_by_quat(quats[0], vec=[1, 2, 3], direction=3)
