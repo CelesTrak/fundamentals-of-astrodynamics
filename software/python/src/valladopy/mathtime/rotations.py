@@ -9,6 +9,7 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.spatial.transform import Rotation as Rot
 
 from .vector import unit
 
@@ -140,27 +141,14 @@ def quat2rv(q: ArrayLike) -> tuple[np.ndarray, np.ndarray]:
     """
     x, y, z, w, rmag, dot, omega = q
 
-    # Intermediate quantities
-    p = 1 / (x**2 + y**2 + z**2 + w**2)
-    rot = np.array(
-        [
-            [x**2 - y**2 - z**2 + w**2, 2 * (x * y - z * w), 2 * (x * z + y * w)],
-            [2 * (x * y + z * w), -(x**2) + y**2 - z**2 + w**2, 2 * (y * z - x * w)],
-            [2 * (x * z - y * w), 2 * (y * z + x * w), -(x**2) - y**2 + z**2 + w**2],
-        ]
-    )
-
-    # Velocity in local frame
+    # LVLH-frame vectors
     vel_local = np.array([rmag * omega, 0, -dot])
+    r_local = np.array([0, 0, -rmag])  # +Z nadir (toward Earth)
 
-    # Construct position vector
-    rx = -2 * p * rmag * (x * z + y * w)
-    ry = -2 * p * rmag * (y * z - x * w)
-    rz = p * rmag * (-(z**2) - w**2 + x**2 + y**2)
-    r = np.array([rx, ry, rz])
-
-    # Convert local velocity to inertial frame
-    v = p * rot @ vel_local
+    # Inverse transform from LVLH to inertial
+    rot = Rot.from_quat([x, y, z, w])
+    r = rot.apply(r_local)
+    v = rot.apply(vel_local)
 
     return r, v
 
@@ -193,34 +181,9 @@ def rv2quat(r: ArrayLike, v: ArrayLike) -> np.ndarray:
     x_hat = np.cross(y_hat, z_hat)
 
     # Rotation matrix from LVLH to inertial
-    rot = np.vstack([x_hat, y_hat, z_hat]).T
+    dcm = np.column_stack([x_hat, y_hat, z_hat])
 
     # Convert rotation matrix to quaternion
-    tr = np.trace(rot)
-    if tr > 1e-6:
-        w = 0.5 * np.sqrt(1 + tr)
-        f = 1 / (4 * w)
-        x = f * (rot[2, 1] - rot[1, 2])
-        y = f * (rot[0, 2] - rot[2, 0])
-        z = f * (rot[1, 0] - rot[0, 1])
-    else:
-        if rot[0, 0] > rot[1, 1] and rot[0, 0] > rot[2, 2]:
-            x = 0.5 * np.sqrt(1.0 + rot[0, 0] - rot[1, 1] - rot[2, 2])
-            f = 1 / (4 * x)
-            y = f * (rot[0, 1] + rot[1, 0])
-            z = f * (rot[0, 2] + rot[2, 0])
-            w = f * (rot[2, 1] - rot[1, 2])
-        elif rot[1, 1] > rot[2, 2]:
-            y = 0.5 * np.sqrt(1 + rot[1, 1] - rot[0, 0] - rot[2, 2])
-            f = 1 / (4 * y)
-            x = f * (rot[0, 1] + rot[1, 0])
-            z = f * (rot[1, 2] + rot[2, 1])
-            w = f * (rot[0, 2] - rot[2, 0])
-        else:
-            z = 0.5 * np.sqrt(1 + rot[2, 2] - rot[0, 0] - rot[1, 1])
-            f = 1 / (4 * z)
-            x = f * (rot[0, 2] + rot[2, 0])
-            y = f * (rot[1, 2] + rot[2, 1])
-            w = f * (rot[1, 0] - rot[0, 1])
+    q = Rot.from_matrix(dcm).as_quat()  # [x, y, z, w]
 
-    return np.array([x, y, z, w, magr, dot, omega])
+    return np.array([*q, magr, dot, omega])
