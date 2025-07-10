@@ -70,22 +70,43 @@ def test_vec_by_quat_invalid_direction(quats):
         rot.vec_by_quat(quats[0], vec=[1, 2, 3], direction=3)
 
 
-def test_quat2rv(quats):
-    # Get orbit quantities from test state vectors
-    ro = [-6518.1083, -2403.8479, -22.1722]
-    vo = [2.604057, -7.105717, -0.263218]
-    rmag = np.linalg.norm(ro)
-    dot = np.dot(ro, vo) / rmag
-    omega = np.linalg.norm(np.cross(ro, vo)) / rmag**2
+class TestQuatRV:
+    @pytest.fixture
+    def orbit_state(self):
+        # Get orbit quantities from test state vectors
+        ro = [-6518.1083, -2403.8479, -22.1722]
+        vo = [2.604057, -7.105717, -0.263218]
+        rmag = np.linalg.norm(ro)
+        dot = np.dot(ro, vo) / rmag
+        omega = np.linalg.norm(np.cross(ro, vo)) / rmag**2
+        return rmag, dot, omega
 
-    # Create orbit state quaternion
-    q = [*quats[0], rmag, dot, omega]
+    @pytest.fixture
+    def rv(self):
+        # Position and velocity vectors
+        r = [3228.0295171104126, 5754.3134870229105, -2175.4111963135388]
+        v = [1.307894892614813, 2.0022297314596504, 7.184851961675554]
+        return r, v
 
-    # Compute position and velocity vectors
-    r, v = rot.quat2rv(q)
+    def test_quat2rv(self, quats, orbit_state, rv):
+        # Compute position and velocity vectors
+        r, v = rot.quat2rv(q=[*quats[0], *orbit_state])
 
-    # Compare with expected values
-    r_expected = [3228.0295171104126, 5754.3134870229105, -2175.4111963135388]
-    v_expected = [1.307894892614813, 2.0022297314596504, 7.184851961675554]
-    assert custom_allclose(r, r_expected)
-    assert custom_allclose(v, v_expected)
+        # Compare with expected values
+        assert custom_allclose(r, rv[0])
+        assert custom_allclose(v, rv[1])
+
+    def test_rv2quat(self, orbit_state, rv):
+        # Convert position and velocity vectors to 7-element quaternion
+        q = rot.rv2quat(*rv)
+
+        # Expected quaternion components
+        q_expected = [
+            0.3015113445777637,
+            -0.502518907629606,
+            0.40201512610368495,
+            0.7035264706814484,
+            *orbit_state,
+        ]
+
+        assert custom_allclose(q, q_expected)

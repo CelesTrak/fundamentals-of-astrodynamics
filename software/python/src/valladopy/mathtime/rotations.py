@@ -163,3 +163,64 @@ def quat2rv(q: ArrayLike) -> tuple[np.ndarray, np.ndarray]:
     v = p * rot @ vel_local
 
     return r, v
+
+
+def rv2quat(r: ArrayLike, v: ArrayLike) -> np.ndarray:
+    """Converts a position and velocity vector to a 7-element orbit quaternion state.
+
+    Args:
+        r (array_like): Position vector in the inertial frame as a 3-element array
+        v (array_like): Velocity vector in the inertial frame as a 3-element array
+
+    Returns:
+        np.ndarray: 7-element array representing the orbit quaternion state
+                    [x, y, z, w, rmag, dot, omega], where:
+                    - x, y, z, w (floats): Quaternion components
+                    - rmag (float): Magnitude of the position vector
+                    - dot (float): Radial velocity component
+                    - omega (float): Angular velocity component
+    """
+    # Calculate orbit quantities
+    r2 = np.dot(r, r)
+    magr = np.sqrt(r2)
+    dot = np.dot(r, v) / magr
+    omega_vec = np.cross(r, v) / r2
+    omega = np.linalg.norm(omega_vec)
+
+    # Construct LVLH basis vectors
+    z_hat = -np.array(r) / magr
+    y_hat = -omega_vec / omega
+    x_hat = np.cross(y_hat, z_hat)
+
+    # Rotation matrix from LVLH to inertial
+    rot = np.vstack([x_hat, y_hat, z_hat]).T
+
+    # Convert rotation matrix to quaternion
+    tr = np.trace(rot)
+    if tr > 1e-6:
+        w = 0.5 * np.sqrt(1 + tr)
+        f = 1 / (4 * w)
+        x = f * (rot[2, 1] - rot[1, 2])
+        y = f * (rot[0, 2] - rot[2, 0])
+        z = f * (rot[1, 0] - rot[0, 1])
+    else:
+        if rot[0, 0] > rot[1, 1] and rot[0, 0] > rot[2, 2]:
+            x = 0.5 * np.sqrt(1.0 + rot[0, 0] - rot[1, 1] - rot[2, 2])
+            f = 1 / (4 * x)
+            y = f * (rot[0, 1] + rot[1, 0])
+            z = f * (rot[0, 2] + rot[2, 0])
+            w = f * (rot[2, 1] - rot[1, 2])
+        elif rot[1, 1] > rot[2, 2]:
+            y = 0.5 * np.sqrt(1 + rot[1, 1] - rot[0, 0] - rot[2, 2])
+            f = 1 / (4 * y)
+            x = f * (rot[0, 1] + rot[1, 0])
+            z = f * (rot[1, 2] + rot[2, 1])
+            w = f * (rot[0, 2] - rot[2, 0])
+        else:
+            z = 0.5 * np.sqrt(1 + rot[2, 2] - rot[0, 0] - rot[1, 1])
+            f = 1 / (4 * z)
+            x = f * (rot[0, 2] + rot[2, 0])
+            y = f * (rot[1, 2] + rot[2, 1])
+            w = f * (rot[1, 0] - rot[0, 1])
+
+    return np.array([x, y, z, w, magr, dot, omega])
