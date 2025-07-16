@@ -36,13 +36,12 @@ function [qt] = qtrans(qi,qf)
        dq3 = qi(4)*qf(3) - qi(3)*qf(4) - qi(1)*qf(2) + qi(2)*qf(1);
        dq4 = qi(1)*qf(1) + qi(2)*qf(2) + qi(3)*qf(3) + qi(4)*qf(4);
 
-       [dq] = [dq1,dq2,dq3,dq4];
-
        % ---- normalize result
-       dq1 = dq1/mag(dq);
-       dq2 = dq2/mag(dq);
-       dq3 = dq3/mag(dq);
-       dq4 = dq4/mag(dq);
+       qmag = sqrt(dq1^2 + dq2^2 + dq3^2 + dq4^2);
+       dq1 = dq1/qmag;
+       dq2 = dq2/qmag;
+       dq3 = dq3/qmag;
+       dq4 = dq4/qmag;
 
        [qt] = [dq1,dq2,dq3,dq4];
 
