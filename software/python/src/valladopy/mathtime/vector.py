@@ -148,4 +148,4 @@ def unit(v: ArrayLike) -> np.ndarray:
                        (v / ||v|| if ||v|| > 0, 0 otherwise)
     """
     mag = np.linalg.norm(v)
-    return v / mag if mag > SMALL else np.zeros_like(v)
+    return np.array(v) / mag if mag > SMALL else np.zeros_like(v)

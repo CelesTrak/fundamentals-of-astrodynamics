@@ -11,8 +11,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.spatial.transform import Rotation as Rot
 
-from .vector import unit
-
 
 def quat_multiply(
     qa: ArrayLike, qb: ArrayLike, dir_a: int = 1, dir_b: int = 1
@@ -42,16 +40,9 @@ def quat_multiply(
     qb[3] *= dir_b
 
     # Multiply the quaternions
-    q = np.zeros(4)
-    q[0] = qb[3] * qa[0] + qb[2] * qa[1] - qb[1] * qa[2] + qb[0] * qa[3]
-    q[1] = qb[3] * qa[1] - qb[2] * qa[0] + qb[1] * qa[3] + qb[0] * qa[2]
-    q[2] = qb[3] * qa[2] + qb[2] * qa[3] + qb[1] * qa[0] - qb[0] * qa[1]
-    q[3] = qb[3] * qa[3] - qb[2] * qa[2] - qb[1] * qa[1] - qb[0] * qa[0]
+    q = (Rot.from_quat(qa) * Rot.from_quat(qb)).as_quat()
 
-    if q[3] < 0:
-        q = -q
-
-    return q
+    return -q if q[3] < 0 else q
 
 
 def quat_transform(qi: ArrayLike, qf: ArrayLike) -> np.ndarray:
@@ -64,13 +55,7 @@ def quat_transform(qi: ArrayLike, qf: ArrayLike) -> np.ndarray:
     Returns:
         np.ndarray: Transformation quaternion qt as a 4-element array [x, y, z, w]
     """
-    dq = np.zeros(4)
-    dq[0] = qi[3] * qf[0] - qi[0] * qf[3] - qi[1] * qf[2] + qi[2] * qf[1]
-    dq[1] = qi[3] * qf[1] - qi[1] * qf[3] - qi[2] * qf[0] + qi[0] * qf[2]
-    dq[2] = qi[3] * qf[2] - qi[2] * qf[3] - qi[0] * qf[1] + qi[1] * qf[0]
-    dq[3] = qi[0] * qf[0] + qi[1] * qf[1] + qi[2] * qf[2] + qi[3] * qf[3]
-
-    return unit(dq)
+    return (Rot.from_quat(qi).inv() * Rot.from_quat(qf)).as_quat()
 
 
 def quat2body(q: ArrayLike) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -85,12 +70,8 @@ def quat2body(q: ArrayLike) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
             y_axis (np.ndarray): Unit vector in the y direction
             z_axis (np.ndarray): Unit vector in the z direction
     """
-    x, y, z, w = q
-    x_axis = np.array([1 - 2 * (y**2 + z**2), 2 * (x * y + z * w), 2 * (x * z - y * w)])
-    y_axis = np.array([2 * (x * y - z * w), 1 - 2 * (x**2 + z**2), 2 * (y * z + x * w)])
-    z_axis = np.array([2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x**2 + y**2)])
-
-    return x_axis, y_axis, z_axis
+    dcm = quat2dcm(q)
+    return dcm[0, :], dcm[1, :], dcm[2, :]
 
 
 def vec_by_quat(q: ArrayLike, vec: ArrayLike, direction: int = 1) -> np.ndarray:
@@ -187,3 +168,28 @@ def rv2quat(r: ArrayLike, v: ArrayLike) -> np.ndarray:
     q = Rot.from_matrix(dcm).as_quat()  # [x, y, z, w]
 
     return np.array([*q, magr, dot, omega])
+
+
+def quat2dcm(q: ArrayLike) -> np.ndarray:
+    """Converts a quaternion to a direction cosine matrix (DCM).
+
+    Args:
+        q (array_like): Quaternion as a 4-element array [x, y, z, w]
+
+    Returns:
+        np.ndarray: 3×3 direction cosine matrix
+    """
+    return Rot.from_quat(q).as_matrix().T
+
+
+def dcm2quat(dcm: ArrayLike) -> np.ndarray:
+    """Converts a direction cosine matrix to a quaternion.
+
+    Args:
+        dcm (array_like): 3×3 direction cosine matrix
+
+    Returns:
+        np.ndarray: Quaternion as a 4-element array [x, y, z, w]
+    """
+    dcm = np.asarray(dcm, dtype=float)
+    return Rot.from_matrix(dcm.T).as_quat()

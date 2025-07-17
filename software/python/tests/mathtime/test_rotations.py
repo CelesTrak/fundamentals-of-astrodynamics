@@ -8,18 +8,55 @@ from ..conftest import custom_allclose
 
 @pytest.fixture
 def quats():
-    qa = [0.3, -0.5, 0.4, 0.7]
-    qb = [-0.2, 0.6, 0.1, 0.75]
-    return qa, qb
+    # Normalized quaternions for testing
+    qa = np.array([0.3, -0.5, 0.4, 0.7])
+    qb = np.array([-0.2, 0.6, 0.1, 0.75])
+    return qa / np.linalg.norm(qa), qb / np.linalg.norm(qb)
 
 
 @pytest.mark.parametrize(
     "dir_a, dir_b, expected",
     [
-        (1, 1, [-0.205, -0.065, 0.45, 0.845]),
-        (-1, 1, [-0.075, 0.905, -0.31, 0.205]),
-        (1, -1, [0.655, -0.685, 0.15, 0.205]),
-        (-1, -1, [-0.375, -0.155, -0.29, 0.845]),
+        (
+            1,
+            1,
+            [
+                -0.20892550412042618,
+                -0.06624467203818406,
+                0.4586169602643503,
+                0.861180736496391,
+            ],
+        ),
+        (
+            -1,
+            1,
+            [
+                -0.07643616004405843,
+                0.9223296645316378,
+                -0.31593612818210803,
+                0.20892550412042607,
+            ],
+        ),
+        (
+            1,
+            -1,
+            [
+                0.6675424643847765,
+                -0.6981169284023998,
+                0.1528723200881168,
+                0.20892550412042607,
+            ],
+        ),
+        (
+            -1,
+            -1,
+            [
+                -0.38218080022029194,
+                -0.1579680640910539,
+                -0.29555315217035905,
+                0.861180736496391,
+            ],
+        ),
     ],
 )
 def test_quat_multiply(quats, dir_a, dir_b, expected):
@@ -50,15 +87,24 @@ def test_quat_transform(quats):
 
 
 def test_quat2body(quats):
-    q = quats[0]
-    x_axis, y_axis, z_axis = rot.quat2body(q)
-    assert custom_allclose(x_axis, [0.18, 0.26, 0.94])
-    assert custom_allclose(y_axis, [-0.86, 0.5, 0.02])
-    assert custom_allclose(z_axis, [-0.46, -0.82, 0.32])
+    x_axis, y_axis, z_axis = rot.quat2body(quats[0])
+    assert custom_allclose(
+        x_axis, [0.1717171717171717, 0.2626262626262626, 0.9494949494949494]
+    )
+    assert custom_allclose(
+        y_axis, [-0.8686868686868687, 0.4949494949494949, 0.020202020202020166]
+    )
+    assert custom_allclose(
+        z_axis, [-0.46464646464646453, -0.8282828282828283, 0.31313131313131315]
+    )
 
 
 @pytest.mark.parametrize(
-    "direction, expected", [(1, [3.52, 0.2, -1.14]), (-1, [-2.92, -1.2, 1.94])]
+    "direction, expected",
+    [
+        (1, [3.545454545454545, 0.18181818181818143, -1.1818181818181817]),
+        (-1, [-2.9595959595959593, -1.2323232323232327, 1.929292929292929]),
+    ],
 )
 def test_vec_by_quat(quats, direction, expected):
     rotated_vec = rot.vec_by_quat(quats[0], vec=[1, 2, 3], direction=direction)
@@ -110,3 +156,21 @@ class TestQuatRV:
         ]
 
         assert custom_allclose(q, q_expected)
+
+
+class TestQuatDCM:
+    @pytest.fixture
+    def dcm(self):
+        return [
+            [0.17171717171717157, 0.2626262626262626, 0.9494949494949494],
+            [-0.8686868686868687, 0.4949494949494947, 0.020202020202020166],
+            [-0.46464646464646453, -0.8282828282828283, 0.3131313131313129],
+        ]
+
+    def test_quat2dcm(self, quats, dcm):
+        dcm_out = rot.quat2dcm(quats[0])
+        assert custom_allclose(dcm_out, dcm)
+
+    def test_dcm2quat(self, dcm, quats):
+        q_out = rot.dcm2quat(dcm)
+        assert custom_allclose(q_out, quats[0])
