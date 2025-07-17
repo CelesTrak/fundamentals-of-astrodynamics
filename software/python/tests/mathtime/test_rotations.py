@@ -3,7 +3,7 @@ import pytest
 
 import src.valladopy.mathtime.rotations as rot
 
-from ..conftest import custom_allclose
+from ..conftest import custom_isclose, custom_allclose
 
 
 @pytest.fixture
@@ -173,4 +173,25 @@ class TestQuatDCM:
 
     def test_dcm2quat(self, dcm, quats):
         q_out = rot.dcm2quat(dcm)
+        assert custom_allclose(q_out, quats[0])
+
+
+class TestQuatEuler:
+    @pytest.fixture
+    def euler(self):
+        theta = 5.305391542266215
+        phi = 0.9760360255226708
+        psi = 0.4878364386596423
+        return theta, phi, psi
+
+    def test_quat2euler(self, quats, euler):
+        theta, phi, psi = euler
+        theta_out, phi_out, psi_out = rot.quat2euler(quats[0])
+        assert custom_isclose(theta_out, theta)
+        assert custom_isclose(phi_out, phi)
+        assert custom_isclose(psi_out, psi)
+
+    def test_euler2quat(self, euler, quats):
+        theta, phi, psi = euler
+        q_out = rot.euler2quat(theta, phi, psi)
         assert custom_allclose(q_out, quats[0])

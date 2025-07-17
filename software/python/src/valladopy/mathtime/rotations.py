@@ -11,6 +11,8 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.spatial.transform import Rotation as Rot
 
+from .. import constants as const
+
 
 def quat_multiply(
     qa: ArrayLike, qb: ArrayLike, dir_a: int = 1, dir_b: int = 1
@@ -193,3 +195,34 @@ def dcm2quat(dcm: ArrayLike) -> np.ndarray:
     """
     dcm = np.asarray(dcm, dtype=float)
     return Rot.from_matrix(dcm.T).as_quat()
+
+
+def quat2euler(q: ArrayLike) -> tuple[float, float, float]:
+    """Converts a quaternion to Euler angles (y–x–z sequence).
+
+    Args:
+        q (array_like): Quaternion as a 4-element array [x, y, z, w]
+
+    Returns:
+        tuple: (theta, phi, psi)
+            theta (float): Angle around the y-axis in radians (0 to 2π)
+            phi (float): Angle around the x-axis in radians (-π/2 to π/2)
+            psi (float): Angle around the z-axis in radians (0 to 2π)
+    """
+    psi, phi, theta = Rot.from_quat(q).as_euler("zxy")  # intrinsic rotations
+    return theta % const.TWOPI, phi, psi % const.TWOPI
+
+
+def euler2quat(theta: float, phi: float, psi: float) -> np.ndarray:
+    """Converts Euler angles (y–x–z rotation order) to a quaternion.
+
+    Args:
+        theta (float): Rotation about y (radians)
+        phi (float): Rotation about x (radians)
+        psi (float): Rotation about z (radians)
+
+    Returns:
+        np.ndarray: Quaternion as a 4-element array [x, y, z, w]
+    """
+    q = Rot.from_euler("zxy", [psi, phi, theta]).as_quat()  # intrinsic rotations
+    return -q if q[3] < 0 else q
