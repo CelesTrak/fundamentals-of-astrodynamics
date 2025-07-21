@@ -186,7 +186,7 @@ def quat2dcm(q: ArrayLike) -> np.ndarray:
 
 
 def dcm2quat(dcm: ArrayLike) -> np.ndarray:
-    """Converts a direction cosine matrix to a quaternion.
+    """Converts a direction cosine matrix (DCM) to a quaternion.
 
     Args:
         dcm (array_like): 3×3 direction cosine matrix
@@ -218,9 +218,9 @@ def euler2quat(theta: float, phi: float, psi: float) -> np.ndarray:
     """Converts Euler angles (y–x–z rotation order) to a quaternion.
 
     Args:
-        theta (float): Rotation about y (radians)
-        phi (float): Rotation about x (radians)
-        psi (float): Rotation about z (radians)
+        theta (float): Rotation about y in radians
+        phi (float): Rotation about x in radians
+        psi (float): Rotation about z in radians
 
     Returns:
         np.ndarray: Quaternion as a 4-element array [x, y, z, w]
@@ -267,3 +267,35 @@ def eigen2quat(axis: ArrayLike, angle: float) -> np.ndarray:
     """
     rotvec = unit(axis) * angle
     return Rot.from_rotvec(rotvec).as_quat()
+
+
+def dcm2euler(dcm: ArrayLike) -> tuple[float, float, float]:
+    """Converts a direct cosine matrix (DCM) to Euler angles in y–x–z rotation order.
+
+    Args:
+        dcm (array_like): 3×3 direction cosine matrix
+
+    Returns:
+        tuple: (theta, phi, psi)
+            theta (float): Angle around the y-axis in radians (0 to 2π)
+            phi (float): Angle around the x-axis in radians (-π/2 to π/2)
+            psi (float): Angle around the z-axis in radians (0 to 2π)
+    """
+    dcm = np.asarray(dcm, dtype=float)
+    psi, phi, theta = Rot.from_matrix(dcm.T).as_euler("zxy", degrees=False)
+
+    return theta % const.TWOPI, phi, psi % const.TWOPI
+
+
+def euler2dcm(theta: float, phi: float, psi: float) -> np.ndarray:
+    """Converts Euler angles to a direction cosine matrix (DCM).
+
+    Args:
+        theta (float): Rotation about y in radians
+        phi (float): Rotation about x in radians
+        psi (float): Rotation about z in radians
+
+    Returns:
+        np.ndarray: 3×3 direction cosine matrix
+    """
+    return Rot.from_euler("zxy", [psi, phi, theta]).as_matrix().T

@@ -9,10 +9,29 @@ from ..conftest import custom_isclose, custom_allclose
 
 @pytest.fixture
 def quats():
-    # Normalized quaternions for testing
+    # Normalized quaternions
     qa = np.array([0.3, -0.5, 0.4, 0.7])
     qb = np.array([-0.2, 0.6, 0.1, 0.75])
     return unit(qa), unit(qb)
+
+
+@pytest.fixture
+def dcm():
+    # Direction Cosine Matrix (DCM)
+    return [
+        [0.17171717171717157, 0.2626262626262626, 0.9494949494949494],
+        [-0.8686868686868687, 0.4949494949494947, 0.020202020202020166],
+        [-0.46464646464646453, -0.8282828282828283, 0.3131313131313129],
+    ]
+
+
+@pytest.fixture
+def euler():
+    # Euler angles in radians
+    theta = 5.305391542266215
+    phi = 0.9760360255226708
+    psi = 0.4878364386596423
+    return theta, phi, psi
 
 
 @pytest.mark.parametrize(
@@ -160,14 +179,6 @@ class TestQuatRV:
 
 
 class TestQuatDCM:
-    @pytest.fixture
-    def dcm(self):
-        return [
-            [0.17171717171717157, 0.2626262626262626, 0.9494949494949494],
-            [-0.8686868686868687, 0.4949494949494947, 0.020202020202020166],
-            [-0.46464646464646453, -0.8282828282828283, 0.3131313131313129],
-        ]
-
     def test_quat2dcm(self, quats, dcm):
         dcm_out = rot.quat2dcm(quats[0])
         assert custom_allclose(dcm_out, dcm)
@@ -178,13 +189,6 @@ class TestQuatDCM:
 
 
 class TestQuatEuler:
-    @pytest.fixture
-    def euler(self):
-        theta = 5.305391542266215
-        phi = 0.9760360255226708
-        psi = 0.4878364386596423
-        return theta, phi, psi
-
     def test_quat2euler(self, quats, euler):
         theta, phi, psi = euler
         theta_out, phi_out, psi_out = rot.quat2euler(quats[0])
@@ -215,3 +219,17 @@ class TestQuatEigen:
         axis, angle = eigen
         q_out = rot.eigen2quat(axis, angle)
         assert custom_allclose(q_out, quats[0])
+
+
+class TestDCMEuler:
+    def test_dcm2euler(self, dcm, euler):
+        theta, phi, psi = euler
+        theta_out, phi_out, psi_out = rot.dcm2euler(dcm)
+        assert custom_isclose(theta_out, theta)
+        assert custom_isclose(phi_out, phi)
+        assert custom_isclose(psi_out, psi)
+
+    def test_euler2dcm(self, dcm, euler):
+        theta, phi, psi = euler
+        dcm_out = rot.euler2dcm(theta, phi, psi)
+        assert custom_allclose(dcm_out, dcm)
