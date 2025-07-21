@@ -215,6 +215,11 @@ class TestQuatEigen:
         assert custom_allclose(axis_out, axis)
         assert custom_isclose(angle_out, angle)
 
+    @pytest.mark.parametrize("quat", [[0, 0, 0, 1], [0, 0, 0, -1]])
+    def test_quat2eigen_invalid(self, quat):
+        with pytest.raises(ValueError):
+            rot.quat2eigen(quat)
+
     def test_eigen2quat(self, quats, eigen):
         axis, angle = eigen
         q_out = rot.eigen2quat(axis, angle)
