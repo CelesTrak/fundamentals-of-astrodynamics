@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import src.valladopy.mathtime.rotations as rot
+from src.valladopy.mathtime.vector import unit
 
 from ..conftest import custom_isclose, custom_allclose
 
@@ -11,7 +12,7 @@ def quats():
     # Normalized quaternions for testing
     qa = np.array([0.3, -0.5, 0.4, 0.7])
     qb = np.array([-0.2, 0.6, 0.1, 0.75])
-    return qa / np.linalg.norm(qa), qb / np.linalg.norm(qb)
+    return unit(qa), unit(qb)
 
 
 @pytest.mark.parametrize(
@@ -194,4 +195,23 @@ class TestQuatEuler:
     def test_euler2quat(self, euler, quats):
         theta, phi, psi = euler
         q_out = rot.euler2quat(theta, phi, psi)
+        assert custom_allclose(q_out, quats[0])
+
+
+class TestQuatEigen:
+    @pytest.fixture
+    def eigen(self):
+        axis = [0.4242640687119285, -0.7071067811865475, 0.565685424949238]
+        angle = 1.5808975086721526
+        return axis, angle
+
+    def test_quat2eigen(self, quats, eigen):
+        axis, angle = eigen
+        axis_out, angle_out = rot.quat2eigen(quats[0])
+        assert custom_allclose(axis_out, axis)
+        assert custom_isclose(angle_out, angle)
+
+    def test_eigen2quat(self, quats, eigen):
+        axis, angle = eigen
+        q_out = rot.eigen2quat(axis, angle)
         assert custom_allclose(q_out, quats[0])

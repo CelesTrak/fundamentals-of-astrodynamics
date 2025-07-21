@@ -11,6 +11,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.spatial.transform import Rotation as Rot
 
+from .vector import unit
 from .. import constants as const
 
 
@@ -226,3 +227,43 @@ def euler2quat(theta: float, phi: float, psi: float) -> np.ndarray:
     """
     q = Rot.from_euler("zxy", [psi, phi, theta]).as_quat()  # intrinsic rotations
     return -q if q[3] < 0 else q
+
+
+def quat2eigen(q: ArrayLike) -> tuple[np.ndarray, float]:
+    """Converts a quaternion to a rotation angle and eigen-axis.
+
+    Args:
+        q (array_like): Quaternion as a 4-element array [x, y, z, w]
+
+    Returns:
+        tuple: (axis, angle)
+            axis (np.ndarray): 3-element unit vector
+            angle (float): Rotation angle in radians
+
+    Raises:
+        ValueError: If the rotation angle is zero (undefined axis)
+    """
+    rot = Rot.from_quat(q)
+    angle = rot.magnitude()
+    axis = rot.as_rotvec() / angle if angle != 0 else np.zeros(3)
+
+    if np.isclose(angle, 0):
+        raise ValueError(
+            "Eigen-axis is not well defined because the rotation angle is zero."
+        )
+
+    return axis, angle
+
+
+def eigen2quat(axis: ArrayLike, angle: float) -> np.ndarray:
+    """Converts a rotation axis and angle to a quaternion.
+
+    Args:
+        axis (array_like): Eigen-axis as a 3-element vector
+        angle (float): Rotation angle in radians
+
+    Returns:
+        np.ndarray: Quaternion as a 4-element array [x, y, z, w]
+    """
+    rotvec = unit(axis) * angle
+    return Rot.from_rotvec(rotvec).as_quat()
