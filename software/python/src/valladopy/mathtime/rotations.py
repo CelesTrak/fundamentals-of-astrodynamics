@@ -107,6 +107,19 @@ def vec_by_quat(q: ArrayLike, vec: ArrayLike, direction: int = 1) -> np.ndarray:
     return vec_out
 
 
+def vec_by_dcm(dcm: ArrayLike, vec: ArrayLike) -> np.ndarray:
+    """Applies a DCM rotation to a vector.
+
+    Args:
+        dcm (array_like): 3×3 direction cosine matrix
+        vec (array_like): 3-element vector
+
+    Returns:
+        np.ndarray: Rotated 3-element vector
+    """
+    return np.asarray(dcm, dtype=float) @ np.asarray(vec, dtype=float)
+
+
 def quat2rv(q: ArrayLike) -> tuple[np.ndarray, np.ndarray]:
     """Converts a 7-element orbit state quaternion to position and velocity vectors.
 

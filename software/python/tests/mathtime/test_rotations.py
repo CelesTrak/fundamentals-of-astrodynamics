@@ -136,6 +136,12 @@ def test_vec_by_quat_invalid_direction(quats):
         rot.vec_by_quat(quats[0], vec=[1, 2, 3], direction=3)
 
 
+def test_vec_by_dcm(dcm):
+    rotated_vec = rot.vec_by_dcm(dcm, vec=[1, 2, 3])
+    exected_vec = [3.545454545454545, 0.1818181818181812, -1.1818181818181823]
+    assert custom_allclose(rotated_vec, exected_vec)
+
+
 class TestQuatRV:
     @pytest.fixture
     def orbit_state(self):
