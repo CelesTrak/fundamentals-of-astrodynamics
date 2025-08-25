@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMSIS", "TestMSIS.csproj", "{CF57853E-31D6-4954-BAF6-FD9DD6CE53AD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{106694E6-9585-487E-9904-E4CCC344DD69} = {106694E6-9585-487E-9904-E4CCC344DD69}
+		{399F1805-7744-49F8-A127-45B07E7BF8CA} = {399F1805-7744-49F8-A127-45B07E7BF8CA}
+		{B64E8863-15B0-4D1D-A48D-DEBEA17469B8} = {B64E8863-15B0-4D1D-A48D-DEBEA17469B8}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSIS_Vers", "..\..\libraries\MSIS_Vers\MSIS_Vers\MSIS_Vers.csproj", "{399F1805-7744-49F8-A127-45B07E7BF8CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathTimeLib", "..\..\libraries\MathTimeLib\MathTimeLib\MathTimeLib.csproj", "{106694E6-9585-487E-9904-E4CCC344DD69}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EOPSPWLib", "..\..\libraries\EOPSPWLib\EOPSPWLib\EOPSPWLib.csproj", "{B64E8863-15B0-4D1D-A48D-DEBEA17469B8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{106694E6-9585-487E-9904-E4CCC344DD69} = {106694E6-9585-487E-9904-E4CCC344DD69}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CF57853E-31D6-4954-BAF6-FD9DD6CE53AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF57853E-31D6-4954-BAF6-FD9DD6CE53AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF57853E-31D6-4954-BAF6-FD9DD6CE53AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF57853E-31D6-4954-BAF6-FD9DD6CE53AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{399F1805-7744-49F8-A127-45B07E7BF8CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{399F1805-7744-49F8-A127-45B07E7BF8CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{399F1805-7744-49F8-A127-45B07E7BF8CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{399F1805-7744-49F8-A127-45B07E7BF8CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{106694E6-9585-487E-9904-E4CCC344DD69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{106694E6-9585-487E-9904-E4CCC344DD69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{106694E6-9585-487E-9904-E4CCC344DD69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{106694E6-9585-487E-9904-E4CCC344DD69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B64E8863-15B0-4D1D-A48D-DEBEA17469B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B64E8863-15B0-4D1D-A48D-DEBEA17469B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B64E8863-15B0-4D1D-A48D-DEBEA17469B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B64E8863-15B0-4D1D-A48D-DEBEA17469B8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2B058988-E606-477C-BF35-D18281643F24}
+	EndGlobalSection
+EndGlobal

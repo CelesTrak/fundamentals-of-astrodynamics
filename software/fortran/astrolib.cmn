@@ -1,0 +1,51 @@
+* ---------------------------------------------------------------------
+*
+*                              astrolib.cmn
+*
+*
+*  This file contains the declarations to include astrodynamic constants
+*    in a subroutine. The data statements assign all the relevant values.
+*    These data represent EGM-08 values. This isn't a common per se, but
+*    rather a common data initialization. These values should not change
+*    within a program.
+*
+*                          Companion code for
+*             Fundamentals of Astrodynamics and Applications
+*                                  2022
+*                            by David Vallado
+*
+*     email dvallado@comspoc.com or davallado@gmail.com
+*
+*     *****************************************************************
+*
+*  Current :
+*            16 sep 22  David Vallado
+*                         merge and update to conform to other files
+*  Changes :
+*            28 Feb 03  David Vallado
+*                         Original baseline
+*
+*     *****************************************************************
+
+        REAL*8 rekm, mu, mum, flat, EESqrd, au, earthrot
+        REAL*8 speedoflight, velkmps
+
+        COMMON  /astreduc/   IAR80,    RAR80
+c     &   ,         IAR00,    RAR00,    IAR96,    RAR96,
+c     &             pIAR96,   pRAR96
+
+        INTEGER IAR80(5,106)
+        REAL*8  RAr80(4,106)
+c        INTEGER IAr00(5,106), IAr96(5,263), pIAr96(10,112)
+c        REAL*8  RAr00(4,106), RAr96(4,263), pRAr96(4,112)
+
+        DATA rekm    / 6378.1363D0/          ! km
+        DATA mu      / 398600.4415D0/        ! km^3/s^2 stk uses .4415
+        DATA mum     / 398600.4415D14/       ! m^3/s^2
+        DATA earthrot/ 7.292115D-5/          ! 7.29211514670698e-05 older rad/s 
+        DATA flat    / 0.003352810665D0/     ! f = 1.0/298.257223563
+        DATA EESqrd  / 0.006694379990D0/     ! 2f - f**2
+        DATA au      / 149597870.7D0/        ! km
+        DATA speedoflight / 2.99792458D8/    ! m/s
+        DATA velkmps / 7.905366149846074D0/      
+
