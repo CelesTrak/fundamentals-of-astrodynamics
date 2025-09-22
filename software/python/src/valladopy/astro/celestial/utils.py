@@ -32,7 +32,7 @@ def in_sight(
     the Earth's shape.
 
     References:
-        Vallado: 2022, p. 312-315, Algorithm 35
+        Vallado: 2022, pp. 312-315, Algorithm 35
 
     Args:
         r1 (array_like): Position vector of the first satellite in km
@@ -78,6 +78,9 @@ def in_sight(
 def sun_ecliptic_parameters(t: float) -> Tuple[float, float, float]:
     """Compute the mean longitude, mean anomaly, and ecliptic longitude of the Sun.
 
+    References:
+        Vallado: 2022, pp. 283-284
+
     Args:
         t (float): Time since J2000 in Julian centuries (e.g. 'tut1' or 'ttdb')
 
@@ -87,13 +90,13 @@ def sun_ecliptic_parameters(t: float) -> Tuple[float, float, float]:
             mean_anomaly (float): Mean anomaly of the Sun in radians
             ecliptic_lon (float): Ecliptic longitude of the Sun in radians
     """
-    mean_lon = np.radians(280.4606184 + 36000.77005361 * t) % const.TWOPI
-    mean_anomaly = np.radians(357.5277233 + 35999.05034 * t) % const.TWOPI
+    mean_lon = np.radians(280.46 + 36000.771285 * t) % const.TWOPI
+    mean_anomaly = np.radians(357.528 + 35999.050957 * t) % const.TWOPI
     ecliptic_lon = (
         np.radians(
             np.degrees(mean_lon)
-            + 1.914666471 * np.sin(mean_anomaly)
-            + 0.019994643 * np.sin(2 * mean_anomaly)
+            + 1.915 * np.sin(mean_anomaly)
+            + 0.02 * np.sin(2 * mean_anomaly)
         )
         % const.TWOPI
     )

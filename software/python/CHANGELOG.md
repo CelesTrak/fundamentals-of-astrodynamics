@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.4.1] - 2025-09-22
+- Minor update in sun ecliptic parameters
+
 ## [0.4.0] - 2025-07-21
 - Bugfix in `convtime` routine
 - Added quaternion / rotation transformation functions

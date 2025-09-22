@@ -40,9 +40,9 @@ def test_position():
     "lon, moonrise_expected, moonset_expected, moonphaseang_expected",
     [
         # Example 5-4
-        (0, 4.518799123473629, 18.51808524604512, 6.2177837312775415),
+        (0, 4.518799123473629, 18.51808524604512, 6.217799086044598),
         # Non-zero longitude
-        (np.radians(-74.3), 9.678940118281297, 23.593826737778475, 6.2615587982527865),
+        (np.radians(-74.3), 9.678940118281297, 23.593826737778475, 6.261574167243781),
     ],
 )
 def test_rise_set(lon, moonrise_expected, moonset_expected, moonphaseang_expected):
