@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.0] - 2025-07-21
+- Bugfix in `convtime` routine
+- Added quaternion / rotation transformation functions
+
 ## [0.3.0] - 2025-07-02
 - Bugfix ([Issue #127](https://github.com/CelesTrak/fundamentals-of-astrodynamics/issues/127)) + updates for Lambert minimum time function
 - Minor updates to time data function signatures

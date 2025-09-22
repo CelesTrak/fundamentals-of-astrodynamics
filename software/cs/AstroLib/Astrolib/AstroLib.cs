@@ -6414,6 +6414,130 @@ namespace AstroLibMethods
         }  // kepler
 
 
+        // ------------------------------------------------------------------------------
+        //
+        //                           function pkepler
+        //
+        //  this function propagates a satellite's position and velocity vector over
+        //    a given time period accounting for perturbations caused by j2 and
+        //    optionally drag if ndot and nddot are known.
+        //
+        //  author        : david vallado             davallado @gmail.com      20 jan 2025
+        //       
+        //  inputs        description                            range / units
+        //    ro          - original position vector             km
+        //    vo          - original velocity vector             km/sec
+        //    dtsec       - change in time sec
+        //    ndot        - time rate of change of n             rad/sec
+        //    nddot       - time accel of change of n            rad/sec2
+        //
+        //  outputs       :
+        //    r           - updated position vector              km
+        //    v           - updated velocity vector              km/sec
+        //
+        //  locals        :
+        //    p           - semi-paramter                        km
+        //    a           - semior axis                          km
+        //    ecc         - eccentricity
+        //    incl        - inclination                          rad
+        //    argp        - argument of periapsis                rad
+        //    argpdot     - change in argument of perigee        rad/sec
+        //    raan        - longitude of the asc node            rad
+        //    raandot     - change in raan rad
+        //    e0          - eccentric anomaly                    rad
+        //    e1          - eccentric anomaly                    rad
+        //    m           - mean anomaly                         rad/sec
+        //    mdot        - change in mean anomaly               rad/sec
+        //    arglat      - argument of latitude                 rad
+        //    arglatdot   - change in argument of latitude       rad/sec
+        //    truelon     - true longitude of vehicle            rad
+        //    truelondot  - change in the true longitude         rad/sec
+        //    lonper      - longitude of periapsis               rad
+        //    lonperodot  - longitude of periapsis change        rad/sec
+        //    n           - mean angular motion                  rad/sec
+        //    nuo         - true anomaly                         rad
+        //    j2op2       - j2 over p sqyared
+        //    sinv, cosv   - sine and cosine of nu
+        //
+        //  coupling:
+        //    rv2coe      - orbit elements from position and velocity vectors
+        //    coe2rv      - position and velocity vectors from orbit elements
+        //    newtonm     - newton rhapson to find nu and eccentric anomaly
+        //
+        //  references    :
+        //    vallado       2022, 717, alg 66
+        // -----------------------------------------------------------------------------
+
+        public void pkepler(double[] ro, double[] vo, double dtsec, double ndot, double nddot, out double[] r, out double[] v)
+        {
+            double j2 = 0.001826267;
+            double small = 0.00000001;
+            double twopi = Math.PI * 2.0;
+            double p, a, ecc, incl, raan, argp, nu, m, n, arglat, truelon, lonper;
+            double j2op2, raandot, argpdot, mdot, truelondot, arglatdot, lonperdot, e0;
+
+            rv2coe(ro, vo, out p, out a, out ecc, out incl, out raan, out argp, out nu, out m, out arglat, out truelon, out lonper);
+
+            n = Math.Sqrt(astroConsts.mu / (a * a * a));
+
+            // ------------- find the value of j2 perturbations -------------
+            j2op2 = (n * 1.5 * astroConsts.re * astroConsts.re * j2) / (p * p);
+            // nbar    = n* ( 1.0 + j2op2* sqrt(1.0-ecc* ecc)* (1.0 - 1.5*sin(incl)*sin(incl)) );
+            raandot = -j2op2 * Math.Cos(incl);
+            argpdot = j2op2 * (2.0 - 2.5 * Math.Sin(incl) * Math.Sin(incl));
+            mdot = n;
+
+            a = a - 2.0 * ndot * dtsec * a / (3.0 * n);
+            ecc = ecc - 2.0 * (1.0 - ecc) * ndot * dtsec / (3.0 * n);
+            p = a * (1.0 - ecc * ecc);
+
+            // ----- update the orbital elements for each orbit type --------
+            if (ecc < small)
+            {
+                // -------------circular equatorial----------------
+                if (incl < small || Math.Abs(incl - Math.PI) < small)
+                {
+                    truelondot = raandot + argpdot + mdot;
+                    truelon = truelon + truelondot * dtsec;
+                    truelon = truelon % twopi;
+                }
+                else
+                {
+                    // -------------circular inclined--------------
+                    raan = raan + raandot * dtsec;
+                    raan = raan % twopi;
+                    arglatdot = argpdot + mdot;
+                    arglat = arglat + arglatdot * dtsec;
+                    arglat = arglat % twopi;
+                }
+            }
+            else
+            {
+                // --elliptical, parabolic, hyperbolic equatorial ---
+                if (incl < small || Math.Abs(incl - Math.PI) < small)
+                {
+                    lonperdot = raandot + argpdot;
+                    lonper = lonper + lonperdot * dtsec;
+                    lonper = lonper % twopi;
+                    m = m + mdot * dtsec + ndot * dtsec * dtsec + nddot * dtsec * dtsec * dtsec;
+                    m = m % twopi;
+                    newtonm(ecc, m, out e0, out nu);
+                }
+                else
+                {
+                    // ---elliptical, parabolic, hyperbolic inclined --
+                    raan = raan + raandot * dtsec;
+                    raan = raan % twopi;
+                    argp = argp + argpdot * dtsec;
+                    argp = argp % twopi;
+                    m = m + mdot * dtsec + ndot * dtsec * dtsec + nddot * dtsec * dtsec * dtsec;
+                    m = m % twopi;
+                    newtonm(ecc, m, out e0, out nu);
+                }
+            }
+            // ------------- use coe2rv to find new vectors ---------------
+            coe2rv(p, ecc, incl, raan, argp, nu, arglat, truelon, lonper, out r, out v);
+        }  // pkepler
 
         // ----------------------------------------------------------------------------
         //
@@ -7048,7 +7172,7 @@ namespace AstroLibMethods
         //
         //  outputs       :
         //    kbi         - k values for min tof for each nrev
-        //    tof         - min time of flight for each nrev         sec
+        //    tbi         - min time of flight for each nrev         sec
         //
         //  references    :
         //    Arora and Russell AAS 10-198
@@ -7057,7 +7181,7 @@ namespace AstroLibMethods
         public void lambertumins
             (
             double[] r1, double[] r2, Int32 nrev, char dm,
-            out double kbi, out double tof
+            out double kbi, out double tbi
             )
         {
             double small, oomu, magr1, magr2, vara, cosdeltanu, sqrtmu, sqrty, dtdpsi;
@@ -7167,7 +7291,7 @@ namespace AstroLibMethods
             }  // while
             // calculate once at the end
             dtnew = (x * x * x * c3 + vara * sqrty) * oomu;
-            tof = dtnew;
+            tbi = dtnew;
             kbi = psinew;
             //       fprintf(1,' nrev %3i  dtnew %12.5f psi %12.5f  lower %10.3f upper %10.3f %10.6f %10.6f \n',nrev, dtnew, psiold, lower, upper, c2, c3);
         } // lambertumins
@@ -8194,6 +8318,9 @@ namespace AstroLibMethods
             }  // if nrev and r
 
         }  //  lambertbattin
+
+
+
 
 
         // ------------------------------------------------------------------------------
@@ -12889,11 +13016,13 @@ namespace AstroLibMethods
             LegPinesN[1] = new double[3];
             LegPinesN[0][0] = Math.Sqrt(2.0);
 
+            // set the jagged array
+            for (L = 2; L <= degree + 2; L++)
+                 LegPinesN[L] = new double[L + 2];
+
             // Legendre polynomial calculations
             for (m = 0; m <= degree + 2; m++)
             {
-                if (m+2 > 1)
-                    LegPinesN[m+2] = new double[m + 2];
                 if (m != 0) // Diagonal recursion
                 {
                     LegPinesN[m][m] = Math.Sqrt(1.0 + (1.0 / (2.0 * m))) * LegPinesN[m - 1][m - 1];
@@ -12906,7 +13035,6 @@ namespace AstroLibMethods
                 {
                     for (L = m + 2; L <= degree + 2; L++)
                     {
-                        LegPinesN[L] = new double[L + 2];
                         ALPHA_NUM = (2.0 * L + 1.0) * (2.0 * L - 1.0);
                         ALPHA_DEN = (L - m) * (L + m);
                         ALPHA = Math.Sqrt(ALPHA_NUM / ALPHA_DEN);
@@ -13319,8 +13447,8 @@ namespace AstroLibMethods
                     }
                     sumjn = 0.0;
                     sumkn = 0.0;
-                    ctil[L] = ctil[1] * ctil[L - 2] - stil[1] * stil[L - 2];
-                    stil[L] = stil[1] * ctil[L - 2] + ctil[1] * stil[L - 2];
+                    ctil[L] = ctil[1] * ctil[L - 1] - stil[1] * stil[L - 1];
+                    stil[L] = stil[1] * ctil[L - 1] + ctil[1] * stil[L - 1];
                     // handle non-square fields
                     if (L < order)
                         lim = L;
@@ -13332,7 +13460,7 @@ namespace AstroLibMethods
                         mp1 = m + 1;
                         mxpnm = m * LegGottN[L][m];
                         bnmtil = gravData.c[L][m] * ctil[m] + gravData.s[L][m] * stil[m];
-                        sumhn = sumhn + normn1[L][m] * LegGottN[L][mp1-1] * bnmtil;  // mp2???
+                        sumhn = sumhn + normn1[L][m] * LegGottN[L][mp1] * bnmtil;  // mp2???
                         sumgmn = sumgmn + (L + m + 1) * LegGottN[L][m] * bnmtil;
                         bnmtm1 = gravData.c[L][m] * ctil[mm1] + gravData.s[L][m] * stil[mm1];
                         anmtm1 = gravData.c[L][m] * stil[mm1] - gravData.s[L][m] * ctil[mm1];

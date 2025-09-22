@@ -30,8 +30,8 @@
 function [vecout] = dcmtrvec(dcm,vec)
 
        % ---- calculate output vector components
-       vecout = dcm(1,1)*vec(1) + dcm(1,2)*vec(2) + dcm(1,3)*vec(3);
-       vecout = dcm(2,1)*vec(1) + dcm(2,2)*vec(2) + dcm(2,3)*vec(3);
-       vecout = dcm(3,1)*vec(1) + dcm(3,2)*vec(2) + dcm(3,3)*vec(3);
+       vecout(1) = dcm(1,1)*vec(1) + dcm(1,2)*vec(2) + dcm(1,3)*vec(3);
+       vecout(2) = dcm(2,1)*vec(1) + dcm(2,2)*vec(2) + dcm(2,3)*vec(3);
+       vecout(3) = dcm(3,1)*vec(1) + dcm(3,2)*vec(2) + dcm(3,3)*vec(3);
 
 
