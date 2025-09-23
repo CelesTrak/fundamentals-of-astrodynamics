@@ -143,7 +143,7 @@ def rise_set(
     location.
 
     References:
-        Vallado: 2022, p. 296-298, Algorithm 32
+        Vallado: 2022, pp. 296-298, Algorithm 32
 
     Args:
         jd (float): Julian date (days from 4713 BC)
@@ -171,8 +171,7 @@ def rise_set(
 
     for event, jd_offset in [("moonrise", 6), ("moonset", 18)]:
         # Initial guess for UT
-        sign = -1 if event == "moonrise" else 1
-        uttemp = (jd_offset + sign * np.degrees(lon) / const.DEG2HR) / const.DAY2HR
+        uttemp = (jd_offset - np.degrees(lon) / const.DEG2HR) / const.DAY2HR
 
         # Set if there's a problem
         if try1 == 2:
@@ -218,7 +217,7 @@ def rise_set(
             lhan = (0.00233 - np.sin(latgd) * np.sin(decl)) / (
                 np.cos(latgd) * np.cos(decl)
             )
-            lhan = np.clip(lhan, -1.0, 1.0)
+            lhan = np.clip(lhan, -1, 1)
             lhan = np.arccos(lhan)
             if event == "moonrise":
                 lhan = const.TWOPI - lhan
@@ -227,7 +226,7 @@ def rise_set(
             if abs(dgha) > 1e-4:
                 deltaut = (lhan - lha) / dgha
             else:
-                deltaut = 1.0
+                deltaut = 1
                 logger.warning("dgha is too small; setting deltaut to 1.0")
 
             # Adjust deltaut for convergence and handle wrap-around cases
@@ -248,7 +247,7 @@ def rise_set(
 
         # Convert UT to hours
         uttemp = tn * const.DAY2HR if i <= n_iters else 1e4
-        uttemp = uttemp % const.DAY2HR if 0.0 <= uttemp < 1e4 else uttemp
+        uttemp = uttemp % const.DAY2HR if 0 <= uttemp < 1e4 else uttemp
 
         # Assign to results
         results[event] = uttemp
@@ -279,7 +278,7 @@ def illumination(f: float, elev: float) -> float:
     """Calculates the illumination due to the moon.
 
     References:
-        Vallado: 2022, p. 316-317, Eq. 5-10, Table 5-1
+        Vallado: 2022, pp. 316-317, Eq. 5-10, Table 5-1
 
     Args:
         f (float): Phase angle in radians
