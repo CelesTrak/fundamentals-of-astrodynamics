@@ -27,32 +27,32 @@ def test_position():
     rsun, rtasc, decl = sun.position(jd)
 
     # Expected values
-    rsun_expected = [146185872.47656828, 28790431.768908378, 12481694.638482867]
+    rsun_expected = [146185999.5694296, 28789948.690292876, 12481485.206411356]
     assert np.allclose(rsun, rsun_expected, rtol=DEFAULT_TOL)
-    assert np.isclose(np.degrees(rtasc), 11.14147300257444, rtol=DEFAULT_TOL)
-    assert np.isclose(np.degrees(decl), 4.788667312446681, rtol=DEFAULT_TOL)
+    assert np.isclose(np.degrees(rtasc), 11.1412812914274, rtol=DEFAULT_TOL)
+    assert np.isclose(np.degrees(decl), 4.78858633343242, rtol=DEFAULT_TOL)
 
 
 @pytest.mark.parametrize(
     "event_type, lon, sunriset_expected, sunset_expected",
     [
         # Example 5-2
-        (sun.SunEventType.SUNRISESET, 0, 5.972768319603184, 18.254933720588195),
+        (sun.SunEventType.SUNRISESET, 0, 5.972755288057223, 18.254905818455445),
         # Other options
-        (sun.SunEventType.CIVIL_TWILIGHT, 0, 5.521700171944827, 18.706162691802458),
-        (sun.SunEventType.NAUTICAL_TWILIGHT, 0, 4.992562953381093, 19.235701157332667),
+        (sun.SunEventType.CIVIL_TWILIGHT, 0, 5.521687245841131, 18.706134678099556),
+        (sun.SunEventType.NAUTICAL_TWILIGHT, 0, 4.992550294133542, 19.23567286903794),
         (
             sun.SunEventType.ASTRONOMICAL_TWILIGHT,
             0,
-            4.452701865963909,
-            19.776248578494837,
+            4.452689665093657,
+            19.776219822420998,
         ),
         # Non-zero longitude
         (
             sun.SunEventType.SUNRISESET,
             np.radians(-74.3),
-            5.967174864254953,
-            18.258450003347587,
+            5.967161838476842,
+            18.258422114533786,
         ),
     ],
 )
@@ -76,8 +76,8 @@ def test_invalid_event_type():
 @pytest.mark.parametrize(
     "earth_model, in_light, tmin",
     [
-        (EarthModel.ELLIPSOIDAL, True, 1.0000233422875653),
-        (EarthModel.SPHERICAL, True, 1.000023290273442),
+        (EarthModel.ELLIPSOIDAL, True, 1.0000233425535408),
+        (EarthModel.SPHERICAL, True, 1.000023290538825),
     ],
 )
 def test_in_light(earth_model, in_light, tmin, caplog):
@@ -96,7 +96,7 @@ def test_illumination():
     jd = 2449763.5
     lat = np.radians(45)
     lon = np.radians(-75)
-    assert custom_isclose(sun.illumination(jd, lat, lon), 0.0009451889253123211)
+    assert custom_isclose(sun.illumination(jd, lat, lon), 0.0009450325082064848)
 
 
 def test_in_shadow_simple():

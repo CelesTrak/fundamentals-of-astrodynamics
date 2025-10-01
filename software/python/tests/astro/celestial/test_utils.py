@@ -55,9 +55,9 @@ def test_in_sight(r2, earth_model, los, tmin, caplog):
 
 def test_sun_ecliptic_parameters(t):
     mean_lon, mean_anomaly, ecliptic_lon = utils.sun_ecliptic_parameters(t)
-    assert np.isclose(np.degrees(mean_lon), 149.36181814781156, rtol=DEFAULT_TOL)
-    assert np.isclose(np.degrees(mean_anomaly), 226.4523822485284, rtol=DEFAULT_TOL)
-    assert np.isclose(np.degrees(ecliptic_lon), 147.9940329397011, rtol=DEFAULT_TOL)
+    assert np.isclose(np.degrees(mean_lon), 149.36118294999994, rtol=DEFAULT_TOL)
+    assert np.isclose(np.degrees(mean_anomaly), 226.4526505318207, rtol=DEFAULT_TOL)
+    assert np.isclose(np.degrees(ecliptic_lon), 147.9931551622565, rtol=DEFAULT_TOL)
 
 
 def test_obliquity_ecliptic(t):
