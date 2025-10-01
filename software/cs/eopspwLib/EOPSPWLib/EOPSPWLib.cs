@@ -714,13 +714,17 @@ namespace EOPSPWMethods
         //    jday        - julian date
         // ---------------------------------------------------------------------------
 
-        public void readspw(ref SPWdataClass[] spwdata, string inFile, out Int32 ktrActualObs, out string errstr)
+        public void readspw(ref SPWdataClass[] spwdata, string inFile, out Int32 ktrActualObs,
+            out Int32 ktrDayPred, out Int32 ktrMonthPred, out string errstr)
         {
             double jd, jdFrac;
             Int32 oldjd;
             Int32 numrecsobs, i, ktr;
 
             //        initSPWArray(ref spwdata);
+            ktrDayPred = 0;
+            ktrMonthPred = 0;
+
             oldjd = 0;
             errstr = "ok\n";
             string line3 = "";
@@ -739,7 +743,7 @@ namespace EOPSPWMethods
 
             // find beginning of data
             i = 0;
-            while (!SPWarray[i].Contains("NUM_OBSERVED_POINTS"))
+            while (!SPWarray[i].Contains("NUM_OBSERVED_POINTS") && i < SPWarray.Count() )
             {
                 i = i + 1;
             }
@@ -748,6 +752,7 @@ namespace EOPSPWMethods
             numrecsobs = Convert.ToInt32(linedata[1]);  // starts at 0
 
             ktr = 0;
+            string fmt = "###.#";
             // ---- process observed records
             // use 15 to avoid last minute gaps in some data - better is to use regex and match success !!!!!!!!!!!!!!!!!
             // update to read from fixed format with all data included
@@ -764,11 +769,11 @@ namespace EOPSPWMethods
                     if (line3.Contains("-1"))
                         errstr = errstr + "Error " + line3 + "\n";
 
-                    //spwdata[ktr].yr = Convert.ToInt32(linedata[0]);  // starts at 0
-                    //spwdata[ktr].mon = Convert.ToInt32(linedata[1]);
-                    //spwdata[ktr].day = Convert.ToInt32(linedata[2]);
-                    //spwdata[ktr].brsn = Convert.ToInt32(linedata[3]);
-                    //spwdata[ktr].nd = Convert.ToInt32(linedata[4]);
+                    spwdata[ktr].yr = Convert.ToInt32(linedata[0]);  // starts at 0
+                    spwdata[ktr].mon = Convert.ToInt32(linedata[1]);
+                    spwdata[ktr].day = Convert.ToInt32(linedata[2]);
+                    spwdata[ktr].brsn = Convert.ToInt32(linedata[3]);
+                    spwdata[ktr].nd = Convert.ToInt32(linedata[4]);
                     spwdata[ktr].kparr[0] = Convert.ToInt32(linedata[5]);
                     spwdata[ktr].kparr[1] = Convert.ToInt32(linedata[6]);
                     spwdata[ktr].kparr[2] = Convert.ToInt32(linedata[7]);
@@ -801,19 +806,21 @@ namespace EOPSPWMethods
                     //spwdata[ktr].obsf30 = Convert.ToDouble(linedata[34]);
                     //spwdata[ktr].adjlstf30f81 = Convert.ToDouble(linedata[35]);
                     //spwdata[ktr].obslstf30f81 = Convert.ToDouble(linedata[36]);
-                    MathTimeLibr.jday(Convert.ToInt32(linedata[0]), Convert.ToInt32(linedata[1]), 
+                    MathTimeLibr.jday(Convert.ToInt32(linedata[0]), Convert.ToInt32(linedata[1]),
                         Convert.ToInt32(linedata[2]), 0, 0, 0.0, out jd, out jdFrac);
                     if (ktr > 0)
                         oldjd = spwdata[ktr - 1].mjd;
                     spwdata[ktr].mjd = Convert.ToInt32(jd + jdFrac - 2400000.5);
 
-                    // find last 3 days data
+                    // find next 3 days data for email check
                     if (spwdata[ktr].mjd >= nowmjd - 3)
                     {
-                        errstr = errstr + spwdata[ktr].yr + " " + spwdata[ktr].mon + " " + spwdata[ktr].day
-                            + spwdata[ktr].aparr[0] + " " + spwdata[ktr].aparr[1] + " " + spwdata[ktr].aparr[2] + " " + spwdata[ktr].aparr[3]
-                            + spwdata[ktr].aparr[4] + " " + spwdata[ktr].aparr[5] + " " + spwdata[ktr].aparr[6] + " " + spwdata[ktr].aparr[7]
-                            + spwdata[ktr].adjf10 + " " + spwdata[ktr].obsf10;
+                        errstr = errstr + spwdata[ktr].yr + " " + spwdata[ktr].mon + " " + spwdata[ktr].day + " "
+                            + spwdata[ktr].aparr[0].ToString(fmt).PadLeft(4) + " " + spwdata[ktr].aparr[1].ToString(fmt).PadLeft(4) + " "
+                            + spwdata[ktr].aparr[2].ToString(fmt).PadLeft(4) + " " + spwdata[ktr].aparr[3].ToString(fmt).PadLeft(4) + " "
+                            + spwdata[ktr].aparr[4].ToString(fmt).PadLeft(4) + " " + spwdata[ktr].aparr[5].ToString(fmt).PadLeft(4) + " "
+                            + spwdata[ktr].aparr[6].ToString(fmt).PadLeft(4) + " " + spwdata[ktr].aparr[7].ToString(fmt).PadLeft(4) + " "
+                            + spwdata[ktr].adjf10.ToString(fmt).PadLeft(4) + " " + spwdata[ktr].obsf10.ToString(fmt).PadLeft(4) + "\n";
                     }
 
                     if (ktr > 0 && spwdata[ktr].mjd != oldjd + 1)
@@ -826,95 +833,173 @@ namespace EOPSPWMethods
 
             }  // for through observed obs
 
-            ktrActualObs = Convert.ToInt32(ktr);  // skip end proccessed as they can have errors (do later)
+            ktrActualObs = Convert.ToInt32(ktr);
             numbspw = ktrActualObs;
 
-            try
+            // ---- now get the daily predicted values
+            // find beginning of daily predicted data
+            i = ktr;
+            while (!SPWarray[i].Contains("NUM_DAILY_PREDICTED_POINTS") && i < SPWarray.Count())
             {
-                Int32 numpredObs = Convert.ToInt32(SPWarray[ktrActualObs + i + 4].ToString().Split(' ')[1]);
+                i = i + 1;
+            }
 
-                // ---- check file for 45 day predicted values
-                ktr = ktrActualObs - 1;
-                for (int ktr1 = ktrActualObs + 6 + i; ktr1 < ktrActualObs + 4 + numpredObs + i; ktr1++)  // use  - 15 if old format of spw files
+            linedata = SPWarray[i].Split(' ');
+            ktrDayPred = Convert.ToInt32(linedata[1]);  // starts at 0
+
+            // ---- check file for 45 day predicted values
+            ktr = ktrActualObs - 1;
+            for (int ktr1 = ktrActualObs + 23; ktr1 < ktrActualObs + ktrDayPred + 23; ktr1++)  // use  - 15 if old format of spw files
+            {
+                ktr = ktr + 1;
+                // set new record as they are needed
+                spwdata[ktr] = new SPWdataClass();
+
+                // replace multiple spaces with just one
+                try
                 {
-                    ktr = ktr + 1;
-                    // set new record as they are needed
-                    spwdata[ktr] = new SPWdataClass();
+                    line3 = Regex.Replace(SPWarray[ktr1].ToString(), @"\s+", " ");
+                    linedata = line3.Split(' ');
+                    if (line3.Contains("-1"))
+                        errstr = errstr + "Error " + line3 + "\n";
 
-                    // replace multiple spaces with just one
-                    try
+                    spwdata[ktr].yr = Convert.ToInt32(linedata[0]);  // starts at 0
+                    spwdata[ktr].mon = Convert.ToInt32(linedata[1]);
+                    spwdata[ktr].day = Convert.ToInt32(linedata[2]);
+                    spwdata[ktr].brsn = Convert.ToInt32(linedata[3]);
+                    spwdata[ktr].nd = Convert.ToInt32(linedata[4]);
+                    spwdata[ktr].kparr[0] = Convert.ToInt32(linedata[5]);
+                    spwdata[ktr].kparr[1] = Convert.ToInt32(linedata[6]);
+                    spwdata[ktr].kparr[2] = Convert.ToInt32(linedata[7]);
+                    spwdata[ktr].kparr[3] = Convert.ToInt32(linedata[8]);
+                    spwdata[ktr].kparr[4] = Convert.ToInt32(linedata[9]);
+                    spwdata[ktr].kparr[5] = Convert.ToInt32(linedata[10]);
+                    spwdata[ktr].kparr[6] = Convert.ToInt32(linedata[11]);
+                    spwdata[ktr].kparr[7] = Convert.ToInt32(linedata[12]);
+                    spwdata[ktr].sumkp = Convert.ToInt32(linedata[13]);
+                    spwdata[ktr].aparr[0] = Convert.ToInt32(linedata[14]);
+                    spwdata[ktr].aparr[1] = Convert.ToInt32(linedata[15]);
+                    spwdata[ktr].aparr[2] = Convert.ToInt32(linedata[16]);
+                    spwdata[ktr].aparr[3] = Convert.ToInt32(linedata[17]);
+                    spwdata[ktr].aparr[4] = Convert.ToInt32(linedata[18]);
+                    spwdata[ktr].aparr[5] = Convert.ToInt32(linedata[19]);
+                    spwdata[ktr].aparr[6] = Convert.ToInt32(linedata[20]);
+                    spwdata[ktr].aparr[7] = Convert.ToInt32(linedata[21]);
+                    spwdata[ktr].avgap = Convert.ToInt32(linedata[22]);
+                    //spwdata[ktr].cp = Convert.ToDouble(linedata[23]);
+                    //spwdata[ktr].c9 = Convert.ToInt32(linedata[24]);
+                    //spwdata[ktr].isn = Convert.ToInt32(linedata[25]);
+                    spwdata[ktr].adjf10 = Convert.ToDouble(linedata[26]);
+                    //spwdata[ktr].q = Convert.ToInt32(linedata[27]);
+                    spwdata[ktr].adjctrf81 = Convert.ToDouble(linedata[28]);
+                    spwdata[ktr].adjlstf81 = Convert.ToDouble(linedata[29]);
+                    spwdata[ktr].obsf10 = Convert.ToDouble(linedata[30]);
+                    spwdata[ktr].obsctrf81 = Convert.ToDouble(linedata[31]);
+                    spwdata[ktr].obslstf81 = Convert.ToDouble(linedata[32]);
+                    //spwdata[ktr].adjf30 = Convert.ToDouble(linedata[33]);
+                    //spwdata[ktr].obsf30 = Convert.ToDouble(linedata[34]);
+                    //spwdata[ktr].adjlstf30f81 = Convert.ToDouble(linedata[35]);
+                    //spwdata[ktr].obslstf30f81 = Convert.ToDouble(linedata[36]);
+                    MathTimeLibr.jday(Convert.ToInt32(linedata[0]), Convert.ToInt32(linedata[1]),
+                        Convert.ToInt32(linedata[2]), 0, 0, 0.0, out jd, out jdFrac);
+                    oldjd = spwdata[ktr - 1].mjd;
+                    spwdata[ktr].mjd = Convert.ToInt32(jd + jdFrac - 2400000.5);
+
+                    if (spwdata[ktr].mjd != oldjd + 1 && ktr < ktrActualObs + 3 + ktrDayPred)
+                        errstr = errstr + "Error day before missing " + line3 + "\n";
+
+                    // find next 3 days data for email check
+                    if (spwdata[ktr].mjd <= nowmjd + 3)
                     {
-                        line3 = Regex.Replace(SPWarray[ktr1].ToString(), @"\s+", " ");
-                        linedata = line3.Split(' ');
-                        if (line3.Contains("-1"))
-                            errstr = errstr + "Error " + line3 + "\n";
-
-                        //spwdata[ktr].yr = Convert.ToInt32(linedata[0]);  // starts at 0
-                        //spwdata[ktr].mon = Convert.ToInt32(linedata[1]);
-                        //spwdata[ktr].day = Convert.ToInt32(linedata[2]);
-                        //spwdata[ktr].brsn = Convert.ToInt32(linedata[3]);
-                        //spwdata[ktr].nd = Convert.ToInt32(linedata[4]);
-                        spwdata[ktr].kparr[0] = Convert.ToInt32(linedata[5]);
-                        spwdata[ktr].kparr[1] = Convert.ToInt32(linedata[6]);
-                        spwdata[ktr].kparr[2] = Convert.ToInt32(linedata[7]);
-                        spwdata[ktr].kparr[3] = Convert.ToInt32(linedata[8]);
-                        spwdata[ktr].kparr[4] = Convert.ToInt32(linedata[9]);
-                        spwdata[ktr].kparr[5] = Convert.ToInt32(linedata[10]);
-                        spwdata[ktr].kparr[6] = Convert.ToInt32(linedata[11]);
-                        spwdata[ktr].kparr[7] = Convert.ToInt32(linedata[12]);
-                        spwdata[ktr].sumkp = Convert.ToInt32(linedata[13]);
-                        spwdata[ktr].aparr[0] = Convert.ToInt32(linedata[14]);
-                        spwdata[ktr].aparr[1] = Convert.ToInt32(linedata[15]);
-                        spwdata[ktr].aparr[2] = Convert.ToInt32(linedata[16]);
-                        spwdata[ktr].aparr[3] = Convert.ToInt32(linedata[17]);
-                        spwdata[ktr].aparr[4] = Convert.ToInt32(linedata[18]);
-                        spwdata[ktr].aparr[5] = Convert.ToInt32(linedata[19]);
-                        spwdata[ktr].aparr[6] = Convert.ToInt32(linedata[20]);
-                        spwdata[ktr].aparr[7] = Convert.ToInt32(linedata[21]);
-                        spwdata[ktr].avgap = Convert.ToInt32(linedata[22]);
-                        //spwdata[ktr].cp = Convert.ToDouble(linedata[23]);
-                        //spwdata[ktr].c9 = Convert.ToInt32(linedata[24]);
-                        //spwdata[ktr].isn = Convert.ToInt32(linedata[25]);
-                        spwdata[ktr].adjf10 = Convert.ToDouble(linedata[26]);
-                        //spwdata[ktr].q = Convert.ToInt32(linedata[27]);
-                        spwdata[ktr].adjctrf81 = Convert.ToDouble(linedata[28]);
-                        spwdata[ktr].adjlstf81 = Convert.ToDouble(linedata[29]);
-                        spwdata[ktr].obsf10 = Convert.ToDouble(linedata[30]);
-                        spwdata[ktr].obsctrf81 = Convert.ToDouble(linedata[31]);
-                        spwdata[ktr].obslstf81 = Convert.ToDouble(linedata[32]);
-                        //spwdata[ktr].adjf30 = Convert.ToDouble(linedata[33]);
-                        //spwdata[ktr].obsf30 = Convert.ToDouble(linedata[34]);
-                        //spwdata[ktr].adjlstf30f81 = Convert.ToDouble(linedata[35]);
-                        //spwdata[ktr].obslstf30f81 = Convert.ToDouble(linedata[36]);
-                        MathTimeLibr.jday(Convert.ToInt32(linedata[0]), Convert.ToInt32(linedata[1]),
-                            Convert.ToInt32(linedata[2]), 0, 0, 0.0, out jd, out jdFrac);
-                        oldjd = spwdata[ktr - 1].mjd;
-                        spwdata[ktr].mjd = Convert.ToInt32(jd + jdFrac - 2400000.5);
-
-                        if (spwdata[ktr].mjd != oldjd + 1 && ktr < ktrActualObs + 3 + numpredObs)
-                            errstr = errstr + "Error day before missing " + line3 + "\n";
-
-                        // find next 3 days data
-                        if (spwdata[ktr].mjd <= nowmjd + 3)
-                        {
-                            errstr = errstr + spwdata[ktr].yr + " " + spwdata[ktr].mon + " " + spwdata[ktr].day
-                                + spwdata[ktr].aparr[0] + " " + spwdata[ktr].aparr[1] + " " + spwdata[ktr].aparr[2] + " " + spwdata[ktr].aparr[3]
-                                + spwdata[ktr].aparr[4] + " " + spwdata[ktr].aparr[5] + " " + spwdata[ktr].aparr[6] + " " + spwdata[ktr].aparr[7]
-                                + spwdata[ktr].adjf10 + " " + spwdata[ktr].obsf10;
-                        }
+                        errstr = errstr + spwdata[ktr].yr + " " + spwdata[ktr].mon + " " + spwdata[ktr].day + " "
+                            + spwdata[ktr].aparr[0].ToString(fmt).PadLeft(4) + " " + spwdata[ktr].aparr[1].ToString(fmt).PadLeft(4) + " "
+                            + spwdata[ktr].aparr[2].ToString(fmt).PadLeft(4) + " " + spwdata[ktr].aparr[3].ToString(fmt).PadLeft(4) + " "
+                            + spwdata[ktr].aparr[4].ToString(fmt).PadLeft(4) + " " + spwdata[ktr].aparr[5].ToString(fmt).PadLeft(4) + " "
+                            + spwdata[ktr].aparr[6].ToString(fmt).PadLeft(4) + " " + spwdata[ktr].aparr[7].ToString(fmt).PadLeft(4) + " "
+                            + spwdata[ktr].adjf10.ToString(fmt).PadLeft(4) + " " + spwdata[ktr].obsf10.ToString(fmt).PadLeft(4) + "\n";
                     }
-                    catch
-                    {
-                        errstr = errstr + "Error # act obs wrong " + numpredObs + "\n";
-                    }
+                }
+                catch
+                {
+                    errstr = errstr + "Error # act obs wrong " + ktrDayPred + "\n";
+                }
 
-                }  // for
+            }  // for
 
-            }
-            catch
+            // ---- now get the monthly predicted values
+            i = ktr;                      
+            while (!SPWarray[i].Contains("NUM_MONTHLY_PREDICTED_POINTS") && i < SPWarray.Count())
             {
-                errstr = errstr + "Error # act obs wrong " + numrecsobs + "\n";
+                i = i + 1;
             }
+
+            linedata = SPWarray[i].Split(' ');
+            ktrMonthPred = Convert.ToInt32(linedata[1]);  // starts at 0
+
+            // ---- check file for 45 day predicted values
+            ktr = ktrActualObs + ktrDayPred - 1;
+            for (int ktr1 = ktrActualObs + ktrDayPred + 23; ktr1 < ktrActualObs + ktrDayPred + ktrMonthPred + 23; ktr1++) 
+            {
+                ktr = ktr + 1;
+                // set new record as they are needed
+                spwdata[ktr] = new SPWdataClass();
+
+                // replace multiple spaces with just one
+                try
+                {
+                    line3 = Regex.Replace(SPWarray[ktr1].ToString(), @"\s+", " ");
+                    linedata = line3.Split(' ');
+                    if (line3.Contains("-1"))
+                        errstr = errstr + "Error " + line3 + "\n";
+
+                    spwdata[ktr].yr = Convert.ToInt32(linedata[0]);  // starts at 0
+                    spwdata[ktr].mon = Convert.ToInt32(linedata[1]);
+                    spwdata[ktr].day = Convert.ToInt32(linedata[2]);
+                    spwdata[ktr].brsn = Convert.ToInt32(linedata[3]);
+                    spwdata[ktr].nd = Convert.ToInt32(linedata[4]);
+                    spwdata[ktr].kparr[0] = Convert.ToInt32(linedata[5]);
+                    spwdata[ktr].kparr[1] = Convert.ToInt32(linedata[6]);
+                    spwdata[ktr].kparr[2] = Convert.ToInt32(linedata[7]);
+                    spwdata[ktr].kparr[3] = Convert.ToInt32(linedata[8]);
+                    spwdata[ktr].kparr[4] = Convert.ToInt32(linedata[9]);
+                    spwdata[ktr].kparr[5] = Convert.ToInt32(linedata[10]);
+                    spwdata[ktr].kparr[6] = Convert.ToInt32(linedata[11]);
+                    spwdata[ktr].kparr[7] = Convert.ToInt32(linedata[12]);
+                    spwdata[ktr].sumkp = Convert.ToInt32(linedata[13]);
+                    spwdata[ktr].aparr[0] = Convert.ToInt32(linedata[14]);
+                    spwdata[ktr].aparr[1] = Convert.ToInt32(linedata[15]);
+                    spwdata[ktr].aparr[2] = Convert.ToInt32(linedata[16]);
+                    spwdata[ktr].aparr[3] = Convert.ToInt32(linedata[17]);
+                    spwdata[ktr].aparr[4] = Convert.ToInt32(linedata[18]);
+                    spwdata[ktr].aparr[5] = Convert.ToInt32(linedata[19]);
+                    spwdata[ktr].aparr[6] = Convert.ToInt32(linedata[20]);
+                    spwdata[ktr].aparr[7] = Convert.ToInt32(linedata[21]);
+                    spwdata[ktr].avgap = Convert.ToInt32(linedata[22]);
+                    //spwdata[ktr].cp = Convert.ToDouble(linedata[23]);
+                    //spwdata[ktr].c9 = Convert.ToInt32(linedata[24]);
+                    //spwdata[ktr].isn = Convert.ToInt32(linedata[25]);
+                    spwdata[ktr].adjf10 = Convert.ToDouble(linedata[26]);
+                    //spwdata[ktr].q = Convert.ToInt32(linedata[27]);
+                    spwdata[ktr].adjctrf81 = Convert.ToDouble(linedata[28]);
+                    spwdata[ktr].adjlstf81 = Convert.ToDouble(linedata[29]);
+                    spwdata[ktr].obsf10 = Convert.ToDouble(linedata[30]);
+                    spwdata[ktr].obsctrf81 = Convert.ToDouble(linedata[31]);
+                    spwdata[ktr].obslstf81 = Convert.ToDouble(linedata[32]);
+                    //spwdata[ktr].adjf30 = Convert.ToDouble(linedata[33]);
+                    //spwdata[ktr].obsf30 = Convert.ToDouble(linedata[34]);
+                    //spwdata[ktr].adjlstf30f81 = Convert.ToDouble(linedata[35]);
+                    //spwdata[ktr].obslstf30f81 = Convert.ToDouble(linedata[36]);
+                    MathTimeLibr.jday(Convert.ToInt32(linedata[0]), Convert.ToInt32(linedata[1]),
+                        Convert.ToInt32(linedata[2]), 0, 0, 0.0, out jd, out jdFrac);
+                    oldjd = spwdata[ktr - 1].mjd;
+                    spwdata[ktr].mjd = Convert.ToInt32(jd + jdFrac - 2400000.5);
+                }
+                catch
+                {
+                    errstr = errstr + "Error # act obs wrong " + ktrMonthPred + "\n";
+                }
+
+            }  // for
 
         }   // readspw
 
