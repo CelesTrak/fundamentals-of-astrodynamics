@@ -1,0 +1,6 @@
+sphinx
+sphinx-rtd-theme
+sphinx-autoapi
+myst-nb
+nbsphinx
+sphinx-collections
