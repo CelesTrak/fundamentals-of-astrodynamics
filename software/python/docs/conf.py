@@ -20,7 +20,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "nbsphinx",  # For supporting .ipynb files (optional)
-    "sphinxcontrib.collections",
+    # "sphinxcontrib.collections",
 ]
 
 templates_path = ["_templates"]
@@ -30,14 +30,14 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-collections = {
-    "notebooks": {
-        "driver": "copy_folder",
-        "source": "../notebooks",
-        "target": "notebooks/",
-        "ignore": ["*.py", "*.sh", "*.txt"],
-    }
-}
+# collections = {
+#     "notebooks": {
+#         "driver": "copy_folder",
+#         "source": "../notebooks",
+#         "target": "notebooks/",
+#         "ignore": ["*.py", "*.sh", "*.txt"],
+#     }
+# }
 
 autoapi_dirs = ["../src"]
 autoapi_root = "API Reference"
