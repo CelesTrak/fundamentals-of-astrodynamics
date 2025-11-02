@@ -574,7 +574,7 @@ def battin(
     _ = LambertParams(r1=r1, v1=v1, r2=r2, dm=dm, de=de, nrev=nrev, dtsec=dtsec)
 
     # Initialize values
-    v1t, v2t = np.array([np.NAN] * 3), np.array([np.NAN] * 3)
+    v1t, v2t = np.array([np.nan] * 3), np.array([np.nan] * 3)
     y = 0
 
     # Create numpy arrays and compute magnitudes of r1 and r2
