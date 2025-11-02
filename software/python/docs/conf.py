@@ -19,9 +19,11 @@ extensions = [
     "sphinx.ext.mathjax",  # For math rendering
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
-    "nbsphinx",  # For supporting .ipynb files (optional)
+    "nbsphinx",  # For supporting .ipynb files
     "sphinx_collections",
 ]
+mathjax_path = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js"
+
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -35,7 +37,7 @@ collections = {
         "driver": "copy_folder",
         "source": "../notebooks",
         "target": "notebooks/",
-        "ignore": ["*.py", "*.sh", "*.txt"],
+        "ignore": ["*.py", "*.sh"],
     }
 }
 
@@ -44,20 +46,18 @@ autoapi_root = "API Reference"
 autoapi_add_toctree_entry = True
 suppress_warnings = ["autoapi"]
 
-html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
+html_theme = "sphinx_book_theme"
+html_title = "valladopy"
+html_copy_source = False
+html_show_sourcelink = False
+# furo
 html_theme_options = {
-    "prev_next_buttons_location": "bottom",
-    "style_external_links": True,
-    "vcs_pageview_mode": "",
-    "flyout_display": "hidden",
-    "version_selector": True,
-    "language_selector": True,
-    # Toc options
-    "collapse_navigation": True,
-    "sticky_navigation": True,
-    "navigation_depth": 4,
-    "includehidden": True,
-    "titles_only": False,
+    "top_of_page_buttons": [],
+}
+# sphinx book
+html_theme_options = {
+    "repository_url": "https://github.com/celestrak/fundamentals-of-astrodynamics",
+    "use_repository_button": True,
 }
