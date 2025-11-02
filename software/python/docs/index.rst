@@ -3,40 +3,34 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-valladopy documentation
-=======================
+valladopy
+=========
+
+``valladopy`` is a Python library offering validated astrodynamics routines from the well-known textbook *Fundaments of Astrodynamics and Applications* by David Vallado.
+
+Installation
+------------
+
+Install the package via pip:
+
+``pip install valladopy``
+
+Contributing
+------------
+
+We appreciate interest in contributing to this project! However, as we are still figuring this process out, we ask contributors to first submit an issue in GitHub.
+
+License
+-------
+
+``valladopy`` is licensed under the GNU Affero General Public License v3.0 (AGPLv3). See the `LICENSE <https://github.com/CelesTrak/fundamentals-of-astrodynamics/blob/main/LICENSE>`__ file for details.
+
+Table of contents
+-----------------
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference:
+   :caption: Contents
 
    API Reference/index.rst
-
-.. toctree::
-   :caption: Examples:
-
-   _collections/notebooks/Example_1-1.ipynb
-   _collections/notebooks/Example_2-1.ipynb
-   _collections/notebooks/Example_2-2.ipynb
-   _collections/notebooks/Example_2-3.ipynb
-   _collections/notebooks/Example_2-4.ipynb
-   _collections/notebooks/Example_2-5.ipynb
-   _collections/notebooks/Example_2-6.ipynb
-   _collections/notebooks/Example_3-1.ipynb
-   _collections/notebooks/Example_3-2.ipynb
-   _collections/notebooks/Example_3-3.ipynb
-   _collections/notebooks/Example_3-4.ipynb
-   _collections/notebooks/Example_3-5.ipynb
-   _collections/notebooks/Example_3-6.ipynb
-   _collections/notebooks/Example_3-7.ipynb
-   _collections/notebooks/Example_3-8.ipynb
-   _collections/notebooks/Example_3-9.ipynb
-   _collections/notebooks/Example_3-10.ipynb
-   _collections/notebooks/Example_3-11.ipynb
-   _collections/notebooks/Example_3-12.ipynb
-   _collections/notebooks/Example_3-13.ipynb
-   _collections/notebooks/Example_3-14.ipynb
-   _collections/notebooks/Example_3-15.ipynb
-   _collections/notebooks/Example_4-1.ipynb
-   _collections/notebooks/Example_4-2.ipynb
-   _collections/notebooks/JPL_Horizons_Queries.ipynb
+   notebooks.rst
