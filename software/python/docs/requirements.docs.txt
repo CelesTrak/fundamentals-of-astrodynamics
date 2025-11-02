@@ -1,5 +1,6 @@
 sphinx
 sphinx-book-theme
 sphinx-autoapi
+myst-nb
 nbsphinx
 sphinx-collections
