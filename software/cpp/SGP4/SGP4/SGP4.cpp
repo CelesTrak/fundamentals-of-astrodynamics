@@ -1361,7 +1361,7 @@ namespace SGP4Funcs
 
 	bool sgp4init
 		(
-		gravconsttype whichconst, char opsmode, const char satn[5], const double epoch,
+		gravconsttype whichconst, char opsmode, const char satn[16], const double epoch,
 		const double xbstar, const double xndot, const double xnddot, const double xecco, const double xargpo,
 		const double xinclo, const double xmo, const double xno_kozai,
 		const double xnodeo, elsetrec& satrec
@@ -1434,9 +1434,10 @@ namespace SGP4Funcs
 		satrec.operationmode = opsmode;
 		// new alpha5 or 9-digit number
 		#ifdef _MSC_VER
-						   strcpy_s(satrec.satnum, 6 * sizeof(char), satn);
+			strcpy_s(satrec.satnum, 16 * sizeof(char), satn);
 		#else
-						   strcpy(satrec.satnum, satn);
+			strncpy(satrec.satnum, satn, sizeof(satrec.satnum));
+			satrec.satnum[sizeof(satrec.satnum) - 1] = '\0';
 		#endif
 
 		// sgp4fix - note the following variables are also passed directly via satrec.
@@ -2232,7 +2233,7 @@ namespace SGP4Funcs
 			longstr1[68] = '0';
 #ifdef _MSC_VER // chk if compiling in MSVS c++
 		sscanf_s(longstr1, "%2d %5s %1c %10s %2d %12lf %11lf %7lf %2d %7lf %2d %2d %6ld ",
-			&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.classification, sizeof(char), &satrec.intldesg, 11 * sizeof(char), &satrec.epochyr,
+			&cardnumb, &satrec.satnum, 16 * sizeof(char), &satrec.classification, sizeof(char), &satrec.intldesg, 11 * sizeof(char), &satrec.epochyr,
 			&satrec.epochdays, &satrec.ndot, &satrec.nddot, &nexp, &satrec.bstar, &ibexp, &satrec.ephtype, &satrec.elnum);
 #else
 		sscanf(longstr1, "%2d %5s %1c %10s %2d %12lf %11lf %7lf %2d %7lf %2d %2d %6ld ",
@@ -2250,7 +2251,7 @@ namespace SGP4Funcs
 				{
 #ifdef _MSC_VER
 					sscanf_s(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %10lf %6ld %lf %lf %lf \n",
-						&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.inclo,
+						&cardnumb, &satrec.satnum, 16 * sizeof(char), &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum, &startmfe, &stopmfe, &deltamin);
 #else
@@ -2264,7 +2265,7 @@ namespace SGP4Funcs
 				{
 #ifdef _MSC_VER
 					sscanf_s(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %10lf %6ld \n",
-						&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.inclo,
+						&cardnumb, &satrec.satnum, 16 * sizeof(char), &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum);
 #else
@@ -2280,7 +2281,7 @@ namespace SGP4Funcs
 				{
 #ifdef _MSC_VER
 					sscanf_s(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %11lf %6ld %lf %lf %lf \n",
-						&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.inclo,
+						&cardnumb, &satrec.satnum, 16 * sizeof(char), &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum, &startmfe, &stopmfe, &deltamin);
 #else
@@ -2294,7 +2295,7 @@ namespace SGP4Funcs
 				{
 #ifdef _MSC_VER
 					sscanf_s(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %11lf %6ld \n",
-						&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.inclo,
+						&cardnumb, &satrec.satnum, 16 * sizeof(char), &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum);
 #else
