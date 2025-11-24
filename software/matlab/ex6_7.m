@@ -51,8 +51,24 @@
     fprintf(1,' manv1 %11.7f %11.7f %11.7f km/s in icrf %11.7f \n',v2-v1, mag(v2-v1) );
     fprintf(1,' manv2 %11.7f %11.7f %11.7f km/s in icrf %11.7f \n',v4-v3, mag(v4-v3) );
 
-pause;
-% other tests
+    % test out doing Lambert instead ----------------------------------------
+    dm = 'S';
+    de = 'L';
+    [kbi, tof] = lambertumins( r1, r4, 0, dm );
+    tof = pi*sqrt(atran^3/mu);
+    dtsec = tof;
+    %[v1tu, v2tu, detailAll] = lambertu(r1, r4, v1, dm, de, 0, dtsec, kbi, 'y');
+    [v1tu, v2tu, detailAll] = lambertb ( r1, r4, v1, dm, de, 0, dtsec, 'y' );
+    fprintf(1, detailAll);
+    fprintf(1,'univ v1t %15.11f  %15.11f  %15.11f', v1tu(1),  v1tu(2),  v1tu(3));
+    fprintf(1,' v2t %15.11f  %15.11f  %15.11f\n', v2tu(1),  v2tu(2),  v2tu(3));
+
+    fprintf(1,' manv1 %11.7f %11.7f %11.7f km/s in icrf %11.7f \n',v1tu-v1, mag(v1tu-v1) );
+    fprintf(1,' manv2 %11.7f %11.7f %11.7f km/s in icrf %11.7f \n',v4-v2tu, mag(v4-v2tu) );
+
+    pause;
+
+    % other tests
     % ===================================================================
     rinit  = (re + 222.0)/re;
     rfinal = (re + 35786.0)/re;
