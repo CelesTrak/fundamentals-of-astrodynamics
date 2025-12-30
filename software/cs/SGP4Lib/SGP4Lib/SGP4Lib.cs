@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 
 namespace SGP4Methods
@@ -13,13 +14,14 @@ namespace SGP4Methods
     public class SGP4Lib
     {
 
-        public string SGP4Version = "SGP4 Version 2024-08-29";
+        public string SGP4Version = "SGP4 Version 2025-12-30";
 
         // setup a structure to hold all the TLE information
         public class elsetrec
         {
             // change to scripting to handle upcoming numbering changes, either alpha 5 or 9 digit
-            public string satnum;
+            public string satnumStr;
+            public Int32 satnum;
             public int epochyr, epochtynumrev;
             public int error;
             public char operationmode;
@@ -1397,7 +1399,7 @@ namespace SGP4Methods
             //-------------------------------------------------------------------------
             satrec.error = 0;
             satrec.operationmode = opsmode;
-            satrec.satnum = satn;
+            satrec.satnumStr = satn;
 
             // sgp4fix - note the following variables are also passed directly via satrec.
             // it is possible to streamline the sgp4init call by deleting the 'x'
@@ -2256,7 +2258,17 @@ namespace SGP4Methods
             }
             
             cardnumb = Convert.ToInt16(linedata[1]);
-            satrec.satnum = linedata[2];  // now a string for alpha5 or 9-digit
+            satrec.satnumStr = linedata[2];  // now a string for alpha5 
+            if (Char.IsDigit(satrec.satnumStr[0]))
+                satrec.satnum = Convert.ToInt32(satrec.satnumStr);
+            else
+            {
+                int[] alpha5 = new int[26] { 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33 };
+                int strIndex = Char.ToUpper(satrec.satnumStr[0]) - 'A';
+                Int32 index = alpha5[strIndex];
+                satrec.satnum = index * 10000 + Convert.ToInt32(satrec.satnumStr.Substring(1, 4));
+            }
+
             satrec.classification = Convert.ToChar(linedata[3]);
             satrec.intldesg = linedata[4];
             satrec.epochyr = Convert.ToInt16(linedata[5]);
@@ -2300,7 +2312,7 @@ namespace SGP4Methods
                     linedata = Regex.Split(longstr2, "^([0-9 ]{2})([0-9 A-Z]{5})([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{8})" +
                                                  @"([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{12})([-0-9 ]{6})\s+(\S+)\s+(\S+)\s+(\S+)");
                     cardnumb = Convert.ToInt16(linedata[1]);
-                    satrec.satnum = linedata[2];    // now a string for alpha5 or 9-digit
+                    satrec.satnumStr = linedata[2];    // now a string for alpha5 or 9-digit
                     satrec.inclo = Convert.ToDouble(linedata[3]);
                     satrec.nodeo = Convert.ToDouble(linedata[4]);
                     satrec.ecco = Convert.ToDouble(linedata[5]) * 0.0000001;
@@ -2318,7 +2330,7 @@ namespace SGP4Methods
                     linedata = Regex.Split(longstr2, "^([0-9 ]{2})([0-9 A-Z]{5})([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{8})" +
                                                 @"([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{10})([-0-9 ]{6})");
                     cardnumb = Convert.ToInt16(linedata[1]);
-                    satrec.satnum = linedata[2];   // now a string for alpha5 or 9-digit
+                    satrec.satnumStr = linedata[2];   // now a string for alpha5 or 9-digit
                     satrec.inclo = Convert.ToDouble(linedata[3]);
                     satrec.nodeo = Convert.ToDouble(linedata[4]);
                     satrec.ecco = Convert.ToDouble(linedata[5]) * 0.0000001;
@@ -2448,7 +2460,7 @@ namespace SGP4Methods
                 }
 
                 // ---------------- initialize the orbit at sgp4epoch -------------------
-                sgp4init(whichconst, opsmode, satrec.satnum, (satrec.jdsatepoch + satrec.jdsatepochF) - 2433281.5, satrec.bstar,
+                sgp4init(whichconst, opsmode, satrec.satnumStr, (satrec.jdsatepoch + satrec.jdsatepochF) - 2433281.5, satrec.bstar,
                           satrec.ndot, satrec.nddot, satrec.ecco, satrec.argpo, satrec.inclo, satrec.mo, satrec.no_kozai,
                           satrec.nodeo, ref satrec);
             } // if ephtype = 0
