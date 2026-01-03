@@ -84,6 +84,37 @@ def test_initl(epoch, oe_params):
         assert custom_isclose(getattr(sgp4_obj.sgp4init_out, key), expected[key])
 
 
+@pytest.mark.parametrize("satnum_str, satnum_exp", [("00005", 5), ("E8493", 148493)])
+def test_decode_alpha5_satnum(satnum_str, satnum_exp):
+    # Initialize SGP4 class
+    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
+
+    # Call method
+    satnum = sgp4_obj.decode_alpha5_satnum(satnum_str)
+
+    # Check results
+    assert satnum == satnum_exp
+
+
+@pytest.mark.parametrize(
+    "satnum_str",
+    [
+        "I0001",  # disallowed character 'I'
+        "O9999",  # disallowed character 'O'
+        "#1234",  # invalid character
+        "A12X3",  # conversion failure
+        "",  # empty string
+    ],
+)
+def test_decode_alpha5_satnum_bad(satnum_str):
+    # Initialize SGP4 class
+    sgp4_obj = sgp4.SGP4(wgs_model=WGSModel.WGS_72)
+
+    # Call method
+    with pytest.raises(ValueError):
+        sgp4_obj.decode_alpha5_satnum(satnum_str)
+
+
 @pytest.mark.parametrize(
     "typerun, startmfe_exp, stopmfe_exp, deltamin_exp",
     [
@@ -109,6 +140,7 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp):
     expected = {
         "error": None,
         "satnum": 5,
+        "satnum_str": "00005",
         "classification": sgp4.Classification.Unclassified,
         "intldesg": "58002B_",
         "epochyr": 0,
@@ -149,7 +181,15 @@ def test_twoline2rv(typerun, startmfe_exp, stopmfe_exp, deltamin_exp):
     assert np.allclose(v_init, v_exp, rtol=DEFAULT_TOL)
     for key in expected:
         # Non-float comparisons
-        if key in ["error", "satnum", "elnum", "revnum", "classification", "intldesg"]:
+        if key in [
+            "error",
+            "satnum",
+            "satnum_str",
+            "elnum",
+            "revnum",
+            "classification",
+            "intldesg",
+        ]:
             assert getattr(sgp4_obj.satrec, key) == expected[key]
         # Float comparisons
         else:
