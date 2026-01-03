@@ -126,8 +126,7 @@ function [startmfe, stopmfe, deltamin, satrec] = twoline2rv(longstr1, longstr2, 
     % parse first line
     carnumb = str2num(longstr1(1));
 
-    satrec.satnumStr = str2num(longstr1(3:7));
-
+    satrec.satnumStr = longstr1(3:7);
 
     if (isnumeric(satrec.satnumStr(1)))
         satrec.satnum = str2num(char(satrec.satnumStr));
