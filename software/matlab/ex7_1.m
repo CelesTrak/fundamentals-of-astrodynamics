@@ -21,8 +21,9 @@
     lon = -104.883/rad;
     alt = 2.1870;
     [jd,jdfrac]  = jday(1995,5,20, 3,17,2.0);
+    fprintf(1,'jd jdf %14.7f  %14.7f \n',jd,jdfrac);
     [rs,vs] = site ( latgd,lon,alt );
-    fprintf(1,'site %14.7f%14.7f%14.7f%14.7f%14.7f%14.7f\n',rs,vs );
+    fprintf(1,'site ecef %14.7f%14.7f%14.7f%14.7f%14.7f%14.7f\n',rs,vs );
     
     fprintf(1,'--------------- razel tests ----------------------------\n' );
     latgd =  39.007/rad;
@@ -58,6 +59,7 @@
     tai=utc+dat;
     tt=tai+32.184;
     [jdut1,jdut1frac]= jday(year,mon,day,hr,min,ut1);
+    fprintf(1,'jdut1 jdf %14.7f  %14.7f \n',jdut1,jdut1frac);
     [jdtt,jdttfrac]= jday(year,mon,day,hr,min,tt);
     ttt =  (jdtt-2451545.0)/36525.0;
     
@@ -73,16 +75,23 @@
     fprintf(1,'           range km        az deg      el    deg     rngrt km/s      azrate deg/s  elrate deg/s\n');
     fprintf(1,'rvraz %14.7f%14.7f%14.7f%14.7f%14.7f%14.7f\n',rho,az*rad,el*rad,drho,daz*rad,del*rad );
     
+    [rhosez,drhosez] = raz2rvs( rho,az,el,drho,daz,del );
+    fprintf(1,'rhosez    %14.7f%14.7f%14.7f',rhosez );
+    fprintf(1,' v %14.9f%14.9f%14.9f\n', drhosez );
+
+    a = [0.0; 0.0; 0.0];
     [recef, vecef] = razel2rv(latgd, lon, alt, rho, az, el, drho, daz, del);
-    [reci, veci, aeci] = ecef2eci(rsecef, vsecef, a, iau80arr, ttt, jdut1, lod, xp, yp, 2, ddpsi, ddeps);
-    
-    fprintf(1,'r    %14.7f%14.7f%14.7f',reci );
+    fprintf(1,'r ecef    %14.7f%14.7f%14.7f',recef );
+    fprintf(1,' v %14.9f%14.9f%14.9f\n',vecef );
+
+    [reci, veci, aeci] = ecef2eci(recef, vecef, a, iau80arr, ttt, jdut1, lod, xp, yp, 2, ddpsi, ddeps);
+    fprintf(1,'r eci    %14.7f%14.7f%14.7f',reci );
     fprintf(1,' v %14.9f%14.9f%14.9f\n',veci );
-    
+   
     [rho, az, el, drho, daz, del] = rv2razel(recef, vecef, latgd, lon, alt );
-    
     fprintf(1,'rvraz %14.7f%14.7f%14.7f%14.7f%14.7f%14.7f\n',rho,az*rad,el*rad,drho,daz*rad,del*rad );
-    
+
+
     [p,a,ecc,incl,omega,argp,nu,m,arglat,truelon,lonper ] = rv2coe (reci, veci);
     fprintf(1,'          p km       a km      ecc      incl deg     raan deg     argp deg      nu deg      m deg      arglat   truelon    lonper\n');
     fprintf(1,'coes %11.4f %11.4f %13.9f %13.7f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f %11.5f\n',...
