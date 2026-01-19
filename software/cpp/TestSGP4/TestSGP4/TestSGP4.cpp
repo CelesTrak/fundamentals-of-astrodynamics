@@ -215,8 +215,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			// sgp4fix note that the ephtype must be 0 for SGP4. SGP4-XP uses 4.
 			if (satrec.ephtype == 0)
 			{
-				fprintf(outfile, "%s xx\n", satrec.satnum);
-				printf(" %s\n", satrec.satnum);
+				fprintf(outfile, "%s xx\n", satrec.satnumStr);
+				printf(" %s\n", satrec.satnumStr);
 				// call the propagator to get the initial state vector value
 				// no longer need gravconst since it is assigned in sgp4init
 				SGP4Funcs::sgp4(satrec, 0.0, ro, vo);
@@ -336,9 +336,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	opsmode = 'a';
 	// new alpha5 or 9-digit number
 #ifdef _MSC_VER
-	strcpy_s(satrec.satnum, sizeof(satrec.satnum), "8195");
+	strcpy_s(satrec.satnumStr, sizeof(satrec.satnumStr), "08195");
 #else
-	strcpy(satrec.satnum, "8195");
+	strcpy(satrec.satnumStr, "08195");
 #endif
 
 	satrec.jdsatepoch = 2453911.0;
@@ -372,7 +372,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	stopmfe = 2880.0;
 	deltamin = 120.0;
 
-	SGP4Funcs::sgp4init(whichconst, opsmode, satrec.satnum, satrec.jdsatepoch + satrec.jdsatepochF - 2433281.5, satrec.bstar,
+	SGP4Funcs::sgp4init(whichconst, opsmode, satrec.satnumStr, satrec.jdsatepoch + satrec.jdsatepochF - 2433281.5, satrec.bstar,
 		satrec.ndot, satrec.nddot, satrec.ecco, satrec.argpo, satrec.inclo, satrec.mo, satrec.no_kozai,
 		satrec.nodeo, satrec);
 

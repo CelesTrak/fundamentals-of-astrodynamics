@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestSGP4", "TestSGP4\TestSGP4.vcxproj", "{CFB2AF4D-6232-4C98-ABCA-E57A3F5C970B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F443ADB8-5B63-4618-94A8-7023A9450C0C} = {F443ADB8-5B63-4618-94A8-7023A9450C0C}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SGP4", "..\Libraries\SGP4\SGP4\SGP4.vcxproj", "{F443ADB8-5B63-4618-94A8-7023A9450C0C}"
 EndProject

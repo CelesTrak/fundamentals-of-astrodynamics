@@ -62,6 +62,7 @@ class SatRec(BaseModel):
     xlcof: float = 0.0
     x1mth2: float = 0.0
     x7thm1: float = 0.0
+    satnum_str: str = ""
     satnum: int = 0
     intldesg: str = ""
     epochyr: int = 0

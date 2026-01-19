@@ -16,9 +16,11 @@
 *    email dvallado@comspoc.com, davallado@gmail.com
 *
 *    current :
+*              30 dec 25  david vallado
+*                           add alpha5 support
+*    changes :
 *              29 aug 24  david vallado
 *                           add check for sgp4-xp tle
-*    changes :
 *              12 mar 20  david vallado
 *                           chg satnum to string for alpha 5 or 9-digit
 *               7 dec 15  david vallado
@@ -58,6 +60,8 @@
 *       ----------------------------------------------------------------      */
 
 #include "SGP4.h"
+
+#include <string>
 
 #define pi 3.14159265358979323846
 
@@ -1361,7 +1365,7 @@ namespace SGP4Funcs
 
 	bool sgp4init
 		(
-		gravconsttype whichconst, char opsmode, const char satn[5], const double epoch,
+		gravconsttype whichconst, char opsmode, const char satn[6], const double epoch,
 		const double xbstar, const double xndot, const double xnddot, const double xecco, const double xargpo,
 		const double xinclo, const double xmo, const double xno_kozai,
 		const double xnodeo, elsetrec& satrec
@@ -1434,9 +1438,10 @@ namespace SGP4Funcs
 		satrec.operationmode = opsmode;
 		// new alpha5 or 9-digit number
 		#ifdef _MSC_VER
-						   strcpy_s(satrec.satnum, 6 * sizeof(char), satn);
+			strcpy_s(satrec.satnumStr, 6 * sizeof(char), satn);
 		#else
-						   strcpy(satrec.satnum, satn);
+			strncpy(satrec.satnumStr, satn, sizeof(satrec.satnumStr));
+			satrec.satnumStr[sizeof(satrec.satnumStr) - 1] = '\0';
 		#endif
 
 		// sgp4fix - note the following variables are also passed directly via satrec.
@@ -2232,14 +2237,27 @@ namespace SGP4Funcs
 			longstr1[68] = '0';
 #ifdef _MSC_VER // chk if compiling in MSVS c++
 		sscanf_s(longstr1, "%2d %5s %1c %10s %2d %12lf %11lf %7lf %2d %7lf %2d %2d %6ld ",
-			&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.classification, sizeof(char), &satrec.intldesg, 11 * sizeof(char), &satrec.epochyr,
+			&cardnumb, &satrec.satnumStr, 6 * sizeof(char), &satrec.classification, sizeof(char), &satrec.intldesg, 11 * sizeof(char), &satrec.epochyr,
 			&satrec.epochdays, &satrec.ndot, &satrec.nddot, &nexp, &satrec.bstar, &ibexp, &satrec.ephtype, &satrec.elnum);
 #else
 		sscanf(longstr1, "%2d %5s %1c %10s %2d %12lf %11lf %7lf %2d %7lf %2d %2d %6ld ",
-			&cardnumb, &satrec.satnum, &satrec.classification, &satrec.intldesg, &satrec.epochyr,
+			&cardnumb, &satrec.satnumStr, &satrec.classification, &satrec.intldesg, &satrec.epochyr,
 			&satrec.epochdays, &satrec.ndot, &satrec.nddot, &nexp, &satrec.bstar,
 			&ibexp, &satrec.ephtype, &satrec.elnum);
 #endif
+
+		int strIndex, index;
+		if (isdigit(satrec.satnumStr[0]))
+			satrec.satnum = (int)(satrec.satnumStr);
+		else
+		{
+			int alpha5[] = {10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33};
+			strIndex = toupper(satrec.satnumStr[0]) - 'A';
+			index = alpha5[strIndex];
+			std::string s(satrec.satnumStr);
+			std::string sub = s.substr(1, 4);
+			satrec.satnum = index * 10000 + std::stoi(sub.substr(1, 4));
+		}
 
 		// sgp4fix note that the ephtype must be 0 for SGP4. SGP4-XP uses 4.
 		if (satrec.ephtype == 0)
@@ -2250,12 +2268,12 @@ namespace SGP4Funcs
 				{
 #ifdef _MSC_VER
 					sscanf_s(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %10lf %6ld %lf %lf %lf \n",
-						&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.inclo,
+						&cardnumb, &satrec.satnumStr, 6 * sizeof(char), &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum, &startmfe, &stopmfe, &deltamin);
 #else
 					sscanf(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %10lf %6ld %lf %lf %lf \n",
-						&cardnumb, &satrec.satnum, &satrec.inclo,
+						&cardnumb, &satrec.satnumStr, &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum, &startmfe, &stopmfe, &deltamin);
 #endif
@@ -2264,12 +2282,12 @@ namespace SGP4Funcs
 				{
 #ifdef _MSC_VER
 					sscanf_s(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %10lf %6ld \n",
-						&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.inclo,
+						&cardnumb, &satrec.satnumStr, 6 * sizeof(char), &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum);
 #else
 					sscanf(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %10lf %6ld \n",
-						&cardnumb, &satrec.satnum, &satrec.inclo,
+						&cardnumb, &satrec.satnumStr, &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum);
 #endif
@@ -2280,12 +2298,12 @@ namespace SGP4Funcs
 				{
 #ifdef _MSC_VER
 					sscanf_s(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %11lf %6ld %lf %lf %lf \n",
-						&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.inclo,
+						&cardnumb, &satrec.satnumStr, 6 * sizeof(char), &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum, &startmfe, &stopmfe, &deltamin);
 #else
 					sscanf(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %11lf %6ld %lf %lf %lf \n",
-						&cardnumb, &satrec.satnum, &satrec.inclo,
+						&cardnumb, &satrec.satnumStr, &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum, &startmfe, &stopmfe, &deltamin);
 #endif
@@ -2294,12 +2312,12 @@ namespace SGP4Funcs
 				{
 #ifdef _MSC_VER
 					sscanf_s(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %11lf %6ld \n",
-						&cardnumb, &satrec.satnum, 6 * sizeof(char), &satrec.inclo,
+						&cardnumb, &satrec.satnumStr, 6 * sizeof(char), &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum);
 #else
 					sscanf(longstr2, "%2d %5s %9lf %9lf %8lf %9lf %9lf %11lf %6ld \n",
-						&cardnumb, &satrec.satnum, &satrec.inclo,
+						&cardnumb, &satrec.satnumStr, &satrec.inclo,
 						&satrec.nodeo, &satrec.ecco, &satrec.argpo, &satrec.mo, &satrec.no_kozai,
 						&satrec.revnum);
 #endif
@@ -2440,7 +2458,7 @@ namespace SGP4Funcs
 			}
 
 			// ---------------- initialize the orbit at sgp4epoch -------------------
-			sgp4init(whichconst, opsmode, satrec.satnum, (satrec.jdsatepoch + satrec.jdsatepochF) - 2433281.5, satrec.bstar,
+			sgp4init(whichconst, opsmode, satrec.satnumStr, (satrec.jdsatepoch + satrec.jdsatepochF) - 2433281.5, satrec.bstar,
 				satrec.ndot, satrec.nddot, satrec.ecco, satrec.argpo, satrec.inclo, satrec.mo, satrec.no_kozai,
 				satrec.nodeo, satrec);
 		}  // if ephtype == 0
@@ -2688,7 +2706,7 @@ namespace SGP4Funcs
 	*
 	*  this function solves keplers equation when the true anomaly is known.
 	*    the mean and eccentric, parabolic, or hyperbolic anomaly is also found.
-	*    the parabolic limit at 168ø is arbitrary. the hyperbolic anomaly is also
+	*    the parabolic limit at 168ï¿½ is arbitrary. the hyperbolic anomaly is also
 	*    limited. the hyperbolic sine is used because it's not double valued.
 	*
 	*  author        : david vallado                  719-573-2600   27 may 2002
@@ -2701,8 +2719,8 @@ namespace SGP4Funcs
 	*    nu          - true anomaly                   -2pi to 2pi rad
 	*
 	*  outputs       :
-	*    e0          - eccentric anomaly              0.0  to 2pi rad       153.02 ø
-	*    m           - mean anomaly                   0.0  to 2pi rad       151.7425 ø
+	*    e0          - eccentric anomaly              0.0  to 2pi rad       153.02 ï¿½
+	*    m           - mean anomaly                   0.0  to 2pi rad       151.7425 ï¿½
 	*
 	*  locals        :
 	*    e1          - eccentric anomaly, next value  rad

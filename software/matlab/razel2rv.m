@@ -11,19 +11,18 @@
 %  author        : david vallado             davallado@gmail.com      20 jan 2025
 %
 %  inputs          description                              range / units
-%    recef       - ecef position vector                       km
-%    vecef       - ecef velocity vector                       km/s
 %    latgd       - geodetic latitude                          -pi/2 to pi/2 rad
 %    lon         - geodetic longitude                         -2pi to pi rad
-%    direct      -  direction to convert                      eFrom  eTo
-%
-%  outputs       :
 %    rho         - satellite range from site                  km
 %    az          - azimuth                                    0.0 to 2pi rad
 %    el          - elevation                                  -pi/2 to pi/2 rad
 %    drho        - range rate                                 km/s
 %    daz         - azimuth rate                               rad/s
 %    del         - elevation rate                             rad/s
+%
+%  outputs       :
+%    recef       - ecef position vector                       km
+%    vecef       - ecef velocity vector                       km/s
 %
 %  locals        :
 %    rsecef      - ecef site position vector                  km
@@ -70,15 +69,12 @@ function [recef, vecef] = razel2rv(latgd, lon, alt, rho, az, el, drho, daz, del)
         [drhoecef]= rot3( tempvec,-lon          );
         drhoecef = drhoecef';
 
-        % ----------  find ecef range and velocity vectors -------------
-        [rs, vs] = site ( latgd, lon, alt );
-        recef = rhoecef + rs;
-        vecef = drhoecef;
+        fprintf(1,'rhoecef    %14.7f%14.7f%14.7f',rhoecef );
+        fprintf(1,' v %14.9f%14.9f%14.9f\n', drhoecef );
 
-        % % -------- convert ecef to eci
-        % recef = recef;
-        % vecef = vecef;
-        % aceef     = [0;0;0];
-        % [reci,veci,aeci] = ecef2eci(recef,vecef,acef,ttt,iau80arr, jdut1,lod,xp,yp,terms,ddpsi,ddeps );
+        % ----------  find ecef range and velocity vectors -------------
+        [rsecef, vsecef] = site ( latgd, lon, alt );
+        recef = rhoecef + rsecef;
+        vecef = drhoecef;
 
 end

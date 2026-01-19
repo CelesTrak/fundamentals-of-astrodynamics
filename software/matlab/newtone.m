@@ -56,7 +56,7 @@ function [m,nu] = newtone ( ecc,e0 )
 
                 % -------------------- parabolic ------------------
                 m= e0 + (1.0 /3.0 )*e0*e0*e0;
-                nu= 2.0 *datan(e0);
+                nu= 2.0 *atan(e0);
             end
         end
     end
