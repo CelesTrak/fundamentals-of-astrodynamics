@@ -23,5 +23,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 
+[project.urls]
+"Source Code" = "https://github.com/CelesTrak/fundamentals-of-astrodynamics/software/python"
+Documentation = "https://REPLACE_ME_WITH_GITHUB_PAGES_OR_READ_THE_DOCS"
+
 [tool.black]
 target-version = ['py311', 'py312', 'py313']
