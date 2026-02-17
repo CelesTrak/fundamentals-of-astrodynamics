@@ -65,12 +65,12 @@ namespace EOPSPWMethods
         public class SPWdataClass
         {
             public double adjf10, adjctrf81, adjlstf81, Dadjf10, obsf10, obsctrf81, obslstf81, cp;
-            public double adjf30, obsf30, adjlstf30f81, obslstf30f81;
+            public double avgap, sumkp, adjf30, obsf30, adjlstf30f81, obslstf30f81;
             public Int32 mjd;
-            public Int32 yr, mon, day, avgap, sumkp, c9;
+            public Int32 yr, mon, day, c9;
             public Int32 brsn, nd, isn, q;
             public Int32[] aparr = new int[8];
-            public Int32[] kparr = new int[8];
+            public double[] kparr = new double[8];
         }
         // use a struct for all the space weather data so it can be processed
         public SPWdataClass[] spwdata = new SPWdataClass[numb];
@@ -774,14 +774,14 @@ namespace EOPSPWMethods
                     spwdata[ktr].day = Convert.ToInt32(linedata[2]);
                     spwdata[ktr].brsn = Convert.ToInt32(linedata[3]);
                     spwdata[ktr].nd = Convert.ToInt32(linedata[4]);
-                    spwdata[ktr].kparr[0] = Convert.ToInt32(linedata[5]);
-                    spwdata[ktr].kparr[1] = Convert.ToInt32(linedata[6]);
-                    spwdata[ktr].kparr[2] = Convert.ToInt32(linedata[7]);
-                    spwdata[ktr].kparr[3] = Convert.ToInt32(linedata[8]);
-                    spwdata[ktr].kparr[4] = Convert.ToInt32(linedata[9]);
-                    spwdata[ktr].kparr[5] = Convert.ToInt32(linedata[10]);
-                    spwdata[ktr].kparr[6] = Convert.ToInt32(linedata[11]);
-                    spwdata[ktr].kparr[7] = Convert.ToInt32(linedata[12]);
+                    spwdata[ktr].kparr[0] = Convert.ToDouble(linedata[5]);
+                    spwdata[ktr].kparr[1] = Convert.ToDouble(linedata[6]);
+                    spwdata[ktr].kparr[2] = Convert.ToDouble(linedata[7]);
+                    spwdata[ktr].kparr[3] = Convert.ToDouble(linedata[8]);
+                    spwdata[ktr].kparr[4] = Convert.ToDouble(linedata[9]);
+                    spwdata[ktr].kparr[5] = Convert.ToDouble(linedata[10]);
+                    spwdata[ktr].kparr[6] = Convert.ToDouble(linedata[11]);
+                    spwdata[ktr].kparr[7] = Convert.ToDouble(linedata[12]);
                     spwdata[ktr].sumkp = Convert.ToInt32(linedata[13]);
                     spwdata[ktr].aparr[0] = Convert.ToInt32(linedata[14]);
                     spwdata[ktr].aparr[1] = Convert.ToInt32(linedata[15]);
@@ -855,9 +855,9 @@ namespace EOPSPWMethods
                 // set new record as they are needed
                 spwdata[ktr] = new SPWdataClass();
 
-                // replace multiple spaces with just one
                 try
                 {
+                    // replace multiple spaces with just one
                     line3 = Regex.Replace(SPWarray[ktr1].ToString(), @"\s+", " ");
                     linedata = line3.Split(' ');
                     if (line3.Contains("-1"))
@@ -868,14 +868,14 @@ namespace EOPSPWMethods
                     spwdata[ktr].day = Convert.ToInt32(linedata[2]);
                     spwdata[ktr].brsn = Convert.ToInt32(linedata[3]);
                     spwdata[ktr].nd = Convert.ToInt32(linedata[4]);
-                    spwdata[ktr].kparr[0] = Convert.ToInt32(linedata[5]);
-                    spwdata[ktr].kparr[1] = Convert.ToInt32(linedata[6]);
-                    spwdata[ktr].kparr[2] = Convert.ToInt32(linedata[7]);
-                    spwdata[ktr].kparr[3] = Convert.ToInt32(linedata[8]);
-                    spwdata[ktr].kparr[4] = Convert.ToInt32(linedata[9]);
-                    spwdata[ktr].kparr[5] = Convert.ToInt32(linedata[10]);
-                    spwdata[ktr].kparr[6] = Convert.ToInt32(linedata[11]);
-                    spwdata[ktr].kparr[7] = Convert.ToInt32(linedata[12]);
+                    spwdata[ktr].kparr[0] = Convert.ToDouble(linedata[5]);
+                    spwdata[ktr].kparr[1] = Convert.ToDouble(linedata[6]);
+                    spwdata[ktr].kparr[2] = Convert.ToDouble(linedata[7]);
+                    spwdata[ktr].kparr[3] = Convert.ToDouble(linedata[8]);
+                    spwdata[ktr].kparr[4] = Convert.ToDouble(linedata[9]);
+                    spwdata[ktr].kparr[5] = Convert.ToDouble(linedata[10]);
+                    spwdata[ktr].kparr[6] = Convert.ToDouble(linedata[11]);
+                    spwdata[ktr].kparr[7] = Convert.ToDouble(linedata[12]);
                     spwdata[ktr].sumkp = Convert.ToInt32(linedata[13]);
                     spwdata[ktr].aparr[0] = Convert.ToInt32(linedata[14]);
                     spwdata[ktr].aparr[1] = Convert.ToInt32(linedata[15]);
@@ -957,14 +957,14 @@ namespace EOPSPWMethods
                     spwdata[ktr].day = Convert.ToInt32(linedata[2]);
                     spwdata[ktr].brsn = Convert.ToInt32(linedata[3]);
                     spwdata[ktr].nd = Convert.ToInt32(linedata[4]);
-                    spwdata[ktr].kparr[0] = Convert.ToInt32(linedata[5]);
-                    spwdata[ktr].kparr[1] = Convert.ToInt32(linedata[6]);
-                    spwdata[ktr].kparr[2] = Convert.ToInt32(linedata[7]);
-                    spwdata[ktr].kparr[3] = Convert.ToInt32(linedata[8]);
-                    spwdata[ktr].kparr[4] = Convert.ToInt32(linedata[9]);
-                    spwdata[ktr].kparr[5] = Convert.ToInt32(linedata[10]);
-                    spwdata[ktr].kparr[6] = Convert.ToInt32(linedata[11]);
-                    spwdata[ktr].kparr[7] = Convert.ToInt32(linedata[12]);
+                    spwdata[ktr].kparr[0] = Convert.ToDouble(linedata[5]);
+                    spwdata[ktr].kparr[1] = Convert.ToDouble(linedata[6]);
+                    spwdata[ktr].kparr[2] = Convert.ToDouble(linedata[7]);
+                    spwdata[ktr].kparr[3] = Convert.ToDouble(linedata[8]);
+                    spwdata[ktr].kparr[4] = Convert.ToDouble(linedata[9]);
+                    spwdata[ktr].kparr[5] = Convert.ToDouble(linedata[10]);
+                    spwdata[ktr].kparr[6] = Convert.ToDouble(linedata[11]);
+                    spwdata[ktr].kparr[7] = Convert.ToDouble(linedata[12]);
                     spwdata[ktr].sumkp = Convert.ToInt32(linedata[13]);
                     spwdata[ktr].aparr[0] = Convert.ToInt32(linedata[14]);
                     spwdata[ktr].aparr[1] = Convert.ToInt32(linedata[15]);
