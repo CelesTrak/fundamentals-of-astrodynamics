@@ -2258,7 +2258,7 @@ namespace SGP4Methods
             }
             
             cardnumb = Convert.ToInt16(linedata[1]);
-            satrec.satnumStr = linedata[2];  // now a string for alpha5 
+            satrec.satnumStr = linedata[2].Trim();  // now a string for alpha5 
             if (Char.IsDigit(satrec.satnumStr[0]))
                 satrec.satnum = Convert.ToInt32(satrec.satnumStr);
             else
@@ -2328,7 +2328,7 @@ namespace SGP4Methods
                 else  // simply run -1 day to +1 day or user input times
                 {
                     linedata = Regex.Split(longstr2, "^([0-9 ]{2})([0-9 A-Z]{5})([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{8})" +
-                                                @"([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{10})([-0-9 ]{6})");
+                                                @"([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{12})([-0-9 ]{6})");
                     cardnumb = Convert.ToInt16(linedata[1]);
                     satrec.satnumStr = linedata[2];   // now a string for alpha5 or 9-digit
                     satrec.inclo = Convert.ToDouble(linedata[3]);
