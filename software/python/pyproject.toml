@@ -10,9 +10,9 @@ readme = { file = "PYPI_DESCRIPTION.md", content-type = "text/markdown" }
 authors = [{name = "David Vallado", email = "davallado@gmail.com"}]
 license = {text = "AGPL-3.0"}
 dependencies = [
-    "numpy<3.0",
-    "pydantic<3.0",
-    "scipy>=1.15,<2.0",
+    "numpy>=1.26,<3",
+    "pydantic>=2.9,<3",
+    "scipy>=1.13,<2.0",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
