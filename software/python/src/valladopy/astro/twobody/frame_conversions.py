@@ -469,7 +469,7 @@ def rv2eq(
 
     # Calculate mean motion
     # TODO: put in separate utility function
-    n = np.sqrt(const.MU / (a**3))
+    n = np.sqrt(mu / (a**3))
 
     # Get eccentricity vector components
     af = ecc * np.cos(fr * omega + argp)
@@ -1434,7 +1434,7 @@ def rv2pqw(
     # Form PQW velocity vector
     p = const.SMALL if np.abs(p) < const.SMALL else p
     vpqw = np.array(
-        [-np.sqrt(const.MU / p) * sinnu, np.sqrt(const.MU / p) * (ecc + cosnu), 0]
+        [-np.sqrt(mu / p) * sinnu, np.sqrt(mu / p) * (ecc + cosnu), 0]
     )
 
     return rpqw, vpqw
