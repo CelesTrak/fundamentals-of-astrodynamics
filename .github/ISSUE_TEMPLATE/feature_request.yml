@@ -1,0 +1,55 @@
+name: Feature Request
+description: Suggest a new function, option, or enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! Please fill out the sections below. A maintainer will review and confirm whether a pull request would be welcome before you start coding.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: What problem does this solve, or what use case does it enable?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature or change you would like to see.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language(s)
+      description: Which implementation(s) should this apply to?
+      multiple: true
+      options:
+        - Python
+        - MATLAB
+        - C#
+        - C++
+        - Fortran
+        - All languages
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Cite the relevant section of Vallado (2022) or other astrodynamics references if applicable.
+      placeholder: "e.g. Vallado (2022), Algorithm 10, pp. 120-121"
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any other approaches?
