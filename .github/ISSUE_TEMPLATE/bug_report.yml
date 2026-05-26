@@ -64,13 +64,6 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: version
-    attributes:
-      label: Package Version
-      description: "For Python: run `pip show valladopy`. For others, note the commit hash or date."
-      placeholder: "e.g. 0.2.1 or commit abc1234"
-
   - type: textarea
     id: context
     attributes:
