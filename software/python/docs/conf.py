@@ -41,6 +41,9 @@ collections = {
     }
 }
 
+nbsphinx_kernel_name = "vallado-env"
+
+
 autoapi_dirs = ["../src"]
 autoapi_root = "API Reference"
 autoapi_add_toctree_entry = True
