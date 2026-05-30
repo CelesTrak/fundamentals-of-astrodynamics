@@ -204,7 +204,7 @@ def rise_set(
             # Local sidereal time
             lst, _ = lstime(lon, jdtemp)
 
-            # Calculat hour angles
+            # Calculate hour angles
             moonghan = lst - lon - rtasc
             if i == 0:
                 lha = moonghan + lon

@@ -159,6 +159,50 @@ class SGP4:
         # Convert back to strings
         return "".join(tle_line1), "".join(tle_line2)
 
+    @staticmethod
+    def decode_alpha5_satnum(satnum_str: str) -> int:
+        """Decode a 5-character NORAD/alpha-5 satnum field to an integer.
+
+        Args:
+            satnum_str: Raw 5-character TLE satnum field (e.g. '25544', 'A1234')
+
+        Returns:
+            Integer catalog ID
+
+        Raises:
+            ValueError: If the field is empty or has an invalid alpha-5 prefix
+        """
+        satnum_str = satnum_str.strip()
+        if not satnum_str:
+            raise ValueError("Empty satnum string")
+
+        # Purely numeric (old-style)
+        if satnum_str[0].isdigit():
+            return int(satnum_str)
+
+        # Alpha-5: letter + 4 digits
+        # fmt: off
+        alpha5 = [
+            10, 11, 12, 13, 14, 15, 16, 17, 0, 18,
+            19, 20, 21, 22, 0, 23, 24, 25, 26, 27,
+            28, 29, 30, 31, 32, 33,
+        ]
+        # fmt: on
+        idx = ord(satnum_str[0].upper()) - ord("A")
+        if idx < 0 or idx >= len(alpha5):
+            raise ValueError(
+                f"Invalid alpha-5 prefix '{satnum_str[0]}' in '{satnum_str}'"
+            )
+
+        block = alpha5[idx]
+        if block == 0:
+            raise ValueError(
+                f"Disallowed alpha-5 prefix '{satnum_str[0]}' in '{satnum_str}'"
+            )
+
+        tail = int(satnum_str[1:])  # last 4 digits
+        return block * 10000 + tail
+
     def set_jd_from_from_ymdhms(
         self,
         start_ymdhms: Tuple[int, int, int, int, int, float],
@@ -223,7 +267,8 @@ class SGP4:
         tle_line1, tle_line2 = self.preprocess_tle(tle_line1, tle_line2)
 
         # Parse the first line
-        self.satrec.satnum = int(tle_line1[2:7])
+        self.satrec.satnum_str = tle_line1[2:7]
+        self.satrec.satnum = self.decode_alpha5_satnum(self.satrec.satnum_str)
         self.satrec.classification = Classification(tle_line1[7])
         self.satrec.intldesg = tle_line1[9:17].strip()
         self.satrec.epochyr = int(tle_line1[18:20])

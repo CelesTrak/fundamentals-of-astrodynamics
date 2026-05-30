@@ -11,8 +11,8 @@
 *    and kelso.
 *
 *    current :
-*              12 mar 20  david vallado
-*                           chg satnum to string for alpha 5 or 9-digit
+*              30 dec 25  david vallado
+*                           add alpha5 support
 *    changes :
 *               7 dec 15  david vallado
 *                           fix jd, jdfrac
@@ -55,7 +55,7 @@
 #include <string.h>
 #include <iostream>
 
-#define SGP4Version  "SGP4 Version 2020-07-13"
+#define SGP4Version  "SGP4 Version 2025-12-30"
 
 // -------------------------- structure declarations ----------------------------
 typedef enum
@@ -67,7 +67,8 @@ typedef enum
 
 typedef struct elsetrec
 {
-  char      satnum[6];
+  char      satnumStr[6];
+  int       satnum;
   int       epochyr, epochtynumrev;
   int       error;
   char      operationmode;
@@ -121,7 +122,7 @@ namespace SGP4Funcs
 
 	bool sgp4init
 		(
-		gravconsttype whichconst, char opsmode, const char satn[9], const double epoch,
+		gravconsttype whichconst, char opsmode, const char satn[6], const double epoch,
 		const double xbstar, const double xndot, const double xnddot, const double xecco, const double xargpo,
 		const double xinclo, const double xmo, const double xno,
 		const double xnodeo, elsetrec& satrec

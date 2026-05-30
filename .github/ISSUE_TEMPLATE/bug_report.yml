@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report a bug or incorrect numerical result
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections below so we can reproduce and fix the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal code or steps that demonstrate the problem.
+      placeholder: |
+        ```python
+        from valladopy.astro.twobody import frame_conversions as fc
+        r = [...]
+        v = [...]
+        result = fc.rv2coe(r, v)
+        # Expected: ...
+        # Got: ...
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should the correct output be? Reference a Vallado (2022) example if applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What did you actually get?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language(s) Affected
+      multiple: true
+      options:
+        - Python
+        - MATLAB
+        - C#
+        - C++
+        - Fortran
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: OS, Python version, or anything else that might be relevant.

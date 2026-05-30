@@ -29,9 +29,11 @@ namespace SGP4Program
         *     email dvallado@comspoc.com, davallado@gmail.com
         *     *****************************************************************
         *    current :
+        *              30 dec 25  david vallado
+        *                           add alpha5 support
+        *    changes :
         *              29 aug 24  david vallado
         *                           add check for sgp4-xp tle
-        *    changes :
         *               7 dec 15  david vallado
         *                           fix jd, jdfrac
         *               3 nov 14  david vallado
@@ -224,7 +226,7 @@ namespace SGP4Program
                                             (vo[0].ToString("0.00000000")).PadLeft(17) + " " + vo[1].ToString("0.000000000").PadLeft(17) + " " + vo[2].ToString("0.000000000").PadLeft(17));
 
                         // output file
-                        strbuild.AppendLine(satrec.satnum.ToString() + " xx");
+                        strbuild.AppendLine(satrec.satnumStr.ToString() + " xx");
                         strbuild.AppendLine((tsince.ToString("0.00000000")).PadLeft(17) +
                                             ro[0].ToString("0.00000000").PadLeft(17) + " " + ro[1].ToString("0.00000000").PadLeft(17) + " " + ro[2].ToString("0.00000000").PadLeft(17) + " " +
                                             vo[0].ToString("0.000000000").PadLeft(17) + " " + vo[1].ToString("0.000000000").PadLeft(17) + " " + vo[2].ToString("0.000000000").PadLeft(17));
@@ -318,7 +320,7 @@ namespace SGP4Program
 
             whichconst = SGP4Lib.gravconsttype.wgs72;
             opsmode = 'a';
-            satrec.satnum = "8195";
+            satrec.satnumStr = "08195";
             satrec.jdsatepoch = 2453911.8321544402;
             satrec.no_kozai = 2.00491383;
             satrec.ecco = 0.6877146;
@@ -349,7 +351,7 @@ namespace SGP4Program
             stopmfe = 2880.0;
             deltamin = 120.0;
 
-            SGP4Libr.sgp4init(whichconst, opsmode, satrec.satnum, satrec.jdsatepoch - 2433281.5, satrec.bstar,
+            SGP4Libr.sgp4init(whichconst, opsmode, satrec.satnumStr, satrec.jdsatepoch - 2433281.5, satrec.bstar,
                    satrec.ndot, satrec.nddot, satrec.ecco, satrec.argpo, satrec.inclo, satrec.mo, satrec.no_kozai,
                    satrec.nodeo, ref satrec);
 
