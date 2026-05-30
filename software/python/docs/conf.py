@@ -15,15 +15,13 @@ author = "D. A. Vallado, maintained by S. Rolander"
 
 extensions = [
     "autoapi.extension",
-    "myst_nb",  # For Jupyter notebooks
     "sphinx.ext.mathjax",  # For math rendering
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "nbsphinx",  # For supporting .ipynb files
     "sphinx_collections",
 ]
-mathjax_path = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js"
-
+mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
