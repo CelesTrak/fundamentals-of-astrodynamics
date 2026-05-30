@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "valladopy"
-copyright = "2025, D. A. Vallado and Contributors"
+copyright = "2026, D. A. Vallado and Contributors"
 author = "D. A. Vallado, maintained by S. Rolander"
 
 # -- General configuration ---------------------------------------------------
