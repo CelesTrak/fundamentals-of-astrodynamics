@@ -3,4 +3,4 @@ sphinx-autoapi
 nbsphinx
 sphinx-collections
 sphinx-copybutton
-furo
+pydata-sphinx-theme

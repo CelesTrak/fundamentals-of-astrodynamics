@@ -52,15 +52,35 @@ suppress_warnings = ["autoapi"]
 html_static_path = ["_static"]
 
 html_theme = "furo"
+html_theme = "pydata_sphinx_theme"
 html_title = "valladopy"
 html_copy_source = False
 html_show_sourcelink = False
 # furo
-html_theme_options = {
-    "top_of_page_buttons": ["view", "edit"],
-}
+# html_theme_options = {
+#     "top_of_page_buttons": ["view", "edit"],
+# }
 # sphinx book
+# html_theme_options = {
+#     "repository_url": "https://github.com/celestrak/fundamentals-of-astrodynamics",
+#     "use_repository_button": True,
+# }
+# pydata
 html_theme_options = {
-    "repository_url": "https://github.com/celestrak/fundamentals-of-astrodynamics",
-    "use_repository_button": True,
+    # "use_edit_page_button": True,
+    # "repository_url": "https://github.com/celestrak/fundamentals-of-astrodynamics",
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/celestrak/fundamentals-of-astrodynamics",  # required
+            "icon": "fa-brands fa-square-github",
+            "type": "fontawesome",
+        }
+    ],
 }
+# html_context = {
+#     "github_url": "https://github.com",  # or your GitHub Enterprise site
+#     "github_repo": "https://github.com/celestrak/fundamentals-of-astrodynamics",
+#     "doc_path": "/software/python/docs",
+# }
+html_show_sourcelink = True
