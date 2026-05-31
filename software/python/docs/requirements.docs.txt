@@ -3,3 +3,4 @@ sphinx-book-theme
 sphinx-autoapi
 nbsphinx
 sphinx-collections
+sphinx-copybutton

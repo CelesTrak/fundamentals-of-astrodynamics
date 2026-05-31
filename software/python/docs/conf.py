@@ -20,6 +20,7 @@ extensions = [
     "sphinx.ext.todo",
     "nbsphinx",  # For supporting .ipynb files
     "sphinx_collections",
+    "sphinx_copybutton",
 ]
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
