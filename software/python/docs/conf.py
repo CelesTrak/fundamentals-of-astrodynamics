@@ -40,6 +40,7 @@ collections = {
     }
 }
 
+
 nbsphinx_kernel_name = "vallado-env"
 
 
@@ -50,13 +51,13 @@ suppress_warnings = ["autoapi"]
 
 html_static_path = ["_static"]
 
-html_theme = "sphinx_book_theme"
+html_theme = "furo"
 html_title = "valladopy"
 html_copy_source = False
 html_show_sourcelink = False
 # furo
 html_theme_options = {
-    "top_of_page_buttons": [],
+    "top_of_page_buttons": ["view", "edit"],
 }
 # sphinx book
 html_theme_options = {
