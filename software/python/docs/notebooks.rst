@@ -3,37 +3,17 @@ Jupyter Notebooks
 
 Here are several notebooks showing how to use the code available in ``valladopy``.
 
-.. toctree::
-   :caption: List of examples
 
-   ./_collections/notebooks/ch1/Example_1-1.ipynb
-   ./_collections/notebooks/ch2/Example_2-1.ipynb
-   ./_collections/notebooks/ch2/Example_2-2.ipynb
-   ./_collections/notebooks/ch2/Example_2-3.ipynb
-   ./_collections/notebooks/ch2/Example_2-4.ipynb
-   ./_collections/notebooks/ch2/Example_2-5.ipynb
-   ./_collections/notebooks/ch2/Example_2-6.ipynb
-   ./_collections/notebooks/ch3/Example_3-1.ipynb
-   ./_collections/notebooks/ch3/Example_3-2.ipynb
-   ./_collections/notebooks/ch3/Example_3-3.ipynb
-   ./_collections/notebooks/ch3/Example_3-4.ipynb
-   ./_collections/notebooks/ch3/Example_3-5.ipynb
-   ./_collections/notebooks/ch3/Example_3-6.ipynb
-   ./_collections/notebooks/ch3/Example_3-7.ipynb
-   ./_collections/notebooks/ch3/Example_3-8.ipynb
-   ./_collections/notebooks/ch3/Example_3-9.ipynb
-   ./_collections/notebooks/ch3/Example_3-10.ipynb
-   ./_collections/notebooks/ch3/Example_3-11.ipynb
-   ./_collections/notebooks/ch3/Example_3-12.ipynb
-   ./_collections/notebooks/ch3/Example_3-13.ipynb
-   ./_collections/notebooks/ch3/Example_3-14.ipynb
-   ./_collections/notebooks/ch3/Example_3-15.ipynb
-   ./_collections/notebooks/ch4/Example_4-1.ipynb
-   ./_collections/notebooks/ch4/Example_4-2.ipynb
-   ./_collections/notebooks/ch5/Example_5-1.ipynb
-   ./_collections/notebooks/ch5/Example_5-2.ipynb
-   ./_collections/notebooks/ch5/Example_5-3.ipynb
-   ./_collections/notebooks/ch5/Example_5-4.ipynb
-   ./_collections/notebooks/ch5/Example_5-5.ipynb
-   ./_collections/notebooks/ch5/Example_5-6.ipynb
+.. toctree::
+   :maxdepth: 2
+
+   ./_collections/notebooks/ch1/index.rst
+   ./_collections/notebooks/ch2/index.rst
+   ./_collections/notebooks/ch3/index.rst
+   ./_collections/notebooks/ch4/index.rst
+   ./_collections/notebooks/ch5/index.rst
+
+.. toctree::
+   :maxdepth: 1
+
    ./_collections/notebooks/JPL_Horizons_Queries.ipynb
