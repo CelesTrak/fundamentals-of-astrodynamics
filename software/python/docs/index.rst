@@ -6,7 +6,7 @@
 valladopy
 =========
 
-``valladopy`` is a Python library offering validated astrodynamics routines from the well-known textbook *Fundaments of Astrodynamics and Applications* by David Vallado.
+``valladopy`` is a Python library offering validated astrodynamics routines from the well-known textbook *Fundamentals of Astrodynamics and Applications* by David Vallado.
 
 Installation
 ------------
@@ -18,7 +18,7 @@ Install the package via pip:
 Contributing
 ------------
 
-We appreciate interest in contributing to this project! However, as we are still figuring this process out, we ask contributors to first submit an issue in GitHub.
+See the `Contributing Guide <https://github.com/CelesTrak/fundamentals-of-astrodynamics/blob/main/CONTRIBUTING.md>`__ for how to get involved.
 
 License
 -------

@@ -41,7 +41,7 @@ collections = {
 }
 
 
-nbsphinx_kernel_name = "vallado-env"
+nbsphinx_execute = "never"
 
 
 autoapi_dirs = ["../src"]
@@ -51,20 +51,11 @@ suppress_warnings = ["autoapi"]
 
 html_static_path = ["_static"]
 
-html_theme = "furo"
 html_theme = "pydata_sphinx_theme"
 html_title = "valladopy"
 html_copy_source = False
-html_show_sourcelink = False
-# furo
-# html_theme_options = {
-#     "top_of_page_buttons": ["view", "edit"],
-# }
-# sphinx book
-# html_theme_options = {
-#     "repository_url": "https://github.com/celestrak/fundamentals-of-astrodynamics",
-#     "use_repository_button": True,
-# }
+html_show_sourcelink = True
+
 # pydata
 html_theme_options = {
     # "use_edit_page_button": True,
@@ -83,4 +74,3 @@ html_theme_options = {
 #     "github_repo": "https://github.com/celestrak/fundamentals-of-astrodynamics",
 #     "doc_path": "/software/python/docs",
 # }
-html_show_sourcelink = True
