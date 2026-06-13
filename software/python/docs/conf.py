@@ -67,7 +67,7 @@ html_theme_options = {
             "icon": "fa-brands fa-square-github",
             "type": "fontawesome",
         }
-    ],
+    ]
 }
 # html_context = {
 #     "github_url": "https://github.com",  # or your GitHub Enterprise site
