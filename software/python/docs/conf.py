@@ -58,19 +58,12 @@ html_show_sourcelink = True
 
 # pydata
 html_theme_options = {
-    # "use_edit_page_button": True,
-    # "repository_url": "https://github.com/celestrak/fundamentals-of-astrodynamics",
     "icon_links": [
         {
             "name": "GitHub",
-            "url": "https://github.com/celestrak/fundamentals-of-astrodynamics",  # required
+            "url": "https://github.com/celestrak/fundamentals-of-astrodynamics",
             "icon": "fa-brands fa-square-github",
             "type": "fontawesome",
         }
     ]
 }
-# html_context = {
-#     "github_url": "https://github.com",  # or your GitHub Enterprise site
-#     "github_repo": "https://github.com/celestrak/fundamentals-of-astrodynamics",
-#     "doc_path": "/software/python/docs",
-# }
