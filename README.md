@@ -42,7 +42,7 @@ We have included C++, but a full update is planned in the coming months. We have
 
 ## Contributing
 
-We appreciate interest in contributing to this project! However, as we are still figuring this process out, we ask contributors to [submit an issue](https://github.com/CelesTrak/fundamentals-of-astrodynamics/issues) as their first step. For more details, see the [Contributing Guide](CONTRIBUTING.md).
+We welcome contributions! The process is straightforward: open an issue to discuss your proposed change, wait for maintainer acknowledgment, then fork the repository and submit a pull request. See the [Contributing Guide](CONTRIBUTING.md) for full details on branch naming, coding standards, testing, and the review process.
 
 ---
 

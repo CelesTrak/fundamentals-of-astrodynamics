@@ -4,7 +4,7 @@ import pytest
 import src.valladopy.astro.twobody.frame_conversions as fc
 from src.valladopy.astro.time.data import iau80in
 from src.valladopy.astro.twobody.utils import OrbitType
-from src.valladopy.constants import ARCSEC2RAD
+from src.valladopy.constants import ARCSEC2RAD, AU2KM, DAY2SEC, MUSUN, TWOPI
 from ...conftest import custom_isclose, custom_allclose
 
 
@@ -94,7 +94,7 @@ class TestSpherical:
 class TestClassical:
     @pytest.fixture
     def coe(self):
-        # Vallado, 2007, Ex. 2-6
+        # Vallado, 2022, Ex. 2-6
         p = 11067.790  # semi-latus rectum, km
         ecc = 0.83285  # eccentricity
         incl = np.radians(87.87)  # inclination, rad
@@ -105,14 +105,14 @@ class TestClassical:
 
     @pytest.fixture
     def rv(self):
-        # Vallado, 2007, Ex. 2-5
+        # Vallado, 2022, Ex. 2-5
         # Position and velocity in km and km/s
         r = np.array([6524.834, 6862.875, 6448.296])
         v = np.array([4.901327, 5.533756, -1.976341])
         return r, v
 
     def test_coe2rv(self, coe):
-        # Vallado, 2007, Ex. 2-6
+        # Vallado, 2022, Ex. 2-6
         r_exp = np.array([6525.368120986091, 6861.531834896055, 6449.118614160162])
         v_exp = np.array([4.902278644574153, 5.533139566279278, -1.9757100987916154])
 
@@ -124,7 +124,7 @@ class TestClassical:
         assert np.allclose(v_out, v_exp, rtol=DEFAULT_TOL)
 
     def test_rv2coe(self, rv):
-        # Vallado, 2007, Ex. 2-5
+        # Vallado, 2022, Ex. 2-5
         # TODO: add tests for other orbit type cases
         # Call the function with test inputs
         (p, a, ecc, incl, raan, argp, nu, m, arglat, truelon, lonper, orbit_type) = (
@@ -145,6 +145,35 @@ class TestClassical:
         assert np.isnan(truelon)
         assert np.isnan(lonper)
         assert orbit_type is OrbitType.EPH_INCLINED
+
+    def test_coe2rv_sun(self):
+        # Vallado, 2022, Ex. 5-5
+        p = 5.190373 * AU2KM
+        ecc = 0.048486
+        incl = np.radians(1.303382)
+        raan = np.radians(100.454515)
+        argp = np.radians(-86.135317)
+        nu = np.radians(206.890953)
+
+        # Call the function with test inputs
+        r_out, v_out = fc.coe2rv(p, ecc, incl, raan, argp, nu, mu=MUSUN)
+
+        # Expected state vectors in AU and AU/day
+        r_exp = [-4.080005705218284, -3.573871937183541, 0.10604294791849682]
+        v_exp = [0.004882993701463404, -0.0053257663706772936, -8.726723359488976e-05]
+
+        # Check if the output is close to the expected values
+        assert np.allclose(r_out / AU2KM, r_exp, rtol=DEFAULT_TOL)
+        assert np.allclose(v_out * DAY2SEC / AU2KM, v_exp, rtol=DEFAULT_TOL)
+
+        # Check reverse transformation
+        coe_out = fc.rv2coe(r_out, v_out, mu=MUSUN)
+        assert np.allclose(coe_out[0], p, rtol=DEFAULT_TOL)
+        assert np.allclose(coe_out[2], ecc, rtol=DEFAULT_TOL)
+        assert np.allclose(coe_out[3], incl, rtol=DEFAULT_TOL)
+        assert np.allclose(coe_out[4], raan, rtol=DEFAULT_TOL)
+        assert np.allclose(coe_out[5], np.mod(argp, TWOPI), rtol=DEFAULT_TOL)
+        assert np.allclose(coe_out[6], nu, rtol=DEFAULT_TOL)
 
 
 class TestEquinoctial:
