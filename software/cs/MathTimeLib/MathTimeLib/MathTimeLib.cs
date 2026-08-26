@@ -25,6 +25,8 @@
 // ----------------------------------------------------------------------------      
 
 using System;
+using System.Globalization;
+using System.Linq;
 using System.Numerics;  
 
 
@@ -2129,39 +2131,64 @@ namespace MathTimeMethods
         //                                 Misc routines  
         // ==============================================================================
 
-        // percentile function
-        // excelpercentile is a fraction from 0.0 to 1.0
-        // arrSize     - size of array. It could be 4 or 5, etc.
-        // some adjustments to be sure it works for variable sized arrays and fractional % values
+        // -----------------------------------------------------------------------------
+        //
+        //                               function percentile
+        //
+        //  this function performs a percentile calculation. the interpolation method will
+        //  vary between routines, so matlab, python, etc will not all behave the same. samira
+        //  found that matlab is likely using a Hyndman & Fan’s R-6 interpolation while this
+        //  approach and python are using an R7 interpolation. 
+        //  30th percentile, first array(sorted: 0.03, 5.13, 5.63, 45.3, 45.3, 345.3, 3445.3) :
+        //  c# Type 7 rank = (7-1)×0.30+1 = 2.8 → interpolate 80% between sorted[2] = 5.13 and
+        //     sorted[3] = 5.63 → 5.53
+        //  MATLAB Type 5: breakpoints at(k-0.5)/7; p=30% falls 60% between the k=2 point(21.4%,
+        //     value 5.13) and k = 3 point(35.7%, value 5.63) → 5.43 
+        //  42nd percentile, same thing c# -0.042352, MATLAB's Type 5 -0.102544.
+        //
+        //  author        : david vallado             davallado@gmail.com      20 jan 2025
+        //
+        //  inputs          description                              range / units
+        //    inArr       - array of values
+        //    excelpercentile - percentile desired                   0.0 to 1.0
+        //    arrSize     - size of array
+        //
+        //  outputs       :
+        //    percentile  - result
+        //
         // -----------------------------------------------------------------------------
 
-        public double Percentile(double[] sequence, double excelPercentile, Int32 arrSize)
+        public double Percentile(double[] inArr, double excelPercentile, Int32 arrSize)
         {
-            // limit the percentile to 2 decimal places
-            double[] b = new double[100];
-            // get just the valid members of the sequence
-            Array.Copy(sequence, 0, b, 0, arrSize);
-            Array.Sort(b, 0, arrSize);  // needs sort for fractional % calcs
+            double b;
+            b = 0.0;
+            int k;
+            k = 0;
+            Array.Sort(inArr, 0, arrSize);  // needs sort for fractional % calcs
             if (arrSize > 0)
             {
                 if (arrSize == 1)
-                    return b[0]; // b.minute();
+                    b = inArr.Min(); 
                 else
                 {
-                    int N = arrSize;  //  sequence.Length;
-                    double n = (N - 1) * excelPercentile + 1;
-                    if (n == N)
-                        return b[N];  // b.Max();
-                    else
+                    double n = (arrSize - 1) * excelPercentile + 1;
+                    for (int i = 0; i < arrSize; i++)
                     {
-                        int k = (int)n;
-                        double d = n - k;
-                        return b[k - 1] + d * (b[k] - b[k - 1]);
-                    }
+                        if (n == arrSize)
+                            b = inArr.Max();
+                        else
+                        {
+                            k = (int)n;
+                            double d = n - k;
+                            b = inArr[k - 1] + d * (inArr[k] - inArr[k - 1]);
+                        }
+                    }  // for
                 }
             }
             else
-                return 0.0;
+                b = 0.0;
+            
+            return b;
         }  // percentile
 
 

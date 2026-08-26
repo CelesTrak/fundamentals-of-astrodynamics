@@ -1289,8 +1289,14 @@ namespace EOPSPWMethods
 
             int idx;
 
+            if (kpin < 0.0)
+                kpin = 0.0;
+            if (kpin > 90.0) 
+                kpin = 90.0;
+
             idx = 1;
-            while ((idx < 33) && (kpin > bkp[idx]))
+
+            while ((idx < bap.Length - 2) && (kpin > bkp[idx]))
             {
                 idx = idx + 1;
             }
@@ -1349,8 +1355,14 @@ namespace EOPSPWMethods
 
             int idx;
 
+            if (apin < 0.0) 
+                apin = 0.0;
+            if (apin > 400.0) 
+                apin = 400.0;
+
             idx = 1;
-            while ((idx < 33) && (apin > bap[idx]))
+
+            while ((idx < bap.Length - 2) && (apin > bap[idx]))
             {
                 idx = idx + 1;
             }
