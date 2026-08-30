@@ -50,7 +50,9 @@ def test_in_sight(r2, earth_model, los, tmin, caplog):
     # Call function with logging
     with caplog.at_level(logging.DEBUG):
         assert utils.in_sight(r1, r2, earth_model) == los
-        logged_tmin = float(caplog.messages[0].split(": ")[-1])
+        prefix = "Minimum parametric value (tmin): "
+        assert caplog.messages[0].startswith(prefix)
+        logged_tmin = float(caplog.messages[0][len(prefix):])
         assert np.isclose(logged_tmin, tmin, rtol=DEFAULT_TOL)
 
 
