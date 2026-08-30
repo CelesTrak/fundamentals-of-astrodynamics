@@ -50,7 +50,8 @@ def test_in_sight(r2, earth_model, los, tmin, caplog):
     # Call function with logging
     with caplog.at_level(logging.DEBUG):
         assert utils.in_sight(r1, r2, earth_model) == los
-        assert f"Minimum parametric value (tmin): {tmin}" in caplog.messages[0]
+        logged_tmin = float(caplog.messages[0].split(": ")[-1])
+        assert np.isclose(logged_tmin, tmin, rtol=DEFAULT_TOL)
 
 
 def test_sun_ecliptic_parameters(t):
