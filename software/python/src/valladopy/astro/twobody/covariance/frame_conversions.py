@@ -989,7 +989,7 @@ def _compute_partials_az(reci_m, veci_m):
 
     # Sal from mathcad methoc
     p2 = 1 / ((magv**2 - (rdotv / magr) ** 2) * (rx**2 + ry**2))
-    k1 = np.linalg.norm(reci_m) * np.cross(reci_m[:2], veci_m[:2])
+    k1 = np.linalg.norm(reci_m) * (rx * vy - ry * vx)
     k2 = ry * (ry * vz - rz * vy) + rx * (rx * vz - rz * vx)
     k12_sq = k1**2 + k2**2
 
