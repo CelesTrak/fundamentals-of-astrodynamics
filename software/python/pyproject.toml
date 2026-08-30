@@ -10,7 +10,7 @@ readme = { file = "PYPI_DESCRIPTION.md", content-type = "text/markdown" }
 authors = [{name = "David Vallado", email = "davallado@gmail.com"}]
 license = {text = "AGPL-3.0"}
 dependencies = [
-    "numpy>=1.26,<3",
+    "numpy>=1.26,<2.1",
     "pydantic>=2.9,<3",
     "scipy>=1.13,<2.0",
 ]
