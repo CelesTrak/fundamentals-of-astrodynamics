@@ -2248,7 +2248,7 @@ namespace SGP4Funcs
 
 		int strIndex, index;
 		if (isdigit(satrec.satnumStr[0]))
-			satrec.satnum = std::atoi(satrec.satnumStr);
+			satrec.satnum = std::stoi(std::string(satrec.satnumStr));
 		else
 		{
 			int alpha5[] = {10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33};
