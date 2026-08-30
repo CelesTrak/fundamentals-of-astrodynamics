@@ -40,4 +40,4 @@ def test_hgibbs():
     assert np.allclose(v2, v2_expected, rtol=DEFAULT_TOL)
     assert np.isclose(np.degrees(theta12), 4.499996147374992, rtol=DEFAULT_TOL)
     assert np.isclose(np.degrees(theta23), 4.499998402168982, rtol=DEFAULT_TOL)
-    assert custom_isclose(float(np.degrees(copa)), -2.6712072741804056e-06)
+    assert custom_isclose(float(np.degrees(copa)), -2.6712072741804056e-06, rtol=1e-9)
