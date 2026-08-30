@@ -169,7 +169,7 @@ class TestClassicalCartesian:
 
         # Compare results
         assert custom_allclose(classcov, cov_expected, rtol=COV_TOL, atol=COV_TOL)
-        assert custom_allclose(tm, tm_expected)
+        assert custom_allclose(tm, tm_expected, rtol=COV_TOL, atol=COV_TOL)
 
     @pytest.mark.parametrize(
         "use_mean_anom, class_state, class_cov, tm_exp, cartcov_exp",
@@ -253,8 +253,10 @@ class TestClassicalCartesian:
         # Compare results
         # NOTE: The covariance seems very sensitive to machine precision, so we use a
         #       higher absolute tolerance for this test
-        assert custom_allclose(cartcov_out, np.array(cartcov_exp), atol=1e-3)
-        assert custom_allclose(tm, np.array(tm_exp))
+        assert custom_allclose(
+            cartcov_out, np.array(cartcov_exp), rtol=COV_TOL, atol=1e-3
+        )
+        assert custom_allclose(tm, np.array(tm_exp), rtol=COV_TOL, atol=COV_TOL)
 
 
 class TestEquinoctialCartesian:
@@ -395,7 +397,7 @@ class TestEquinoctialCartesian:
 
         # Compare results
         assert custom_allclose(eqcov, np.array(cov_exp), rtol=COV_TOL, atol=COV_TOL)
-        assert custom_allclose(tm, np.array(tm_exp))
+        assert custom_allclose(tm, np.array(tm_exp), rtol=COV_TOL, atol=COV_TOL)
 
     @pytest.mark.parametrize(
         "eq_cov, eq_state, fr, anom_type, tm_exp, cartcov_exp",
@@ -500,8 +502,10 @@ class TestEquinoctialCartesian:
         cartcov_out, tm = fc.coveq2ct(eq_cov, eq_state, fr, anom_type)
 
         # Compare results
-        assert custom_allclose(cartcov_out, np.array(cartcov_exp), atol=1e-6)
-        assert custom_allclose(tm, np.array(tm_exp))
+        assert custom_allclose(
+            cartcov_out, np.array(cartcov_exp), rtol=COV_TOL, atol=1e-6
+        )
+        assert custom_allclose(tm, np.array(tm_exp), rtol=COV_TOL, atol=COV_TOL)
 
 
 class TestEquinoctialClassical:
@@ -623,8 +627,8 @@ class TestEquinoctialClassical:
         eqcov, tm = fc.covcl2eq(class_cov, class_state, fr, anom_type)
 
         # Compare results
-        assert custom_allclose(eqcov, np.array(eqcov_exp))
-        assert custom_allclose(tm, np.array(tm_exp))
+        assert custom_allclose(eqcov, np.array(eqcov_exp), rtol=COV_TOL, atol=COV_TOL)
+        assert custom_allclose(tm, np.array(tm_exp), rtol=COV_TOL, atol=COV_TOL)
 
     @pytest.mark.parametrize(
         "eq_cov, eq_state, fr, anom_type, tm_exp, classcov_exp",
@@ -683,8 +687,10 @@ class TestEquinoctialClassical:
         classcov, tm = fc.coveq2cl(eq_cov, eq_state, fr, anom_type)
 
         # Compare results
-        assert custom_allclose(classcov, np.array(classcov_exp))
-        assert custom_allclose(tm, np.array(tm_exp))
+        assert custom_allclose(
+            classcov, np.array(classcov_exp), rtol=COV_TOL, atol=COV_TOL
+        )
+        assert custom_allclose(tm, np.array(tm_exp), rtol=COV_TOL, atol=COV_TOL)
 
 
 class TestFlightCartesian:
@@ -811,8 +817,8 @@ class TestFlightCartesian:
         )
 
         # Expected values
-        assert custom_allclose(flcov, flcov_exp)
-        assert custom_allclose(tm, np.array(tm_exp))
+        assert custom_allclose(flcov, flcov_exp, rtol=COV_TOL, atol=COV_TOL)
+        assert custom_allclose(tm, np.array(tm_exp), rtol=COV_TOL, atol=COV_TOL)
 
     @pytest.mark.parametrize(
         "use_latlon, flt_cov, flt_state, tm_exp, cartcov_exp",
@@ -888,8 +894,10 @@ class TestFlightCartesian:
 
         # Compare results
         # Use higher absolute tolerance due to machine precision errors
-        assert custom_allclose(cartcov_out, np.array(cartcov_exp), atol=1e-6)
-        assert custom_allclose(tm, np.array(tm_exp))
+        assert custom_allclose(
+            cartcov_out, np.array(cartcov_exp), rtol=COV_TOL, atol=1e-6
+        )
+        assert custom_allclose(tm, np.array(tm_exp), rtol=COV_TOL, atol=COV_TOL)
 
 
 class TestSatCoord:
@@ -927,8 +935,8 @@ class TestSatCoord:
         )
 
         # Compare results
-        assert custom_allclose(covrsw, covoprsw_exp)
-        assert custom_allclose(tm, tm_exp)
+        assert custom_allclose(covrsw, covoprsw_exp, rtol=COV_TOL, atol=COV_TOL)
+        assert custom_allclose(tm, tm_exp, rtol=COV_TOL, atol=COV_TOL)
 
     def test_covct2ntw(self, cartcov, cartstate):
         # Test covariance conversion
@@ -964,5 +972,5 @@ class TestSatCoord:
         )
 
         # Compare results
-        assert custom_allclose(covntw, covntw_exp)
-        assert custom_allclose(tm, tm_exp)
+        assert custom_allclose(covntw, covntw_exp, rtol=COV_TOL, atol=COV_TOL)
+        assert custom_allclose(tm, tm_exp, rtol=COV_TOL, atol=COV_TOL)
