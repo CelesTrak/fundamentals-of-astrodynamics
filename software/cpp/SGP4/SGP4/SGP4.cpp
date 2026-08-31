@@ -2248,7 +2248,7 @@ namespace SGP4Funcs
 
 		int strIndex, index;
 		if (isdigit(satrec.satnumStr[0]))
-			satrec.satnum = (int)(satrec.satnumStr);
+			satrec.satnum = std::stoi(std::string(satrec.satnumStr));
 		else
 		{
 			int alpha5[] = {10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33};
@@ -2256,7 +2256,7 @@ namespace SGP4Funcs
 			index = alpha5[strIndex];
 			std::string s(satrec.satnumStr);
 			std::string sub = s.substr(1, 4);
-			satrec.satnum = index * 10000 + std::stoi(sub.substr(1, 4));
+			satrec.satnum = index * 10000 + std::stoi(sub);
 		}
 
 		// sgp4fix note that the ephtype must be 0 for SGP4. SGP4-XP uses 4.
