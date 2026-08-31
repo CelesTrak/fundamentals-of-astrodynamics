@@ -11195,9 +11195,17 @@ namespace AstroLibMethods
             errstr = errstr + "r3 " + r3[0].ToString() + " " + r3[1].ToString() + " " + r3[2].ToString()
                 + tau13.ToString() + "\n";
 
-            lambertuniv(r1, r3, v1, dm, de, nrev, 0.0, 0.0, 'y',
-                out v1t, out v2t, out detailSum, out detailAll);
-            lambertbattin(r1, r3, v1, dm, de, nrev, 0.0, 'y',
+            // NOTE: previously this passed a literal 0.0 for time-of-flight to both Lambert
+            // solvers (dtsec was hardcoded), which poses a degenerate zero-TOF boundary-value
+            // problem regardless of the input geometry - this was the root cause of the
+            // Gooding method returning the same sentinel "undefined" elements (999999.9 rad,
+            // i.e. 57295727.9469 deg) for every test case. The time-of-flight for the r1->r3
+            // Lambert leg is tau13 (t3 - t1), not 0.0.
+            // Also removed the preceding lambertuniv() call: it wrote to the same out
+            // parameters (v1t, v2t, detailSum, detailAll) that the very next lambertbattin()
+            // call immediately overwrote, so its result was always discarded - it did nothing
+            // but cost an extra solve.
+            lambertbattin(r1, r3, v1, dm, de, nrev, tau13, 'y',
                 out v1t, out v2t, out detailSum, out detailAll);
             errstr = errstr + "Lambert " + " " + detailSum + "\n";
             // hardwire for now, numsoltns of solutions
