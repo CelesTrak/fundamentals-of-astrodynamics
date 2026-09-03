@@ -38,7 +38,6 @@ using System.Text.RegularExpressions;
 
 using MathTimeMethods;  // Edirection, globals
 using EOPSPWMethods;
-using System.CodeDom;    // EOPDataClass, SPWDataClass, iau80Class, iau06Class
 
 
 namespace AstroLibMethods
@@ -90,6 +89,7 @@ namespace AstroLibMethods
             public double re = 6378.1363;       // km   
             public double rem = 6378136.3;      // default equatorial radius[m], set with each model
             public double earthrot = 7.292115e-05;  // 7.29211514670698e-05 older rad/s
+            public double eesqrd = 0.00669437999;   // eccentricity of earth sqrd
             // derived quantities
             public double velkmps = 7.905366149846074;  // sqrt(mu / re)
             public double tusec = 806.8109913067327;   // sqrt(re^3 / mu);
@@ -987,7 +987,7 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    jdttt         - epoch julian date                      days from 4713 BC
+        //    jdtt          - epoch julian date                      days from 4713 BC
         //    jdftt         - epoch julian date fraction             day fraction from jdtt
         //    interp        - interpolation                          n-none, l-linear, s-spline
         //    xysarr        - array of xys data records              rad
@@ -1436,7 +1436,7 @@ namespace AstroLibMethods
         //
         //  outputs       :
         //    deltapsi    - nutation in longiotude angle                   rad
-        //    trueeps     - true obliquity of the ecliptic                 rad
+        //    deltaeps    - change in obliquity                            rad
         //    meaneps     - mean obliquity of the ecliptic                 rad
         //    nut         - transform matrix for tod - mod
         //
@@ -1448,7 +1448,6 @@ namespace AstroLibMethods
         //    fArgs06[2]    - delaunay element                               rad
         //    fArgs06[3]    - delaunay element                               rad
         //    fArgs06[4]    - delaunay element                               rad
-        //    deltaeps    - change in obliquity                            rad
         //
         //  coupling      :
         //
@@ -3689,7 +3688,7 @@ namespace AstroLibMethods
         //    argp        - argument of perigee                       0.0 to 2pi rad
         //    nu          - true anomaly                              0.0 to 2pi rad
         //    arglat      - argument of latitude                      (ci) 0.0 to 2pi rad
-        //    lamtrue     - true longitude                            (ce) 0.0 to 2pi rad
+        //    truelon     - true longitude                            (ce) 0.0 to 2pi rad
         //    lonper      - longitude of periapsis                    (ee) 0.0 to 2pi rad
         //
         //  outputs       :
@@ -3809,7 +3808,7 @@ namespace AstroLibMethods
         //    chi         - component of node vector in eqw
         //    psi         - component of node vector in eqw
         //    meanlonM    - mean longitude                             rad
-        //    menalonNu   - true longitude                             rad
+        //    meanlonNu   - true longitude                             rad
         //    fr          - retrograde factor, neg if incl > 179 deg 1, -1
         //
         //  locals        :
@@ -4042,8 +4041,9 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r           - eci position vector km
-        //    v           - eci velocity vector km/s
+        //    reci        - eci position vector km
+        //    veci        - eci velocity vector km/s
+        //    aeci        - eci acceleration vector km/s2
         //    ttt         - julian centuries of tt                          centuries
         //    jdut1       - julian date of ut1                              days from 4713 bc
         //    lod         - excess length of day                            sec
@@ -4057,6 +4057,8 @@ namespace AstroLibMethods
         //    magv        - eci velocity vector magnitude                   km/sec
         //    latgc       - geocentric lat of satellite, not nadir point           -pi/2 to pi/2 rad          
         //    lon         - longitude                                       rad
+        //    rtasc       - right ascension                                 rad
+        //    decl        - declination                                    rad
         //    fpa         - sat flight path angle                           rad
         //    az          - sat flight path az                              rad
         //
@@ -4133,8 +4135,12 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r           - eci position vector km
-        //    v           - eci velocity vector km/s
+        //    rmag        - eci position vector magnitude                   km
+        //    vmag        - eci velocity vector magnitude                   km/sec
+        //    latgc       - geocentric lat of satellite, not nadir point           -pi/2 to pi/2 rad          
+        //    lon         - longitude                                       rad
+        //    fpa         - sat flight path angle                           rad
+        //    az          - sat flight path az                              rad
         //    ttt         - julian centuries of tt                          centuries
         //    jdut1       - julian date of ut1                              days from 4713 bc
         //    lod         - excess length of day                            sec
@@ -4144,12 +4150,8 @@ namespace AstroLibMethods
         //    iau80arr     - iau80 coefficients of eop
         //
         //  outputs       :
-        //    magr        - eci position vector magnitude                   km
-        //    magv        - eci velocity vector magnitude                   km/sec
-        //    latgc       - geocentric lat of satellite, not nadir point           -pi/2 to pi/2 rad          
-        //    lon         - longitude                                       rad
-        //    fpa         - sat flight path angle                           rad
-        //    az          - sat flight path az                              rad
+        //    reci        - eci position vector                             km
+        //    veci        - eci velocity vector                             km/s
         //
         //  locals        :
         //    fpav        - sat flight path anglefrom vert                  rad
@@ -4222,15 +4224,15 @@ namespace AstroLibMethods
         //  inputs          description                              range / units
         //    rijk        - ijk position vector                      km
         //    vijk        - ijk velocity vector                      km / s
-        //    direction   - which set of vars to output              efrom  eto
+        //    direct      - which set of vars to output              efrom  eto
         //
         //  outputs       :
         //    rr          - radius of the sat                        km
-        //    ecllat      - ecliptic latitude                        -PI/2 to PI/2 rad
         //    ecllon      - ecliptic longitude                       -2PI to 2PI rad
+        //    ecllat      - ecliptic latitude                        -PI/2 to PI/2 rad
         //    drr         - radius of the sat rate                   km/s
+        //    decllon     - ecliptic longitude rate                  -2PI to 2PI rad
         //    decllat     - ecliptic latitude rate                   -PI/2 to PI/2 rad
-        //    eecllon     - ecliptic longitude rate                  -2PI to 2PI rad
         //
         //  locals        :
         //    obliquity   - obliquity of the ecliptic                rad
@@ -4418,6 +4420,7 @@ namespace AstroLibMethods
         //    vecef       - ecef velocity vector                       km/s
         //    latgd       - geodetic latitude                          -pi/2 to pi/2 rad
         //    lon         - geodetic longitude                         -2pi to pi rad
+        //    alt         - site altitude above ellipsoid               km
         //    direct      -  direction to convert                      eFrom  eTo
         //
         //  outputs       :
@@ -4559,10 +4562,10 @@ namespace AstroLibMethods
         //    direct      - direction to convert                     efrom  eto
         //
         //  outputs       :
-        //    rho         - topo radius of the sat                   km
+        //    trr         - topo radius of the sat                   km
         //    trtasc      - topo right ascension                     rad
         //    tdecl       - topo declination                         rad
-        //    drho        - topo radius of the sat rate              km/s
+        //    tdrr        - topo radius of the sat rate              km/s
         //    tdrtasc     - topo right ascension rate                rad/s
         //    tddecl      - topo declination rate                    rad/s
         //
@@ -4673,8 +4676,8 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    rhovec      - sez satellite range vector               km
-        //    drhovec     - sez satellite velocity vector            km/s
+        //    rhosez      - sez satellite range vector               km
+        //    drhosez     - sez satellite velocity vector            km/s
         //    direct      - direction to convert                     eFrom  eTo
         //
         //  outputs       :
@@ -4772,7 +4775,28 @@ namespace AstroLibMethods
 
 
 
-        // this is an approximate transformation for az_el to right ascenion declination
+        // ------------------------------------------------------------------------------
+        //
+        //                           function azel_radec
+        //
+        //  this is an approximate transformation for az_el to right ascension/declination.
+        //
+        //  author        : david vallado             davallado@gmail.com      20 jan 2025
+        //
+        //  inputs          description                              range / units
+        //    az          - azimuth                                       rad
+        //    el          - elevation                                     rad
+        //    lst         - local sidereal time                           rad
+        //    latgd       - geodetic latitude                             -pi/2 to pi/2 rad
+        //
+        //  outputs       :
+        //    rtasc       - right ascension                                rad
+        //    decl        - declination                                   rad
+        //    rtasc1      - right ascension, alternate (2nd) approach      rad
+        //
+        //  references    :
+        //    vallado       2022
+        // ------------------------------------------------------------------------------
         public void azel_radec
         (
             double az, double el, double lst, double latgd,
@@ -4802,7 +4826,39 @@ namespace AstroLibMethods
 
 
         // -----------------------------------------------------------------------------
-        // rr is input, can put in GEO 42164, or actual geo range value
+        //
+        //                           function radecgeo2azel
+        //
+        //  finds azimuth and elevation of a GEO satellite (or any assumed-range target)
+        //  given its right ascension and declination, by computing the implied ECI
+        //  position at the assumed range and passing it through the standard site-relative
+        //  transformation chain. rr is an assumed range - use 42164 km for a GEO
+        //  satellite, or the actual known range if available.
+        //
+        //  author        : david vallado             davallado@gmail.com      20 jan 2025
+        //
+        //  inputs          description                              range / units
+        //    rtasc       - right ascension                                rad
+        //    decl        - declination                                   rad
+        //    rr          - assumed range to the target (e.g. 42164 for GEO)   km
+        //    latgd       - site geodetic latitude                        -pi/2 to pi/2 rad
+        //    lon         - site longitude                                rad
+        //    alt         - site altitude above ellipsoid                 km
+        //    ttt         - julian centuries of tt                        centuries
+        //    jdut1       - julian date of ut1                            days from 4713 bc
+        //    lod         - excess length of day                          sec
+        //    xp          - polar motion coefficient                      rad
+        //    yp          - polar motion coefficient                      rad
+        //    ddpsi       - correction to delta psi (iau-76 theory)       rad
+        //    ddeps       - correction to delta eps (iau-76 theory)       rad
+        //
+        //  outputs       :
+        //    az          - azimuth                                       rad
+        //    el          - elevation                                     rad
+        //
+        //  references    :
+        //    vallado       2022
+        // -----------------------------------------------------------------------------
         public void radecgeo2azel
             (
             double rtasc, double decl, double rr, double latgd, double lon, double alt,
@@ -5069,15 +5125,14 @@ namespace AstroLibMethods
         //                           function rv2pqw
         //
         //  this function finds the pqw vectors given the geocentric equatorial 
-        //  position and velocity vectors.  mu is needed if km and m are
-        //    both used with the same routine
+        //  position and velocity vectors. uses astroConsts.mu internally (Earth only -
+        //  no longer takes mu as a parameter).
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    r           - ijk position vector            km or m
-        //    v           - ijk velocity vector            km/s or m/s
-        //    mu          - gravitational parameter        km3/s2 or m3/s2
+        //    r           - ijk position vector            km
+        //    v           - ijk velocity vector            km/s
         //
         //  outputs       :
         //    rpqw        - pqw position vector            km
@@ -5755,6 +5810,7 @@ namespace AstroLibMethods
         //
         //  outputs       :
         //    nu          - true anomaly                             0 to 2pi rad
+        //    strtext     - diagnostic text: gmst, lambdau, and arglat (deg)
         //
         //  locals        :
         //    temp        - temporary variable for doubles           rad
@@ -5821,10 +5877,6 @@ namespace AstroLibMethods
             temp = arglat - argp;
             strtext = strtext + " " + (arglat * rad).ToString();
             return temp;
-
-            //if (printopt == 'y')
-            //    Console.WriteLine( String.Format("gmst  lu  nu  arglat = {0}  {1}  {2}  {3}  ", gmst * rad, lambdau * rad, temp * rad, arglat * rad));
-
         }  // lon2nu  
 
 
@@ -5910,6 +5962,8 @@ namespace AstroLibMethods
         //    x           - universal variable
         //    c2          - stumpff function
         //    c3          - stumpff function
+        //    z           - stumpff function argument (z = alpha * x^2), used
+        //                  by the "c2c3" method                            
         //    dtsec       - step size                                sec (SMALL time steps only!!)
         //    opt         - calculation method                       pqw, series, c2c3
         //    
@@ -6057,23 +6111,58 @@ namespace AstroLibMethods
         //
         //                           function iterateuniversalX
         //
-        //  this function iterates to find the universal variable
+        //  this function iterates to find the universal variable x that satisfies
+        //    kepler's equation for the given time of flight, using a newton iteration.
+        //
+        //  author        : david vallado             davallado@gmail.com      20 jan 2025
+        //
+        //  inputs          description                              range / units
+        //    alpha       - reciprocal of semimajor axis (1/a)          1/km
+        //    dtsec       - time of flight to propagate                 s
+        //    rdotv       - dot product of position and velocity        km^2/s
+        //    magr        - magnitude of position vector                km
+        //    r           - ijk position vector                        km
+        //    v           - ijk velocity vector                        km/s
+        //
+        //  outputs       :
+        //    ktr         - number of newton iterations taken
+        //    c2new       - c2(znew) function value
+        //    c3new       - c3(znew) function value
+        //    xnew        - converged universal variable x
+        //    znew        - converged value of z = alpha * xnew^2
+        //    outTextAll  - full diagnostic text: every newton iteration's
+        //                  x/z/rval/dtnew values in both km and canonical
+        //                  (ER/TU) units
+        //
+        //  locals        :
+        //    numiter     - iteration limit                             50
+        //    xold        - previous iteration's x
+        //    period      - orbital period (elliptical case)            s
+        //    small       - tolerance for roundoff
+        //
+        //  coupling      :
+        //    mag         - magnitude of a vector
+        //    findc2c3    - find c2 and c3 functions
+        //
+        //  NOTE: not currently called anywhere in this codebase (both prior call
+        //  sites are commented out, in the anglesgauss iteration area) - kept for
+        //  completeness/future use.
         // ------------------------------------------------------------------------------
         public void iterateuniversalX
         (
             double alpha, double dtsec, double rdotv, double magr,
             double[] r, double[] v,
-            out int ktr, out double c2new, out double c3new, out double xnew, out double znew
+            out int ktr, out double c2new, out double c3new, out double xnew, out double znew,
+            out string outTextAll
         )
         {
             int numiter, mulrev;
             double[] h = new double[3];
             double rval, xold, xoldsqrd, p, dtnew, a, period, s, w, temp, magh;
             double small, twopi, halfpi;
-            char show;
 
-            show = 'n';
             xnew = 0.0;
+            outTextAll = "";
             znew = 0.0;
             c2new = 0.0;
             c3new = 0.0;
@@ -6151,11 +6240,12 @@ namespace AstroLibMethods
                 if (xnew < 0.0)
                     xnew = xold * 0.5;
 
-                if (show == 'y')
-                {
-                    //  printf("%3i %11.7f %11.7f %11.7f %11.7f %11.7f \n", ktr,xold,znew,rval,xnew,dtnew);
-                    //  printf("%3i %11.7f %11.7f %11.7f %11.7f %11.7f \n", ktr,xold/sqrt(re),znew,rval/re,xnew/sqrt(re),dtnew/sqrt(mu));
-                }
+                outTextAll = outTextAll + ktr.ToString().PadLeft(3) + " " + xold.ToString("0.0000000").PadLeft(11) + " " +
+                    znew.ToString("0.0000000").PadLeft(11) + " " + rval.ToString("0.0000000").PadLeft(11) + " " +
+                    xnew.ToString("0.0000000").PadLeft(11) + " " + dtnew.ToString("0.0000000").PadLeft(11) + "\n";
+                outTextAll = outTextAll + ktr.ToString().PadLeft(3) + " " + (xold / Math.Sqrt(astroConsts.re)).ToString("0.0000000").PadLeft(11) + " " +
+                    znew.ToString("0.0000000").PadLeft(11) + " " + (rval / astroConsts.re).ToString("0.0000000").PadLeft(11) + " " +
+                    (xnew / Math.Sqrt(astroConsts.re)).ToString("0.0000000").PadLeft(11) + " " + (dtnew / Math.Sqrt(astroConsts.mu)).ToString("0.0000000").PadLeft(11) + "\n";
 
                 ktr = ktr + 1;
                 xold = xnew;
@@ -6179,9 +6269,22 @@ namespace AstroLibMethods
         //    dtsec       - length of time to propagate              s
         //
         //  outputs       :
-        //    r           - ijk position vector                      km
+        //    r2          - ijk position vector                      km
         //    v           - ijk velocity vector                      km / s
-        //    error       - error flag                               'ok',  
+        //    outTextAll  - full diagnostic text: initial r1/vo, sme/a/alpha,
+        //                  every newton iteration's x/z/rval/dtnew, and the
+        //                  final f/g/fdot/gdot and resulting r2/v vectors
+        //
+        //  CAUTION: this function is called from calcps, which itself runs up to
+        //  ~120 times per single Gooding solve (see calcps/lambertbattin notes) -
+        //  and each kepler call can iterate its own newton loop up to 50 times.
+        //  Building outTextAll unconditionally here (added per explicit request,
+        //  converting the original MATLAB printf trace) reintroduces the same
+        //  O(iterations) per-call string growth that lambertbattin's equivalent
+        //  trace was deliberately left out to avoid. Worth watching for a real
+        //  slowdown on full TestAll/Gooding runs; if it shows up, the fix is the
+        //  same one used there - drop or bound the per-iteration lines, keep only
+        //  a final one-line summary.
         //
         //  locals        :
         //    f           - f expression
@@ -6218,7 +6321,8 @@ namespace AstroLibMethods
 
         public void kepler
             (
-            double[] r1, double[] vo, double dtsec, out double[] r2, out double[] v
+            double[] r1, double[] vo, double dtsec, out double[] r2, out double[] v,
+            out string outTextAll
             )
         {
             // -------------------------  implementation    // ----------------
@@ -6229,10 +6333,9 @@ namespace AstroLibMethods
             double f, g, fdot, gdot, rval, xold, xoldsqrd, xnew,
                   xnewsqrd, znew, p, c2new, c3new, dtnew, rdotv, a,
                   alpha, sme, period, s, w, temp, magro, magvo, magh, magr, magv;
-            char show;
             //string errork;
+            outTextAll = "";
 
-            show = 'n';
             double small, twopi, halfpi;
 
             for (int ii = 0; ii < 3; ii++)
@@ -6254,11 +6357,10 @@ namespace AstroLibMethods
             // set constants and intermediate printouts
             numiter = 50;
 
-            if (show == 'y')
-            {
-                //            printf(" r1 %16.8f %16.8f %16.8f ER \n",r1[0]/re,r1[1]/re,r1[2]/re );
-                //            printf(" vo %16.8f %16.8f %16.8f ER/TU \n",vo[0]/velkmps, vo[1]/velkmps, vo[2]/velkmps );
-            }
+            outTextAll = outTextAll + " r1 " + (r1[0] / astroConsts.re).ToString("0.00000000").PadLeft(16) + " " +
+                (r1[1] / astroConsts.re).ToString("0.00000000").PadLeft(16) + " " + (r1[2] / astroConsts.re).ToString("0.00000000").PadLeft(16) + " ER \n";
+            outTextAll = outTextAll + " vo " + (vo[0] / astroConsts.velkmps).ToString("0.00000000").PadLeft(16) + " " +
+                (vo[1] / astroConsts.velkmps).ToString("0.00000000").PadLeft(16) + " " + (vo[2] / astroConsts.velkmps).ToString("0.00000000").PadLeft(16) + " ER/TU \n";
 
             // --------------------  initialize values     ------------------
             ktr = 0;
@@ -6282,12 +6384,9 @@ namespace AstroLibMethods
                 if (Math.Abs(alpha) < small)   // parabola
                     alpha = 0.0;
 
-                if (show == 'y')
-                {
-                    //           printf(" sme %16.8f  a %16.8f alp  %16.8f ER \n",sme/(astroConsts.mu/re), a/re, alpha * re );
-                    //           printf(" sme %16.8f  a %16.8f alp  %16.8f km \n",sme, a, alpha );
-                    //           printf(" ktr      xn        psi           r2          xn+1        dtn \n" );
-                }
+                outTextAll = outTextAll + " sme " + (sme / (astroConsts.mu / astroConsts.re)).ToString("0.00000000").PadLeft(16) + "  a " + (a / astroConsts.re).ToString("0.00000000").PadLeft(16) + " alp  " + (alpha * astroConsts.re).ToString("0.00000000").PadLeft(16) + " ER \n";
+                outTextAll = outTextAll + " sme " + sme.ToString("0.00000000").PadLeft(16) + "  a " + a.ToString("0.00000000").PadLeft(16) + " alp  " + alpha.ToString("0.00000000").PadLeft(16) + " km \n";
+                outTextAll = outTextAll + " ktr      xn        psi           r2          xn+1        dtn \n";
 
                 // ------------   setup initial guess for x  ---------------
                 // -----------------  circle and ellipse -------------------
@@ -6354,11 +6453,12 @@ namespace AstroLibMethods
                     if (xnew < 0.0 && dtsec > 0.0)
                         xnew = xold * 0.5;
 
-                    if (show == 'y')
-                    {
-                        //  printf("%3i %11.7f %11.7f %11.7f %11.7f %11.7f \n", ktr,xold,znew,rval,xnew,dtnew);
-                        //  printf("%3i %11.7f %11.7f %11.7f %11.7f %11.7f \n", ktr,xold/sqrt(re),znew,rval/re,xnew/sqrt(re),dtnew/sqrt(mu));
-                    }
+                    outTextAll = outTextAll + ktr.ToString().PadLeft(3) + " " + xold.ToString("0.0000000").PadLeft(11) + " " +
+                        znew.ToString("0.0000000").PadLeft(11) + " " + rval.ToString("0.0000000").PadLeft(11) + " " +
+                        xnew.ToString("0.0000000").PadLeft(11) + " " + dtnew.ToString("0.0000000").PadLeft(11) + "\n";
+                    outTextAll = outTextAll + ktr.ToString().PadLeft(3) + " " + (xold / Math.Sqrt(astroConsts.re)).ToString("0.0000000").PadLeft(11) + " " +
+                        znew.ToString("0.0000000").PadLeft(11) + " " + (rval / astroConsts.re).ToString("0.0000000").PadLeft(11) + " " +
+                        (xnew / Math.Sqrt(astroConsts.re)).ToString("0.0000000").PadLeft(11) + " " + (dtnew / Math.Sqrt(astroConsts.mu)).ToString("0.0000000").PadLeft(11) + "\n";
 
                     ktr = ktr + 1;
                     xold = xnew;
@@ -6393,13 +6493,12 @@ namespace AstroLibMethods
                     //if (Math.Abs(temp - 1.0) > 0.00001)
                     //    errork = "fandg";
 
-                    if (show == 'y')
-                    {
-                        //           printf("f %16.8f g %16.8f fdot %16.8f gdot %16.8f \n",f, g, fdot, gdot );
-                        //           printf("f %16.8f g %16.8f fdot %16.8f gdot %16.8f \n",f, g, fdot, gdot );
-                        //           printf("r1 %16.8f %16.8f %16.8f ER \n",r2[0]/re,r2[1]/re,r2[2]/re );
-                        //           printf("v1 %16.8f %16.8f %16.8f ER/TU \n",v[0]/velkmps, v[1]/velkmps, v[2]/velkmps );
-                    }
+                    outTextAll = outTextAll + "f " + f.ToString("0.00000000").PadLeft(16) + " g " + g.ToString("0.00000000").PadLeft(16) +
+                        " fdot " + fdot.ToString("0.00000000").PadLeft(16) + " gdot " + gdot.ToString("0.00000000").PadLeft(16) + "\n";
+                    outTextAll = outTextAll + "r1 " + (r2[0] / astroConsts.re).ToString("0.00000000").PadLeft(16) + " " +
+                        (r2[1] / astroConsts.re).ToString("0.00000000").PadLeft(16) + " " + (r2[2] / astroConsts.re).ToString("0.00000000").PadLeft(16) + " ER \n";
+                    outTextAll = outTextAll + "v1 " + (v[0] / astroConsts.velkmps).ToString("0.00000000").PadLeft(16) + " " +
+                        (v[1] / astroConsts.velkmps).ToString("0.00000000").PadLeft(16) + " " + (v[2] / astroConsts.velkmps).ToString("0.00000000").PadLeft(16) + " ER/TU \n";
                 }
             } // if Math.Abs
             else
@@ -6410,7 +6509,6 @@ namespace AstroLibMethods
                     v[i] = vo[i];
                 }
 
-            // fprintf( fid,"%11.5f  %11.5f %11.5f  %5i %3i ",znew, dtseco/60.0, xold/(rad), ktr, mulrev );
         }  // kepler
 
 
@@ -6562,7 +6660,7 @@ namespace AstroLibMethods
         //  locals        :
         //    temp        - diff between geocentric/
         //                  geodetic lat                             rad
-        //    Math.Sintemp     - Math.Sine of temp                   rad
+        //    sintemp     - sine of temp                             rad
         //    olddelta    - previous value of deltalat               rad
         //    rtasc       - right ascension                          rad
         //    decl        - declination                              rad
@@ -6574,7 +6672,6 @@ namespace AstroLibMethods
         //
         //  references    :
         //    vallado       2022, 174, alg 12 and alg 13, ex 3-3
-        //
         // -------------------------------------------------------------------------------
 
         public void ecef2ll
@@ -6584,7 +6681,6 @@ namespace AstroLibMethods
         {
             double twopi = 2.0 * Math.PI;
             double small = 0.00000001;         // small value for tolerances
-            double eesqrd = 0.006694379990141;     // eccentricity of earth sqrd
 
             int i;
             double temp, decl, rtasc, olddelta, magr, sintemp, c, s;
@@ -6619,8 +6715,8 @@ namespace AstroLibMethods
             {
                 olddelta = latgd;
                 sintemp = Math.Sin(latgd);
-                c = astroConsts.re / (Math.Sqrt(1.0 - eesqrd * sintemp * sintemp));
-                latgd = Math.Atan((r[2] + c * eesqrd * sintemp) / temp);
+                c = astroConsts.re / (Math.Sqrt(1.0 - astroConsts.eesqrd * sintemp * sintemp));
+                latgd = Math.Atan((r[2] + c * astroConsts.eesqrd * sintemp) / temp);
                 i = i + 1;
             }
 
@@ -6629,7 +6725,7 @@ namespace AstroLibMethods
                 hellp = (temp / Math.Cos(latgd)) - c;
             else
             {
-                s = c * (1.0 - eesqrd);
+                s = c * (1.0 - astroConsts.eesqrd);
                 hellp = r[2] / Math.Sin(latgd) - s;
             }
 
@@ -6708,7 +6804,7 @@ namespace AstroLibMethods
 
             a = 6378.1363;
             // b = sign(r[2]) * 6356.75160056;
-            b = Math.Sign(r[2]) * a * Math.Sqrt(1.0 - 0.006694385);  // find semiminor axis of the earth
+            b = Math.Sign(r[2]) * a * Math.Sqrt(1.0 - astroConsts.eesqrd);  // find semiminor axis of the earth
 
             // -------------- set up initial latitude value  ---------------
             atemp = 1.0 / (a * temp);
@@ -6768,10 +6864,9 @@ namespace AstroLibMethods
             double latgd
             )
         {
-            double eesqrd = 0.006694379990141;     // eccentricity of earth sqrd
 
             // -------------------------  implementation    // ----------------
-            return Math.Atan((1.0 - eesqrd) * Math.Tan(latgd));
+            return Math.Atan((1.0 - astroConsts.eesqrd) * Math.Tan(latgd));
 
         }  //  gd2gc
 
@@ -6797,6 +6892,7 @@ namespace AstroLibMethods
         //  outputs       :
         //    hitearth    - is earth was impacted                    'y' 'n'
         //    hitearthstr - is earth was impacted                    "y - radii" "no"
+        //    rp          - radius of perigee                        km
         //    a           - semimajor axis of transfer               km
         //
         //  locals        :
@@ -6986,6 +7082,7 @@ namespace AstroLibMethods
         //  outputs       :
         //    hitearth    - is earth was impacted                     'y' 'n'
         //    hitearthstr - is earth was impacted                     "y - radii" "no"
+        //    rp          - radius of perigee                         er
         //    a           - semimajor axis of transfer                er
         //
         //  locals        :
@@ -7154,6 +7251,172 @@ namespace AstroLibMethods
 
         } // checkhitearthc
 
+
+        // ------------------------------------------------------------------------------
+        //
+        //                           function sight
+        //
+        //  this function takes the position vectors of two satellites and determines
+        //    if there is line-of-sight between them. an oblate earth with radius of
+        //    1 er is assumed. the process forms the equation of a line between the
+        //    two vectors, differentiates and sets to zero to find the minimum value,
+        //    and plugs that back into the line equation to get the minimum distance.
+        //    the parameter tmin is restricted to [0, 1] - i.e. this tests the segment
+        //    between r1 and r2, not the ray extended beyond either one.
+        //
+        //  author        : david vallado             davallado@gmail.com       20 jan 2025
+        //
+        //  inputs          description                              range / units
+        //    r1          - position vector of the 1st sat            km
+        //    r2          - position vector of the 2nd sat            km
+        //    whichkind   - spherical or ellipsoidal earth             's', 'e' (default)
+        //
+        //  outputs       :
+        //    los         - line of sight exists?                    'y' 'n'
+        //    losstr      - line of sight exists?                    "yes" "no"
+        //
+        //  locals        :
+        //    tr1, tr2    - scaled r1, r2 vectors (z scaled for oblateness)
+        //    adotb       - dot product of tr1, tr2
+        //    tmin        - parametric minimum-distance point along the segment
+        //    asqrd, bsqrd- magnitudes of tr1, tr2 squared
+        //    distsqrd    - min distance squared to earth center, in er^2
+        //
+        //  coupling      :
+        //    dot, mag    - MathTimeLibr
+        //
+        //  references    :
+        //    vallado       2022, 315, alg 35, ex 5-3
+        // ------------------------------------------------------------------------------
+
+        public void sight
+            (
+               double[] r1, double[] r2, char whichkind,
+               out char los, out string losstr
+            )
+        {
+            double[] tr1 = new double[3];
+            double[] tr2 = new double[3];
+            double temp, magr1, magr2, asqrd, bsqrd, adotb, tmin, distsqrd;
+
+            for (int i = 0; i < 3; i++)
+            {
+                tr1[i] = r1[i];
+                tr2[i] = r2[i];
+            }
+
+            // ------------------- scale z component for oblateness -------------------
+            temp = (whichkind == 'e') ? 1.0 / Math.Sqrt(1.0 - astroConsts.eesqrd) : 1.0;
+            tr1[2] = tr1[2] * temp;
+            tr2[2] = tr2[2] * temp;
+
+            magr1 = MathTimeLibr.mag(tr1);
+            magr2 = MathTimeLibr.mag(tr2);
+            asqrd = magr1 * magr1;
+            bsqrd = magr2 * magr2;
+            adotb = MathTimeLibr.dot(tr1, tr2);
+
+            // ---------------------------- find tmin -----------------------------
+            if (Math.Abs(asqrd + bsqrd - 2.0 * adotb) < 0.0001)
+                tmin = 0.0;
+            else
+                tmin = (asqrd - adotb) / (asqrd + bsqrd - 2.0 * adotb);
+
+            // ---------------------------- check los -----------------------------
+            if (tmin < 0.0 || tmin > 1.0)
+            {
+                los = 'y';
+                losstr = "yes";
+            }
+            else
+            {
+                distsqrd = ((1.0 - tmin) * asqrd + adotb * tmin) / (astroConsts.re * astroConsts.re);
+                if (distsqrd > 1.0)
+                {
+                    los = 'y';
+                    losstr = "yes";
+                }
+                else
+                {
+                    los = 'n';
+                    losstr = "no";
+                }
+            }
+        } // sight
+
+
+        // ------------------------------------------------------------------------------
+        //                           function sightc
+        //
+        //  canonical-unit counterpart to sight - same alg 35, but r1/r2 are in er and
+        //  earth radius is 1.0 by definition, so no final division is needed. Added so
+        //  this can be called directly from IOD code (getGaussRoot, anglesgauss,
+        //  angleslaplace) that already works entirely in canonical units, without a
+        //  km round-trip for every candidate root tested.
+        //
+        //  inputs        description                              range / units
+        //    r1c         - position vector of the 1st sat            er
+        //    r2c         - position vector of the 2nd sat            er
+        //    whichkind   - spherical or ellipsoidal earth             's', 'e' (default)
+        //
+        //  outputs       :
+        //    los         - line of sight exists?                    'y' 'n'
+        //    losstr      - line of sight exists?                    "yes" "no"
+        //
+        //  references    : vallado 2001, 291-295, alg 35, ex 5-3
+        // ------------------------------------------------------------------------------
+
+        public void sightc
+            (
+               double[] r1c, double[] r2c, char whichkind,
+               out char los, out string losstr
+            )
+        {
+            double[] tr1 = new double[3];
+            double[] tr2 = new double[3];
+            double temp, magr1, magr2, asqrd, bsqrd, adotb, tmin, distsqrd;
+
+            for (int i = 0; i < 3; i++)
+            {
+                tr1[i] = r1c[i];
+                tr2[i] = r2c[i];
+            }
+
+            temp = (whichkind == 'e') ? 1.0 / Math.Sqrt(1.0 - astroConsts.eesqrd) : 1.0;
+            tr1[2] = tr1[2] * temp;
+            tr2[2] = tr2[2] * temp;
+
+            magr1 = MathTimeLibr.mag(tr1);
+            magr2 = MathTimeLibr.mag(tr2);
+            asqrd = magr1 * magr1;
+            bsqrd = magr2 * magr2;
+            adotb = MathTimeLibr.dot(tr1, tr2);
+
+            if (Math.Abs(asqrd + bsqrd - 2.0 * adotb) < 0.0001)
+                tmin = 0.0;
+            else
+                tmin = (asqrd - adotb) / (asqrd + bsqrd - 2.0 * adotb);
+
+            if (tmin < 0.0 || tmin > 1.0)
+            {
+                los = 'y';
+                losstr = "yes";
+            }
+            else
+            {
+                distsqrd = (1.0 - tmin) * asqrd + adotb * tmin;  // er^2, re canonical = 1.0
+                if (distsqrd > 1.0)
+                {
+                    los = 'y';
+                    losstr = "yes";
+                }
+                else
+                {
+                    los = 'n';
+                    losstr = "no";
+                }
+            }
+        } // sightc
 
 
         // ------------------------------------------------------------------------------
@@ -7433,13 +7696,11 @@ namespace AstroLibMethods
         //    r1          - ijk position vector 1                    km
         //    r2          - ijk position vector 2                    km
         //    dm          - direction of motion                      'L', 'S'
-        //    de          - orbital energy                           'L', 'H'
         //    nrev        - number of revs to complete               0, 1, 2, 3,  
         //
         //  outputs       :
-        //    tmin        - minimum time of flight                   sec
-        //    tminp       - minimum parabolic tof                    sec
-        //    tminenergy  - minimum energy tof                       sec
+        //    tmaxrp      - time of flight for maximum radius of perigee   sec
+        //    v1t         - ijk transfer velocity vector at r1             km/s
         //
         //  locals        :
         //    i           - index
@@ -7594,13 +7855,22 @@ namespace AstroLibMethods
         //    dtsec       - time between r1 and r2                    sec
         //    nrev        - number of revs to complete                0, 1, 2, 3,  
         //    kbi         - psi value for min                     
-        //    show        - control output don't output for speed      'y', 'n'
         //
         //  outputs       :
         //    v1t         - ijk transfer velocity vector              km/s
         //    v2t         - ijk transfer velocity vector              km/s
-        //    detailSum   - summary of iterations
-        //    detailAll   - details of iterations
+        //    outTextSum  - one-line result summary: errorstr status
+        //                  ("" on success, else "gnotconverged"/
+        //                  "ynegative"/"impossible180"), nrev, dm, de,
+        //                  dtsec, psinew, v1t, v2t, loop count, rp, a, dnu
+        //                  (was gated behind show=='y', so a real failure
+        //                  could previously leave this stuck at "ok" from
+        //                  entry unless the caller asked for verbose output -
+        //                  now always reflects errorstr)
+        //    outTextAll  - full diagnostic text: every bisection loop
+        //                  iteration's y/x/dtnew/bounds, and the yneg
+        //                  recovery loop's iterations when triggered (was
+        //                  gated behind show=='y'; now always built)
         //
         //  locals        :
         //    vara        - variable of the iteration,
@@ -7633,8 +7903,8 @@ namespace AstroLibMethods
 
         public void lambertuniv
                (
-               double[] r1, double[] r2, double[] v1, char dm, char de, Int32 nrev, double dtsec, double kbi, char show,
-               out double[] v1t, out double[] v2t, out string detailSum, out string detailAll
+               double[] r1, double[] r2, double[] v1, char dm, char de, Int32 nrev, double dtsec, double kbi,
+               out double[] v1t, out double[] v2t, out string outTextSum, out string outTextAll
                )
         {
             const double small = 0.000001;
@@ -7652,8 +7922,8 @@ namespace AstroLibMethods
 
             // --------------------  initialize values    // ---------------------
             estr = "";  // determine various cases
-            detailSum = "ok";
-            detailAll = "";
+            outTextSum = "ok";
+            outTextAll = "";
             //error = 0;
             psilast = 0.0;
             psinew = 0.0;
@@ -7747,8 +8017,7 @@ namespace AstroLibMethods
                                 y = magr1 + magr2;
 
                             // show loop iteration if ynegktr
-                            if (show == 'y')
-                                detailAll = detailAll + "\r\nyneg" + ynegktr.ToString().PadLeft(3) + "   " + psiold.ToString("0.0000000").PadLeft(12) + "  " +
+                            outTextAll = outTextAll + "\r\nyneg" + ynegktr.ToString().PadLeft(3) + "   " + psiold.ToString("0.0000000").PadLeft(12) + "  " +
                                     y.ToString("0.0000000").PadLeft(15) + " " + xold.ToString("0.00000").PadLeft(13) + " " +
                                     dtnew.ToString("0.#######").PadLeft(15) + " " + vara.ToString("0.#######").PadLeft(15) + " " +
                                     upper.ToString("0.#######").PadLeft(15) + " " + lower.ToString("0.#######").PadLeft(15) + " " + ynegktr.ToString();
@@ -7811,8 +8080,7 @@ namespace AstroLibMethods
                         }
 
                         // save info of each iteration
-                        if (show == 'y')
-                            detailAll = detailAll + "\r\n" + loops.ToString().PadLeft(3) + "  y " + y.ToString("0.0000000").PadLeft(12) + " x " +
+                        outTextAll = outTextAll + "\r\n" + loops.ToString().PadLeft(3) + "  y " + y.ToString("0.0000000").PadLeft(12) + " x " +
                                 xold.ToString("0.0000000") + " " + dtsec.ToString("0.#######") + " dtnew " +
                                 dtnew.ToString("0.#######") + " " + lower.ToString("0.#######") + " " +
                                 upper.ToString("0.#######") + " psinew " + psinew.ToString("0.#######") + " "
@@ -7861,7 +8129,7 @@ namespace AstroLibMethods
                 errorstr = "impossible180";
                 // use battin and hodograph
                 string errorsumb, erroroutb;
-                lambertbattin(r1, r2, v1, dm, de, nrev, dtsec, show, out v1t, out v2t, out errorsumb, out erroroutb);
+                lambertbattin(r1, r2, v1, dm, de, nrev, dtsec, out v1t, out v2t, out errorsumb, out erroroutb);
             }
 
             double dnu;
@@ -7874,8 +8142,7 @@ namespace AstroLibMethods
                     dnu = dnu + 360.0;
             }
 
-            if (show == 'y')
-                detailSum = errorstr + " " + nrev.ToString().PadLeft(3) + "   " + dm + "  " + de + " " +
+            outTextSum = errorstr + " " + nrev.ToString().PadLeft(3) + "   " + dm + "  " + de + " " +
                     dtsec.ToString("0.#######").PadLeft(15) + " " + psinew.ToString("0.000000").PadLeft(15) +
                     v1t[0].ToString("0.0000000").PadLeft(15) + v1t[1].ToString("0.0000000").PadLeft(15) + v1t[2].ToString("0.0000000").PadLeft(15) +
                     v2t[0].ToString("0.0000000").PadLeft(15) + v2t[1].ToString("0.0000000").PadLeft(15) + v2t[2].ToString("0.0000000").PadLeft(15) +
@@ -8130,13 +8397,31 @@ namespace AstroLibMethods
         //                  only affects nrev >= 1 solutions
         //    dtsec       - time between r1 and r2                     sec
         //    nrev        - number of revs to complete                 0, 1, 2, 3,  
-        //    show        - control output don't output for speed      'y', 'n'
         //
         //  outputs       :
         //    v1t         - ijk transfer velocity vector               km/s
         //    v2t         - ijk transfer velocity vector               km/s
-        //    detailSum   - summary of iterations
-        //    detailAll   - details of iterations
+        //    outTextSum  - status: "ok" on success, else a short
+        //                  description of the failure (NOTE: this is set
+        //                  to "ok" unconditionally at entry and is not
+        //                  currently updated on failure - a pre-existing
+        //                  limitation, not something this renaming pass
+        //                  changed; callers checking outTextSum != "ok"
+        //                  should be aware it will not currently catch
+        //                  every failure mode - see calcps's own NaN/Inf
+        //                  check on v1t for the actual validity test)
+        //    outTextAll  - full diagnostic text: every Halley/Battin loop
+        //                  iteration's y/x/h1/h2/b/f (or y/x/k2/b/u/y1 in
+        //                  the standard-processing branch)
+        //
+        //  CAUTION: this function is called up to ~120 times per single
+        //  Gooding solve (see calcps), each with its own loop of up to 30
+        //  iterations - building outTextAll unconditionally here means up
+        //  to ~3600 string appends per solve. Re-enabled per explicit
+        //  request (converting a previously-commented-out C# draft, not
+        //  MATLAB this time); if this shows up as a real slowdown on full
+        //  TestAll/Gooding runs, the fix is to drop or bound this trace,
+        //  same as noted for kepler above.
         //
         //  references    :
         //    vallado       2022, 505, Alg 61, ex 7-5
@@ -8145,8 +8430,8 @@ namespace AstroLibMethods
 
         public void lambertbattin
                (
-               double[] r1, double[] r2, double[] v1, char dm, char de, Int32 nrev, double dtsec, char show,
-               out double[] v1t, out double[] v2t, out string detailSum, out string detailAll
+               double[] r1, double[] r2, double[] v1, char dm, char de, Int32 nrev, double dtsec,
+               out double[] v1t, out double[] v2t, out string outTextSum, out string outTextAll
                )
         {
             const double small = 0.0000000001;
@@ -8158,8 +8443,8 @@ namespace AstroLibMethods
             double[] v1dvl = new double[3];
             double[] v2dvl = new double[3];
             double[] v2 = new double[3];
-            detailSum = "ok";
-            detailAll = "";
+            outTextSum = "ok";
+            outTextAll = "";
 
             // needed since assignments aren't at root level in procedure
             v1t = new double[] { 0.0, 0.0, 0.0 };
@@ -8240,9 +8525,8 @@ namespace AstroLibMethods
                         xn = 1.0;
                     }
 
-                    // output to show all iterations, and also uncomment errorsum in show == 'n'
-                    if (show == 'y')
-                        detailAll = detailAll + "\n " + loops + " yh " + y.ToString("0.#######") + " x " + x.ToString("0.#######") +
+                    // per-iteration diagnostic trace - see CAUTION below re: performance
+                    outTextAll = outTextAll + "\n " + loops + " yh " + y.ToString("0.#######") + " x " + x.ToString("0.#######") +
                              " h1 " + h1.ToString("0.#######") + " h2 " + h2.ToString("0.#######") +
                              " b " + b.ToString("0.#######") + " f " + f.ToString("0.#######");
 
@@ -8302,9 +8586,8 @@ namespace AstroLibMethods
                         xn = 1.0;
                     }
 
-                    // output to show all iterations, and also uncomment errorsum in show == 'n'
-                    if (show == 'y')
-                        detailAll = detailAll + "\n " + loops + " yb " + y.ToString("0.#######") + " x " + x.ToString("0.#######") +
+                    // per-iteration diagnostic trace - see CAUTION below re: performance
+                    outTextAll = outTextAll + "\n " + loops + " yb " + y.ToString("0.#######") + " x " + x.ToString("0.#######") +
                             " k2 " + k2.ToString("0.#######") + " b " + b.ToString("0.#######") +
                             " u " + u.ToString("0.#######") + " y1 " + y1.ToString("0.#######");
                 }  // while
@@ -8338,8 +8621,8 @@ namespace AstroLibMethods
         //    dts         - desired time                             s
         //
         //  outputs       :
-        //    rinit       - final rel position of int                m or km
-        //    vinit       - final rel velocity of int                m or km/s
+        //    rint        - final rel position of int                m or km
+        //    vint        - final rel velocity of int                m or km/s
         //
         //  locals        :
         //    nt          - angular velocity times time              rad
@@ -8482,7 +8765,6 @@ namespace AstroLibMethods
             out double[] rsecef, out double[] vsecef
             )
         {
-            const double eesqrd = 0.00669437999013;
             double sinlat, cearth, rdel, rk;
 
             // needed since assignments arn't at root level in procedure
@@ -8493,9 +8775,9 @@ namespace AstroLibMethods
             sinlat = Math.Sin(latgd);
 
             // -------  find rdel and rk components of site vector  -----------
-            cearth = astroConsts.re / Math.Sqrt(1.0 - (eesqrd * sinlat * sinlat));
+            cearth = astroConsts.re / Math.Sqrt(1.0 - (astroConsts.eesqrd * sinlat * sinlat));
             rdel = (cearth + alt) * Math.Cos(latgd);
-            rk = ((1.0 - eesqrd) * cearth + alt) * sinlat;
+            rk = ((1.0 - astroConsts.eesqrd) * cearth + alt) * sinlat;
 
             // ----------------  find site position vector  -------------------
             rsecef[0] = rdel * Math.Cos(lon);
@@ -8518,11 +8800,24 @@ namespace AstroLibMethods
         //
         //  this procedure solves the problem of orbit determination using three
         //    optical sightings and the method of laplace. the 8th order root is generally 
-        //    the big point of discussion. A Halley iteration permits a quick solution to 
-        //    find the correct root, with a starting guess of 20000 km. the general 
-        //    formulation yields polynomial coefficients that are very large, and can easily 
-        //    become overflow operations. Thus, canonical units are used only until teh root is found, 
-        //    then regular units are resumed. 
+        //    the big point of discussion. several things apply. the coefficients are generally
+        //    quite large and canonical units are used only until the root is found, 
+        //    then regular units are resumed. there is usually only 1 real positive root
+        //    (Der AAS 19-626). only in cases where poly[3] is negative and poly[6] is
+        //    positive could there be multiple positive real roots. laplace has a limitation
+        //    in that the octic is derived from a truncated Taylor-series curve fit of the LOS
+        //    history around t2, valid only when the observation span (tau13) is a small fraction
+        //    of the orbit's period. once tau13 approaches or exceeds roughly one full revolution,
+        //    the dropped higher-order terms are no longer negligible and the polynomial's real
+        //    positive roots - however many there are - stop corresponding to the true orbit radius.
+        //    testing indicates that GEO multi-rev cases with tau13 larger than ~1.2-2.2 orbital periods 
+        //    consistently finds two roots, both 2x+ off the true radius. no downstream root-selection
+        //    heuristic (occultation filtering, cross-checking against Gauss, etc.) can recover
+        //    the correct answer in this regime, because it's not among the candidates being
+        //    chosen between (see checkArcVsPeriod below, which flags this into outTextAll). for
+        //    long-arc cases, prefer double-r or gooding, which do not rely on a local series
+        //    truncation. a fallback position is a halley iteration permits a quick solution to
+        //    find a root, with a starting guess of 20000 km. 
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
@@ -8542,9 +8837,17 @@ namespace AstroLibMethods
         //    rs3          - eci site position vector #3                  km
         //
         //  outputs        :
-        //    r2           -  position vector                             km
-        //    v2           -  velocity vector                             km / s
-        //    errstr       - output results for debugging
+        //    r2           -  position vector at t2                        km
+        //    v2           -  velocity vector at t2                        km / s
+        //    bigr2        -  magnitude of r2 (chosen octic root)          km
+        //    outTextAll   - full diagnostic text: tau values, LOS vectors,
+        //                   ldot/lddot, rs2dot/rs2ddot, d/d1/d2 determinants,
+        //                   poly coefficients, root search detail, r2/rho,
+        //                   and any checkArcVsPeriod warning (was gated
+        //                   behind show=='a'; now always built)
+        //    outTextSum   - one-line result summary: bigr2, root count, and
+        //                   any arc/period or degenerate-geometry warning
+        //                   (was gated behind show=='y'; now always built)
         //
         //  locals         :
         //    l1           - line of sight vector for 1st
@@ -8597,7 +8900,7 @@ namespace AstroLibMethods
                 double jd1, double jdf1, double jd2, double jdf2, double jd3, double jdf3, char diffsites,
                 double[] rs1, double[] rs2, double[] rs3,
                 out double[] r2, out double[] v2,
-                out double bigr2, out string errstr
+                out double bigr2, out string outTextAll, out string outTextSum
         )
         {
             double[] poly = new double[10];
@@ -8638,14 +8941,12 @@ namespace AstroLibMethods
             double[,] lir = new double[3, 3];
             //double p, a, ecc, incl, raan, argp, nu, u, m, l, argper;
             string chk3roots;
-            char show;
-            show = 'a';  // show all
-            show = 'y';  // show just root info
             bigr2 = 0.0;
 
             r2 = new double[] { 0.0, 0.0, 0.0 };
             v2 = new double[] { 0.0, 0.0, 0.0 };
-            errstr = "";
+            outTextAll = "";
+            outTextSum = "";
 
             double d, d1c, d2c, d3c, d4c, rho, s1, s2, s3, s4, s5, s6, rhodot, tau12, tau32, tau13,
                 l2dotrs;
@@ -8654,7 +8955,7 @@ namespace AstroLibMethods
             // canonical only through forming and solving the 8th order polynomial
             double tu = Math.Sqrt(astroConsts.re * astroConsts.re * astroConsts.re / astroConsts.mu);
 
-            // ----------------------   initialize    // -----------------------
+            // ----------------------   initialize    -----------------------
             double lod = 0.0;  // leave zero for now
             // switch to canonical
             double omegaearthc = astroConsts.earthrot * (1.0 - lod / 86400.0) * tu;  // rad/tu
@@ -8674,8 +8975,7 @@ namespace AstroLibMethods
             tau13c = tau13 / tu;
             tau32c = tau32 / tu;
 
-            if (show == 'a' || show == 'y')
-                errstr = errstr + "tau12 " + tau12.ToString() + " tau13 " + tau13.ToString() + " tau32 " + tau32.ToString() + "\n";
+            outTextAll = outTextAll + "tau12 " + tau12.ToString() + " tau13 " + tau13.ToString() + " tau32 " + tau32.ToString() + "\n";
 
             // switch to canonical
             for (int i = 0; i < 3; i++)
@@ -8697,18 +8997,15 @@ namespace AstroLibMethods
             los3[1] = Math.Cos(tdecl3) * Math.Sin(trtasc3);
             los3[2] = Math.Sin(tdecl3);
 
-            if (show == 'a')
-            {
-                errstr = errstr + "los1 " + los1[0].ToString("0.000000000000") + " " +
+            outTextAll = outTextAll + "los1 " + los1[0].ToString("0.000000000000") + " " +
                 los1[1].ToString("0.000000000000") + " " + los1[2].ToString("0.000000000000") +
                 " " + MathTimeLibr.mag(los1).ToString("0.000000000000") + "\n";
-                errstr = errstr + "los2 " + los2[0].ToString("0.000000000000") + " " +
+            outTextAll = outTextAll + "los2 " + los2[0].ToString("0.000000000000") + " " +
                     los2[1].ToString("0.000000000000") + " " + los2[2].ToString("0.000000000000") +
                     " " + MathTimeLibr.mag(los2).ToString("0.000000000000") + "\n";
-                errstr = errstr + "los3 " + los3[0].ToString("0.000000000000") + " " +
+            outTextAll = outTextAll + "los3 " + los3[0].ToString("0.000000000000") + " " +
                     los3[1].ToString("0.000000000000") + " " + los3[2].ToString("0.0000000000") +
                     " " + MathTimeLibr.mag(los3).ToString("0.000000000000") + "\n";
-            }
 
             // --------------------------------------------------------------
             // using lagrange interpolation formula to derive an expression
@@ -8723,17 +9020,18 @@ namespace AstroLibMethods
             s6 = 2.0 / (-tau13c * tau32c);
 
             // Escobal says that for Earth orbiting satellites the ldot and lddot need additional terms
+            // Burnett & Sinclair, "Unit Sphere-Constrained and Higher Order Interpolations in Laplace's Method,"
+            // JAS 2019, suggests a true spherical interpolation (slerp, spherical Bezier, etc.) satisfing these
+            // identities by construction; projecting onto them captures the same leading-order correction
+            // without reconstructing the whole interpolation scheme. mixed results. may input later..
             for (int i = 0; i < 3; i++)
             {
                 ldot[i] = s1 * los1[i] + s2 * los2[i] + s3 * los3[i];  // rad / s
                 lddot[i] = s4 * los1[i] + s5 * los2[i] + s6 * los3[i];  // rad / s^2
             }
 
-            if (show == 'a')
-            {
-                errstr = errstr + "ldot " + ldot[0].ToString() + " " + ldot[1].ToString() + " " + ldot[2].ToString() + "\n";
-                errstr = errstr + "lddot " + lddot[0].ToString() + " " + lddot[1].ToString() + " " + lddot[2].ToString() + "\n";
-            }
+            outTextAll = outTextAll + "ldot " + ldot[0].ToString() + " " + ldot[1].ToString() + " " + ldot[2].ToString() + "\n";
+            outTextAll = outTextAll + "lddot " + lddot[0].ToString() + " " + lddot[1].ToString() + " " + lddot[2].ToString() + "\n";
 
             // -------------------- find 2nd derivative of rs ---------------
             MathTimeLibr.cross(rs1c, rs2c, out temp);
@@ -8745,11 +9043,8 @@ namespace AstroLibMethods
                 // ------- all sightings from same sites ---------
                 MathTimeLibr.cross(earthratec, rs2c, out rs2cdot);
                 MathTimeLibr.cross(earthratec, rs2cdot, out rs2cddot);
-                if (show == 'a')
-                {
-                    errstr = errstr + "rs2dot " + rs2cdot[0].ToString() + " " + rs2cdot[1].ToString() + " " + rs2cdot[2].ToString() + "ER/TU \n";
-                    errstr = errstr + "rs2ddot " + rs2cddot[0].ToString() + " " + rs2cddot[1].ToString() + " " + rs2cddot[2].ToString() + "\n";
-                }
+                outTextAll = outTextAll + "rs2dot " + rs2cdot[0].ToString() + " " + rs2cdot[1].ToString() + " " + rs2cdot[2].ToString() + "ER/TU \n";
+                outTextAll = outTextAll + "rs2ddot " + rs2cddot[0].ToString() + " " + rs2cddot[1].ToString() + " " + rs2cddot[2].ToString() + "\n";
             }
             else
             {
@@ -8760,11 +9055,8 @@ namespace AstroLibMethods
                     rs2cdot[i] = s1 * rs1c[i] + s2 * rs2c[i] + s3 * rs3c[i];
                     rs2cddot[i] = s4 * rs1c[i] + s5 * rs2c[i] + s6 * rs3c[i];
                 }
-                if (show == 'a')
-                {
-                    errstr = errstr + "rs2dot " + rs2cdot[0].ToString() + " " + rs2cdot[1].ToString() + " " + rs2cdot[2].ToString() + "ER/TU\n";
-                    errstr = errstr + "rs2ddot " + rs2cddot[0].ToString() + " " + rs2cddot[1].ToString() + " " + rs2cddot[2].ToString() + "\n";
-                }
+                outTextAll = outTextAll + "rs2dot " + rs2cdot[0].ToString() + " " + rs2cdot[1].ToString() + " " + rs2cdot[2].ToString() + "ER/TU\n";
+                outTextAll = outTextAll + "rs2ddot " + rs2cddot[0].ToString() + " " + rs2cddot[1].ToString() + " " + rs2cddot[2].ToString() + "\n";
             }
             for (int i = 0; i < 3; i++)
             {
@@ -8796,8 +9088,7 @@ namespace AstroLibMethods
             d2c = MathTimeLibr.determinant(dmat2c, 3);
             d3c = MathTimeLibr.determinant(dmat3c, 3);
             d4c = MathTimeLibr.determinant(dmat4c, 3);
-            if (show == 'a')
-                errstr = errstr + "d " + d.ToString() + " d1 " + d1c.ToString() + " d2 " + d2c.ToString() + "\n";
+            outTextAll = outTextAll + "d " + d.ToString() + " d1 " + d1c.ToString() + " d2 " + d2c.ToString() + "\n";
 
             if (Math.Abs(d) > 1.0e-12)
             {
@@ -8822,7 +9113,7 @@ namespace AstroLibMethods
                 //poly[9] = -astroConsts.mu * astroConsts.mu * 4.0 * d2 * d2 / (d * d); 
 
                 if (poly[3] < 0.0 && poly[6] > 0.0)
-                    errstr = errstr + "LAPLACE may have multiple roots 1.0  0.0  " + poly[3] + "  0.0 0.0 " + poly[6] + " 0.0 0.0 " + poly[9] + "\n";
+                    outTextAll = outTextAll + "LAPLACE may have multiple roots 1.0  0.0  " + poly[3] + "  0.0 0.0 " + poly[6] + " 0.0 0.0 " + poly[9] + "\n";
 
                 //Console.WriteLine( "Poly------------------------------");
                 //Console.WriteLine( poly[1] + " " + poly[2] + " " + poly[3] + " " + poly[4]);
@@ -8835,14 +9126,9 @@ namespace AstroLibMethods
 
                 // simply iterate to find the correct root
                 bigr2 = 100.0;
-                // can iterate Curtis p 289 simple derivative of the poly
-                // makes sense since the values are so huge in the polynomial. JAS 2015 Halley back subs sometimes better, but not always
-                // do as Halley iteration since derivatives are possible. tests at LEO, GPS, GEO,
-                // all seem to converge to the proper answer
-                int kk = 0;
-                // switch to canonical units
-                bigr2c = 20000.0 / astroConsts.re; // guess ~GPS altitude
-                while (Math.Abs(bigr2 - bigr2c) > 8.0e-5 && kk < 15)  // do in er, 0.5 km
+                int kk0 = 0;
+                bigr2c = 20000.0 / astroConsts.re;
+                while (Math.Abs(bigr2 - bigr2c) > 8.0e-5 && kk0 < 15)
                 {
                     bigr2 = bigr2c;
                     deriv = Math.Pow(bigr2, 8) + poly[3] * Math.Pow(bigr2, 6)
@@ -8855,21 +9141,20 @@ namespace AstroLibMethods
                     //bigr2n = bigr2 - deriv / derivn1;
                     // Halley iteration
                     bigr2c = bigr2 - (2.0 * deriv * deriv1) / (2.0 * deriv1 * deriv1 - deriv * deriv2);
-                    if (show == 'a')
-                        errstr = errstr + "bigr itera " + bigr2c.ToString() + " " + bigr2.ToString() + "\n";
-                    kk = kk + 1;
+                    outTextAll = outTextAll + "bigr itera " + bigr2c.ToString() + " " + bigr2.ToString() + "\n";
+                    kk0 = kk0 + 1;
                 }
 
                 //                if (show == 'y' || show == 'a')
                 {
-                    errstr = errstr + "Poly--------- " + poly[1] + " " + poly[3] + " " + poly[6] + " " + poly[9]
-                    + " tau " + tau12.ToString() + " " + tau32.ToString() + " sec ";
+                    outTextAll = outTextAll + "Poly--------- " + poly[1] + " " + poly[3] + " " + poly[6] + " " + poly[9]
+                       + " tau " + tau12.ToString() + " " + tau32.ToString() + " sec ";
 
                     if (poly[3] < 0.0 && poly[6] > 0.0)
                         chk3roots = "3 root poss ";
                     else
                         chk3roots = "1 root poss ";
-                    errstr = errstr + chk3roots + " root pick " + (bigr2c * astroConsts.re).ToString(); // + "\n";
+                    outTextAll = outTextAll + chk3roots + " root pick " + (bigr2c * astroConsts.re).ToString() + "\n";
                 }
 
                 //if (bigr2c < 0.0 || bigr2c * astroConsts.re > 75000.0)
@@ -8883,8 +9168,7 @@ namespace AstroLibMethods
                 for (int k = 0; k < 3; k++)
                     r2c[k] = rho * los2[k] + rs2c[k];
 
-                if (show == 'a')
-                    errstr = errstr + " r2 " + r2c[0].ToString() + " " + r2c[1].ToString() + " "
+                outTextAll = outTextAll + " r2 " + r2c[0].ToString() + " " + r2c[1].ToString() + " "
                           + r2c[2].ToString() + " diffsites " + diffsites + "\n"
                           + " rho " + rho.ToString() + " d1/d " + (d1c / d).ToString() + " d2/d " + (d2c / d).ToString() + "\n";
 
@@ -8928,16 +9212,44 @@ namespace AstroLibMethods
                 //for (int i = 0; i < 3; i++)
                 //    v2[i] = rhodot * los2[i] + rho * ldot[i] + rs2dot[i];
 
-                if (show == 'a')
-                    errstr = errstr + "Laplace Determinant value was zero " + d.ToString() + "\n";
+                outTextAll = outTextAll + "Laplace Determinant value was zero " + d.ToString() + "\n";
+                outTextSum = "Laplace: FAILED - determinant was zero (near-coplanar or degenerate geometry)";
             }
 
         }  // angleslaplace
 
 
+       // ---------------------------------------------------------------------------------
+        //
+        //                           function getGaussRoot
+        //
+        //  get root from Gauss to use as a seed for double-r and Gooding. note bigr2 is
+        //  output in km, but calcs are in canonical units for better root solving
+        //  performance.
+        //
+        //  inputs          description                              range / units
+        //    tdecl1       - declination #1                               rad
+        //    tdecl2       - declination #2                               rad
+        //    tdecl3       - declination #3                               rad
+        //    trtasc1      - right ascension #1                           rad
+        //    trtasc2      - right ascension #2                           rad
+        //    trtasc3      - right ascension #3                           rad
+        //    jd1, jdf1    - julian date of 1st sighting                  days from 4713 bc
+        //    jd2, jdf2    - julian date of 2nd sighting                  days from 4713 bc
+        //    jd3, jdf3    - julian date of 3rd sighting                  days from 4713 bc
+        //    rseci1       - eci site position vector #1                  km
+        //    rseci2       - eci site position vector #2                  km
+        //    rseci3       - eci site position vector #3                  km
+        //
+        //  outputs       :
+        //    bigr2        - magnitude of r2 (chosen octic root)          km
+        //
+        //  NOTE: same-site geometry is assumed (diffsites='n') - rs2cdot/rs2cddot are
+        //  computed via the earth-rotation cross product, not a Lagrange fit across
+        //  three site positions, so this is not a drop-in replacement for angleslaplace/
+        //  anglesgauss's own root-finding when observations come from different sites.
         // ---------------------------------------------------------------------------------
-        // get root from Gauss to use as a seed for double-r and Gooding
-        // note bigr2 is output in km, but calcs are in cannonical for better root solving performance
+
         public void getGaussRoot
             (
             double tdecl1, double tdecl2, double tdecl3,
@@ -9068,12 +9380,23 @@ namespace AstroLibMethods
         //                           procedure anglesgauss
         //
         //  this procedure solves the problem of orbit determination using three
-        //    optical sightings. the solution procedure uses the gaussian technique.
-        //    the 8th order root is generally the big point of discussion. A Halley iteration
-        //    permits a quick solution to find the correct root, with a starting guess of 20000 km. 
-        //    the general formulation yields polynomial coefficients that are very large, and can easily 
-        //    become overflow operations. Thus, canonical units are used only until the root is found, 
-        //    then regular units are resumed. 
+        //    optical sightings and the method of gauss. the 8th order root is generally 
+        //    the big point of discussion. several things apply. the coefficients are generally
+        //    quite large and canonical units are used only until the root is found, 
+        //    then regular units are resumed. there is usually only 1 real positive root
+        //    (Der AAS 19-626). only in cases where poly[3] is negative and poly[6] is
+        //    positive could there be multiple positive real roots. laplace has a limitation
+        //    in that the octic is derived from a truncated f-g series expansion of position around t2,
+        //    valid only when the observation span (tau13) is a small fraction of the orbit's period.
+        //    once tau13 approaches or exceeds roughly one full revolution, this doesn't merely mis-locate
+        //    the root - it frequently produces ZERO positive real roots. testing indicates that GEO multi-rev
+        //    cases with tau13 larger than ~1.2-2.2 orbital periods consistently finds ZERO roots. no
+        //    downstream root-selection heuristic (occultation filtering, cross-checking against Gauss, etc.) can
+        //    recover the correct answer in this regime, because it's not among the candidates being
+        //    chosen between (see checkArcVsPeriod below, which flags this into outTextAll). for
+        //    long-arc cases, prefer double-r or gooding, which do not rely on a local series
+        //    truncation. a fallback position is a halley iteration permits a quick solution to
+        //    find a root, with a starting guess of 20000 km. 
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
@@ -9087,15 +9410,20 @@ namespace AstroLibMethods
         //    jd1, jdf1    - julian date of 1st sighting                  days from 4713 bc
         //    jd2, jdf2    - julian date of 2nd sighting                  days from 4713 bc
         //    jd3, jdf3    - julian date of 3rd sighting                  days from 4713 bc
-        //    rs1          - eci site position vector #1                  km
-        //    rs2          - eci site position vector #2                  km
-        //    rs3          - eci site position vector #3                  km
+        //    rseci1       - eci site position vector #1                  km
+        //    rseci2       - eci site position vector #2                  km
+        //    rseci3       - eci site position vector #3                  km
         //
         //  outputs        :
         //    r2           -  position vector at t2                       km
         //    v2           -  velocity vector at t2                       km / s
-        //    errstr       - output results for debugging
-        //
+        //    outTextAll   - full diagnostic text: tau values, los vectors,
+        //                   matrix/determinant intermediates, poly coefficients,
+        //                   root search detail, r2/rho, gibbs/hgibbs results,
+        //                   and any checkArcVsPeriod warning (was gated behind
+        //                   show=='a'/'y'; now always built)
+        //    outTextSum   - one-line result summary: bigr2, root count, and
+        //                   any arc/period warning
         //  locals         :
         //    los1         - line of sight vector for 1st
         //    los2         - line of sight vector for 2nd
@@ -9131,7 +9459,7 @@ namespace AstroLibMethods
             double trtasc1, double trtasc2, double trtasc3,
             double jd1, double jdf1, double jd2, double jdf2, double jd3, double jdf3,
             double[] rseci1, double[] rseci2, double[] rseci3, out double[] r2, out double[] v2,
-            out string errstr
+            out string outTextAll, out string outTextSum
         )
         {
             const double rad = 180.0 / Math.PI;
@@ -9155,7 +9483,8 @@ namespace AstroLibMethods
             r2 = new double[] { 0.0, 0.0, 0.0 };
             v2 = new double[] { 0.0, 0.0, 0.0 };
             double f1old, g1old, f3old, g3old;
-            errstr = "";
+            outTextAll = "";
+            outTextSum = "";
             double deriv, deriv1, deriv2, bigr2c;
             double rdot, tau12, tau32, tau13, u, udot, p, f1, g1, f3, g3, a, ecc, incl, raan, argp,
             nu, m, l, argper, bigr2, a1, a1u, a3, a3u, d, c1, c2, c3, l2dotrs, magr2,
@@ -9165,10 +9494,7 @@ namespace AstroLibMethods
             // canonical only through forming and solving the 8th order polynomial
             double tu = Math.Sqrt(astroConsts.re * astroConsts.re * astroConsts.re / astroConsts.mu);
 
-            // ----------------------   initialize    // ----------------------- 
-            char show;
-            show = 'a';  // show all
-            show = 'y';  // show just root info
+            // ----------------------   initialize -----------------------
 
             a = 0.0;
             f1old = 0.0;
@@ -9182,18 +9508,15 @@ namespace AstroLibMethods
             tau13 = (jd1 - jd3) * 86400.0 + (jdf1 - jdf3) * 86400.0;
             tau32 = (jd3 - jd2) * 86400.0 + (jdf3 - jdf2) * 86400.0;
 
-            // switch to canonical????????????????????????????????????????????
+            // switch to canonical
             tau12c = tau12 / tu;
             tau13c = tau13 / tu;
             tau32c = tau32 / tu;
 
-            if (show == 'a')
-            {
-                errstr = errstr + " tau12 " + tau12.ToString() + " " + " tau32 " + tau32.ToString()
+                outTextAll = outTextAll + " tau12 " + tau12.ToString() + " " + " tau32 " + tau32.ToString()
                     + " tau13 " + tau13.ToString() + " s \n";
-                errstr = errstr + " tau12 " + tau12c.ToString() + " " + " tau32 " + tau32c.ToString()
+                outTextAll = outTextAll + " tau12 " + tau12c.ToString() + " " + " tau32 " + tau32c.ToString()
                     + " tau13 " + tau13c.ToString() + " TU \n";
-            }
 
             // ----------------  find line of sight vectors  ---------------- 
             los1[0] = Math.Cos(tdecl1) * Math.Cos(trtasc1);
@@ -9241,19 +9564,17 @@ namespace AstroLibMethods
             lmati[1, 2] = (-los1[0] * los3[1] + los1[1] * los3[0]) / d;
             lmati[2, 2] = (los1[0] * los2[1] - los1[1] * los2[0]) / d;
 
-            //errstr = errstr + " lmati " 
+            //outTextAll = outTextAll + " lmati " 
             //       + lmati[0, 0].ToString() + " " + lmati[1, 0].ToString() + " " + lmati[2, 0].ToString() + " \n"
             //       + lmati[0, 1].ToString() + " " + lmati[1, 1].ToString() + " " + lmati[2, 1].ToString() + " \n"
             //       + lmati[0, 2].ToString() + " " + lmati[1, 2].ToString() + " " + lmati[2, 2].ToString() + " \n";
-            if (show == 'a')
-                errstr = errstr + " rsmatc "
+                outTextAll = outTextAll + " rsmatc "
                    + rsmatc[0, 0].ToString() + " " + rsmatc[1, 0].ToString() + " " + rsmatc[2, 0].ToString() + " \n"
                    + rsmatc[0, 1].ToString() + " " + rsmatc[1, 1].ToString() + " " + rsmatc[2, 1].ToString() + " \n"
                    + rsmatc[0, 2].ToString() + " " + rsmatc[1, 2].ToString() + " " + rsmatc[2, 2].ToString() + " \n";
 
             lir = MathTimeLibr.matmult(lmati, rsmatc, 3, 3, 3);
-            if (show == 'a')
-                errstr = errstr + " lir "
+                outTextAll = outTextAll + " lir "
                    + lir[0, 0].ToString() + " " + lir[1, 0].ToString() + " " + lir[2, 0].ToString() + " \n"
                    + lir[0, 1].ToString() + " " + lir[1, 1].ToString() + " " + lir[2, 1].ToString() + " \n"
                    + lir[0, 2].ToString() + " " + lir[1, 2].ToString() + " " + lir[2, 2].ToString() + " \n";
@@ -9273,16 +9594,14 @@ namespace AstroLibMethods
             d1c = lir[1, 0] * a1c - lir[1, 1] + lir[1, 2] * a3c;
             d2c = lir[1, 0] * a1uc + lir[1, 2] * a3uc;
 
-            if (show == 'a')
-                errstr = errstr + " a1 " + a1c.ToString() + " " + " a1u " + a1uc.ToString() + " "
+                outTextAll = outTextAll + " a1 " + a1c.ToString() + " " + " a1u " + a1uc.ToString() + " "
                     + " a3 " + a3c.ToString() + " " + " a3u " + a3uc.ToString() + " "
                     + " d1 " + d1c.ToString() + " " + " d2 " + d2c.ToString() + " canonical \n";
 
             // -------- solve eighth order poly not same as laplace --------- 
             // switch to canonical to prevent overflows in the poly
             l2dotrs = MathTimeLibr.dot(los2, rs2c);
-            if (show == 'a')
-                errstr = errstr + " ldotrs " + l2dotrs.ToString() + "\n";
+                outTextAll = outTextAll + " ldotrs " + l2dotrs.ToString() + "\n";
             poly[1] = 1.0;  // r2^8
             poly[2] = 0.0;
             poly[3] = -(d1c * d1c + 2.0 * d1c * l2dotrs + MathTimeLibr.mag(rs2c) * MathTimeLibr.mag(rs2c));
@@ -9293,9 +9612,9 @@ namespace AstroLibMethods
             poly[8] = 0.0;
             poly[9] = -d2c * d2c;  // no mu^2, r2^0
 
-            errstr = errstr + "Gauss poly " + poly[3] + " " + poly[6] + " " + poly[9] + "\n";
+            outTextAll = outTextAll + "Gauss poly " + poly[3] + " " + poly[6] + " " + poly[9] + "\n";
             if (poly[3] < 0.0 && poly[6] > 0.0)
-                errstr = errstr + "GAUSS may have multiple roots 1.0  0.0  " + poly[3] + "  0.0 0.0 " + poly[6] + " 0.0 0.0 " + poly[9] + "\n";
+                outTextAll = outTextAll + "GAUSS may have multiple roots 1.0  0.0  " + poly[3] + "  0.0 0.0 " + poly[6] + " 0.0 0.0 " + poly[9] + "\n";
 
             // note that there will usually be only 1 real positive root (See Der AAS 19-626)
             // only in cases where poly[3] is negative and poly[6] is positive could there be multiple
@@ -9351,19 +9670,6 @@ namespace AstroLibMethods
                 (6.0 * (tau32 - tau12));
             lir = MathTimeLibr.matmult(lmati, rsmat, 3, 3, 3);
 
-
-            if (show == 'y' || show == 'a')
-            {
-                //        errstr = errstr + "Poly--------- " + poly[1] + " " + poly[3] + " " + poly[6] + " " + poly[9]
-                //        + " tau " + tau12.ToString() + " " + tau32.ToString() + " sec ";
-
-                //if (poly[3] < 0.0 && poly[6] > 0.0)
-                //    chk3roots = "3 root poss ";
-                //else
-                //    chk3roots = "1 root poss ";
-                //         errstr = errstr + chk3roots + " root pick " + bigr2.ToString(); // + "\n";  // + " " + bigr2nx.ToString()
-            }
-
             // ------------- solve matrix with u2 better known -------------- 
             u = astroConsts.mu / (bigr2 * bigr2 * bigr2);
 
@@ -9380,8 +9686,7 @@ namespace AstroLibMethods
             rhonew2 = rhomat[1] / c2;
             rhonew3 = rhomat[2] / c3;
 
-            if (show == 'a')
-                errstr = errstr + " rhonew start " + rhonew1.ToString() + " " + rhonew2.ToString() + " " + rhonew3.ToString() + "\n";
+                outTextAll = outTextAll + " rhonew start " + rhonew1.ToString() + " " + rhonew2.ToString() + " " + rhonew3.ToString() + "\n";
 
             // ---- now form the three position vectors ----- 
             for (i = 0; i < 3; i++)
@@ -9391,36 +9696,28 @@ namespace AstroLibMethods
                 r3[i] = rhonew3 * los3[i] + rseci3[i];
             }
 
-            if (show == 'a')
-                errstr = errstr + " r2 " + r2[0].ToString() + " " + r2[1].ToString() + " "
+                outTextAll = outTextAll + " r2 " + r2[0].ToString() + " " + r2[1].ToString() + " "
                     + r2[2].ToString() + "\n";
 
             // now find the middle velocity vector with gibbs or hgibbs from end of formal Gauss
             gibbs(r1, r2, r3, out v2, out theta, out theta1, out copa, out error);
-            if (show == 'a')
-            {
-                errstr = errstr + "v2g " + v2[0].ToString() + " " + v2[1].ToString() + " "
+                outTextAll = outTextAll + "v2g " + v2[0].ToString() + " " + v2[1].ToString() + " "
                     + v2[2].ToString() + "\n";
-                errstr = errstr + "gibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
+                outTextAll = outTextAll + "gibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
                     + " " + (copa * rad).ToString() + "\n";
-            }
 
             if (!error.Equals("ok") && (Math.Abs(theta) < 5.0 / rad || Math.Abs(theta1) < 5.0 / rad))
             {
                 // hgibbs to get middle vector ---- 
                 herrgibbs(r1, r2, r3, jd1 + jdf1, jd2 + jdf2, jd3 + jdf3, out v2, out theta, out theta1, out copa, out error);
-                if (show == 'a')
-                {
-                    errstr = errstr + "v2h " + v2[0].ToString() + " " + v2[1].ToString() + " "
+                    outTextAll = outTextAll + "v2h " + v2[0].ToString() + " " + v2[1].ToString() + " "
                         + v2[2].ToString() + "\n";
-                    errstr = errstr + "hgibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
+                    outTextAll = outTextAll + "hgibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
                         + " " + (copa * rad).ToString(); // + "\n";
                 }
-            }
 
             rv2coe(r2, v2, out p, out a, out ecc, out incl, out raan, out argp, out nu, out m, out u, out l, out argper);
-            if (show == 'a')
-                errstr = errstr + "p  " + p.ToString() + " a " + a.ToString() + " e " + ecc.ToString() + "\n";
+                outTextAll = outTextAll + "p  " + p.ToString() + " a " + a.ToString() + " e " + ecc.ToString() + "\n";
 
             // escobal says to stop if closely spaced...gtds does lots of processing
             // perhaps if under 40 deg (theta/theta1) would work?
@@ -9435,11 +9732,21 @@ namespace AstroLibMethods
             double rho2 = rhonew2 + 100.0;
             string errstr1 = " loops ";
             ll = 0;
-            // disabled now...
-            while (Math.Abs(rhonew2 - rho2) > 0.1 && ll <= -1)  //; ll < 3; ll++)  -1
+            // Tested re-enabling this (ll < 3) against the 31-case suite per GTDS Fig 9-2,
+            // which treats this Gibbs-correction loop as integral to the Gauss method.
+            // Result: it never converges within the iteration cap (the rhonew2-rho2 delta
+            // bounces rather than shrinking), and for wider-arc cases it diverges
+            // catastrophically (billions of km after 3 iterations - e.g. cases with
+            // multi-day observation gaps). This matches GTDS's own stated validity limit
+            // for the underlying low-order f/g series ("~60 degrees in mean anomaly") -
+            // outside that regime, iterating on an already-poor estimate amplifies the
+            // error rather than correcting it. Confirms the original developer's comment
+            // above ("seems to work best most often without any improvement") was
+            // empirically correct. Disabled again.
+            while (Math.Abs(rhonew2 - rho2) > 0.1 && ll <= -1)
             {
                 ll = ll + 1;
-                errstr = errstr + "loop " + ll.ToString() + " " + (rhonew2 - rho2).ToString() + "\n";
+                outTextAll = outTextAll + "loop " + ll.ToString() + " " + (rhonew2 - rho2).ToString() + "\n";
                 errstr1 = errstr1 + " " + (rhonew2 - rho2).ToString("0.##");
                 // keep track of the convergence
                 rho2 = rhonew2;
@@ -9447,7 +9754,7 @@ namespace AstroLibMethods
                 // now find the middle velocity vector with gibbs or hgibbs
                 gibbs(r1, r2, r3, out v2, out theta, out theta1, out copa, out error);
                 if (!error.Equals("ok"))
-                    errstr = errstr + "gibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
+                    outTextAll = outTextAll + "gibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
                         + " " + (copa * rad).ToString() + "\n";
 
                 if (!error.Equals("ok") && (Math.Abs(theta) < 5.0 / rad || Math.Abs(theta1) < 5.0 / rad))
@@ -9455,16 +9762,15 @@ namespace AstroLibMethods
                     // hgibbs to get middle vector ---- 
                     herrgibbs(r1, r2, r3, jd1 + jdf1, jd2 + jdf2, jd3 + jdf3, out v2, out theta, out theta1, out copa, out error);
                     if (!error.Equals("ok"))
-                        errstr = errstr + "hgibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
+                        outTextAll = outTextAll + "hgibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
                             + " " + (copa * rad).ToString() + "\n";
                 }
-                if (show == 'y')
-                    errstr = errstr + "theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
+                    outTextAll = outTextAll + "theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
                     + " " + (copa * rad).ToString() + "\n";
 
                 //test output only
                 rv2coe(r2, v2, out p, out a, out ecc, out incl, out raan, out argp, out nu, out m, out u, out l, out argper);
-                errstr = errstr + "p  " + p.ToString() + " a " + a.ToString() + " e " + ecc.ToString() + "\n";
+                outTextAll = outTextAll + "p  " + p.ToString() + " a " + a.ToString() + " e " + ecc.ToString() + "\n";
                 magr2 = MathTimeLibr.mag(r2);
 
                 // universal variable approach
@@ -9498,8 +9804,7 @@ namespace AstroLibMethods
                 f3 = 1.0 - 0.5 * u * tausqr - (1.0 / 6.0) * udot * tausqr * tau32;
                 g3 = tau32 - (1.0 / 6.0) * u * tau32 * tausqr -
                                     (1.0 / 12.0) * udot * tausqr * tausqr;
-                if (show == 'y')
-                    errstr = errstr + "f1 " + f1.ToString() + " g1 " + g1.ToString() + " f3 " + f3.ToString() + " g3 " + g3.ToString() + "\n";
+                    outTextAll = outTextAll + "f1 " + f1.ToString() + " g1 " + g1.ToString() + " f3 " + f3.ToString() + " g3 " + g3.ToString() + "\n";
                 if (Math.Abs(g1old) > 0.000001)
                 {
                     f1 = (f1 + f1old) * 0.5;
@@ -9515,7 +9820,7 @@ namespace AstroLibMethods
                 f3old = f3;
                 g3old = g3;
 
-                errstr = errstr + " f1 " + f1.ToString() + " g1 " + g1.ToString() + " f3 "
+                outTextAll = outTextAll + " f1 " + f1.ToString() + " g1 " + g1.ToString() + " f3 "
                 + f3.ToString() + " g3 " + g3.ToString() + " c1 "
                 + c1.ToString() + " c3 " + c3.ToString() + "\n";
 
@@ -9534,8 +9839,7 @@ namespace AstroLibMethods
                 rhonew1 = rhomat[0] / c1;
                 rhonew2 = rhomat[1] / c2;
                 rhonew3 = rhomat[2] / c3;
-                if (show == 'y')
-                    errstr = errstr + ll.ToString() + " rhoold end " + rhonew1.ToString() + " "
+                    outTextAll = outTextAll + ll.ToString() + " rhoold end " + rhonew1.ToString() + " "
                     + rhonew2.ToString() + " " + rhonew3.ToString() + "\n";
 
                 // get ready for next loop
@@ -9545,43 +9849,34 @@ namespace AstroLibMethods
                     r1[i] = rhonew1 * los1[i] + rseci1[i];
                     r2[i] = rhonew2 * los2[i] + rseci2[i];
                     r3[i] = rhonew3 * los3[i] + rseci3[i];
-                    if (show == 'y')
-                        errstr = errstr + "rmat " + r1[i].ToString() + " " + r2[i].ToString() + " "
+                        outTextAll = outTextAll + "rmat " + r1[i].ToString() + " " + r2[i].ToString() + " "
                         + r3[i].ToString() + "\n";
                 }
 
-                if (show == 'y')
-                    errstr = errstr + "end loop " + ll.ToString() + " " + rold1.ToString() + " " + rold2.ToString() + " "
+                    outTextAll = outTextAll + "end loop " + ll.ToString() + " " + rold1.ToString() + " " + rold2.ToString() + " "
                         + rold3.ToString() + "\n\n";
             }  // end while loop
 
 
             // now find the middle velocity vector with gibbs or hgibbs from last time through
             gibbs(r1, r2, r3, out v2, out theta, out theta1, out copa, out error);
-            if (show == 'a')
-            {
-                errstr = errstr + "v2g " + v2[0].ToString() + " " + v2[1].ToString() + " "
+                outTextAll = outTextAll + "v2g " + v2[0].ToString() + " " + v2[1].ToString() + " "
                     + v2[2].ToString() + "\n";
-                errstr = errstr + "gibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
+                outTextAll = outTextAll + "gibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
                     + " " + (copa * rad).ToString() + "\n";
-            }
 
             if (!error.Equals("ok") && (Math.Abs(theta) < 5.0 / rad || Math.Abs(theta1) < 5.0 / rad))
             {
                 // hgibbs to get middle vector ---- 
                 herrgibbs(r1, r2, r3, jd1 + jdf1, jd2 + jdf2, jd3 + jdf3, out v2, out theta, out theta1, out copa, out error);
-                if (show == 'a')
-                {
-                    errstr = errstr + "v2h " + v2[0].ToString() + " " + v2[1].ToString() + " "
+                    outTextAll = outTextAll + "v2h " + v2[0].ToString() + " " + v2[1].ToString() + " "
                         + v2[2].ToString() + "\n";
-                    errstr = errstr + "hgibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
+                    outTextAll = outTextAll + "hgibbs " + error + " theta " + (theta * rad).ToString() + " " + (theta1 * rad).ToString()
                         + " " + (copa * rad).ToString() + "\n";
                 }
-            }
 
             rv2coe(r2, v2, out p, out a, out ecc, out incl, out raan, out argp, out nu, out m, out u, out l, out argper);
-            if (show == 'a')
-                errstr = errstr + "end p  " + p.ToString() + " a " + a.ToString() + " e " + ecc.ToString() + errstr1 + "\n";
+                outTextAll = outTextAll + "end p  " + p.ToString() + " a " + a.ToString() + " e " + ecc.ToString() + errstr1 + "\n";
         }    // anglesgauss
 
 
@@ -9625,7 +9920,13 @@ namespace AstroLibMethods
         //    magr2        - magnitude of r2 vector                       km
         //    a            - semi major axis                              km / s
         //    deltae32     - eccentric anomaly difference 3-2            
-        //    errstr       - output results for debugging
+        //    outTextAll   - full diagnostic text: initial r1/r2 guess, w/w1
+        //                  vectors, magnitudes, true-anomaly/eccentric-
+        //                  anomaly differences, and the f1/f2/q1 result
+        //                  (was gated behind a hardcoded show='y' flag that
+        //                  always evaluated true, so this is a pure rename -
+        //                  no behavior change)
+        //    outTextSum   - one-line result summary: f1, f2, q1
         //    
         //  coupling       :
         //    dot, cross, mag
@@ -9641,7 +9942,7 @@ namespace AstroLibMethods
             double[] rsite1, double[] rsite2, double[] rsite3, double t1, double t3,
             int n12, int n13, int n23,
             out double[] r2, out double[] r3, out double f1, out double f2, out double q1,
-            out double magr2, out double a, out double deltae32, out string errstr
+            out double magr2, out double a, out double deltae32, out string outTextAll, out string outTextSum
         )
         {
             double rho1, rho2, rho3, e, n, p, eSinE, eCosE, magr3, dv21, dv31, dv32, c1, c3, esinv2, ecosv1, ecosv2, ecosv3,
@@ -9651,14 +9952,14 @@ namespace AstroLibMethods
             double[] w = new double[3];
             double[] w1 = new double[3];
             double[] temp = new double[3];
-            char show = 'y';
             // seems to always need to be 'S' way???
             deltae21 = 0.0;
 
             twopi = 2.0 * Math.PI;
             r2 = new double[] { 0.0, 0.0, 0.0 };
             r3 = new double[] { 0.0, 0.0, 0.0 };
-            errstr = "";
+            outTextAll = "";
+            outTextSum = "";
 
             // for interplanetary
             // re = 149597870.0;
@@ -9678,12 +9979,9 @@ namespace AstroLibMethods
                 r1[i] = rho1 * los1[i] + rsite1[i];
                 r2[i] = rho2 * los2[i] + rsite2[i];
             }
-            if (show == 'y')
-            {
-                errstr = errstr + "\nstart of loop doubler test " + magr1in.ToString() + " " + magr2in.ToString() + "\n";
-                errstr = errstr + "r1 " + r1[0].ToString() + " " + r1[1].ToString() + " " + r1[2].ToString() + "\n";
-                errstr = errstr + "r2 " + r2[0].ToString() + " " + r2[1].ToString() + " " + r2[2].ToString() + "\n";
-            }
+                outTextAll = outTextAll + "\nstart of loop doubler test " + magr1in.ToString() + " " + magr2in.ToString() + "\n";
+                outTextAll = outTextAll + "r1 " + r1[0].ToString() + " " + r1[1].ToString() + " " + r1[2].ToString() + "\n";
+                outTextAll = outTextAll + "r2 " + r2[0].ToString() + " " + r2[1].ToString() + " " + r2[2].ToString() + "\n";
 
             magr1 = MathTimeLibr.mag(r1);
             magr2 = MathTimeLibr.mag(r2);
@@ -9712,7 +10010,7 @@ namespace AstroLibMethods
             double raan = Math.Acos(temp1);
             if (nbar[1] < 0.0)
                 raan = twopi - raan;
-            errstr = errstr + "w3  " + w[0].ToString() + " " + w[1].ToString() + " " + w[2].ToString()
+            outTextAll = outTextAll + "w3  " + w[0].ToString() + " " + w[1].ToString() + " " + w[2].ToString()
                 + " " + incl * rad1 + " " + raan * rad1 + "\n";
 
             // change to negative sign, from gtds
@@ -9737,15 +10035,12 @@ namespace AstroLibMethods
             raan = Math.Acos(temp1);
             if (nbar[1] < 0.0)
                 raan = twopi - raan;
-            errstr = errstr + "w31 " + w1[0].ToString() + " " + w1[1].ToString() + " " + w1[2].ToString()
+            outTextAll = outTextAll + "w31 " + w1[0].ToString() + " " + w1[1].ToString() + " " + w1[2].ToString()
                 + " " + incl * rad1 + " " + raan * rad1 + "\n";
 
 
-            if (show == 'y')
-            {
-                errstr = errstr + "r3 " + r3[0].ToString() + " " + r3[1].ToString() + " " + r3[2].ToString() + "\n";
-                errstr = errstr + "after 1st mag " + magr1 + " " + magr2 + " " + magr3 + "\n";
-            }
+                outTextAll = outTextAll + "r3 " + r3[0].ToString() + " " + r3[1].ToString() + " " + r3[2].ToString() + "\n";
+                outTextAll = outTextAll + "after 1st mag " + magr1 + " " + magr2 + " " + magr3 + "\n";
 
             // note these are from the ctr of earth, not site
             cosdv21 = MathTimeLibr.dot(r2, r1) / (magr2 * magr1);
@@ -9834,7 +10129,7 @@ namespace AstroLibMethods
             {
                 //its' the hyperbolic orbits in HEO's that are causing it to fail
                 // the changes are too large - becouse it's negative?
-                errstr = errstr + "hyperbolic, e1 is greater than 1.0 " + e.ToString() + a.ToString() + "\n";
+                outTextAll = outTextAll + "hyperbolic, e1 is greater than 1.0 " + e.ToString() + a.ToString() + "\n";
                 if (a > 0.0)
                 {
                     a = -a;  // get right sign for hyperbolic orbit
@@ -9872,17 +10167,16 @@ namespace AstroLibMethods
             q1 = Math.Sqrt(f1 * f1 + f2 * f2);
 
             double rad = 180.0 / Math.PI;
-            if (show == 'y')
-            {
-                errstr = errstr + "dnu21 " + (dv21 * rad).ToString()
+                outTextAll = outTextAll + "dnu21 " + (dv21 * rad).ToString()
                     + " dnu31 " + (dv31 * rad).ToString() + " dnu32 " + (dv32 * rad).ToString() + " deg \n";
-                errstr = errstr + " de32 " + (deltae32 * rad).ToString() + " de21 " + (deltae21 * rad).ToString() + " deg \n";
-                errstr = errstr + "dm32 " + deltam32.ToString() + " dm12 " + deltam12.ToString() + " "
+                outTextAll = outTextAll + " de32 " + (deltae32 * rad).ToString() + " de21 " + (deltae21 * rad).ToString() + " deg \n";
+                outTextAll = outTextAll + "dm32 " + deltam32.ToString() + " dm12 " + deltam12.ToString() + " "
                     + c1.ToString() + " " + c3.ToString() + " " + p.ToString() + " "
                     + a.ToString() + " " + e.ToString() + " " + eSinE.ToString() + " " + eCosE.ToString() + " deg \n";
-                errstr = errstr + "c1 " + c1.ToString() + " c3 " + c3.ToString() + " p " + p.ToString() + "\n";
-                errstr = errstr + "f1 " + f1.ToString() + " f2 " + f2.ToString() + " q1 " + q1.ToString() + " end of doubler" + "\n";
-            }
+                outTextAll = outTextAll + "c1 " + c1.ToString() + " c3 " + c3.ToString() + " p " + p.ToString() + "\n";
+                outTextAll = outTextAll + "f1 " + f1.ToString() + " f2 " + f2.ToString() + " q1 " + q1.ToString() + " end of doubler" + "\n";
+
+            outTextSum = "doubler: f1=" + f1.ToString("G6") + " f2=" + f2.ToString("G6") + " q1=" + q1.ToString("G6");
         }  // doubler
 
 
@@ -9904,7 +10198,6 @@ namespace AstroLibMethods
         //    trtasc1      - right ascension #1                           rad
         //    trtasc2      - right ascension #2                           rad
         //    trtasc3      - right ascension #3                           rad
-        //    trtasc3      - right ascension #3                           rad
         //    jd1, jdf1    - julian date of 1st sighting                  days from 4713 bc
         //    jd2, jdf2    - julian date of 2nd sighting                  days from 4713 bc
         //    jd3, jdf3    - julian date of 3rd sighting                  days from 4713 bc
@@ -9913,11 +10206,21 @@ namespace AstroLibMethods
         //    rs3          - eci site position vector #3                  km
         //    magr1in      - initial estimate 
         //    magr2in      - initial estimate
+        //    pctchg       - percent change used to perturb the range
+        //                   guesses for the numerical partials each
+        //                   iteration (adaptively halved each pass)
         //
         //  outputs         :
         //    r2           -  position vector at t2                       km
         //    v2           -  velocity vector at t2                       km / s
-        //    errstr       - output results for debugging
+        //    outTextAll   - full diagnostic text: every double-r iteration's
+        //                   range guesses, partials, delta values, and the
+        //                   final f/g and velocity computation (was always
+        //                   unconditional; now just renamed for consistency
+        //                   with angleslaplace/anglesgauss)
+        //    outTextSum   - one-line result summary: a, orbit type
+        //                   (hyperbolic/elliptical), iteration count, and
+        //                   the n12/n13/n23 multi-rev estimates
         //
         //  locals         :
         //    los1         - line of sight vector for 1st
@@ -9947,7 +10250,7 @@ namespace AstroLibMethods
             double trtasc1, double trtasc2, double trtasc3,
             double jd1, double jdf1, double jd2, double jdf2, double jd3, double jdf3,
             double[] rs1, double[] rs2, double[] rs3, double magr1in, double magr2in,
-            out double[] r2, out double[] v2, out string errstr, double pctchg
+            out double[] r2, out double[] v2, out string outTextAll, out string outTextSum, double pctchg
         )
         {
             Int32 i, ktr;
@@ -9974,7 +10277,8 @@ namespace AstroLibMethods
             //pctchg = 0.2;  // 0.05
             r2 = new double[] { 0.0, 0.0, 0.0 };
             v2 = new double[] { 0.0, 0.0, 0.0 };
-            errstr = "";
+            outTextAll = "";
+            outTextSum = "";
 
             // ---- set middle to 0, deltas to other times ---- 
             // need to separate into jd and jdf portions for accuracy since it's often only seconds or minutes
@@ -10042,14 +10346,14 @@ namespace AstroLibMethods
                 // -------------- calculate f1 and f2 with original estimates
                 doubler(cc1, cc2, magrsite1, magrsite2, magr1in, magr2in, los1, los2, los3,
                     rs1, rs2, rs3, tau1, tau3, n12, n13, n23,
-                    out r2, out r3, out f1, out f2, out q1, out magr2, out a, out deltae32, out tmpstr);
+                    out r2, out r3, out f1, out f2, out q1, out magr2, out a, out deltae32, out tmpstr, out _);
 
-                errstr = errstr + tmpstr + " LOOP1 " + ktr.ToString() + " magr1in " + magr1in.ToString() + " magr2in " + magr2in.ToString()
+                outTextAll = outTextAll + tmpstr + " LOOP1 " + ktr.ToString() + " magr1in " + magr1in.ToString() + " magr2in " + magr2in.ToString()
                     + " " + a.ToString() + " " + q1.ToString() + "\n";
-                errstr = errstr + " qs " + q1 + "\n";
-                errstr = errstr + " magr1o " + magr1o.ToString() + " delr1 " + deltar1.ToString()
+                outTextAll = outTextAll + " qs " + q1 + "\n";
+                outTextAll = outTextAll + " magr1o " + magr1o.ToString() + " delr1 " + deltar1.ToString()
                     + " magr1 " + magr1in.ToString() + " " + magr1old.ToString() + "\n";
-                errstr = errstr + " magr2o " + magr2o.ToString() + " delr2 " + deltar2.ToString()
+                outTextAll = outTextAll + " magr2o " + magr2o.ToString() + " delr2 " + deltar2.ToString()
                     + " magr2 " + magr2in.ToString() + " " + magr2old.ToString() + "\n";
 
                 // check intermediate status -----------------------------------------------------
@@ -10070,19 +10374,19 @@ namespace AstroLibMethods
                 doubler(cc1, cc2, magrsite1, magrsite2, magr1in, magr2in, los1, los2, los3,
                     rs1, rs2, rs3, tau1, tau3, n12, n13, n23,
                     out r2, out r3, out f1delr1, out f2delr1, out q2, out magr2,
-                    out a1, out deltae32, out tmpstr);
+                    out a1, out deltae32, out tmpstr, out _);
 
-                errstr = errstr + tmpstr + "loop2 " + ktr.ToString() + " magr1in " + magr1in.ToString() + " magr2in " + magr2in.ToString()
+                outTextAll = outTextAll + tmpstr + "loop2 " + ktr.ToString() + " magr1in " + magr1in.ToString() + " magr2in " + magr2in.ToString()
                     + " " + a1.ToString() + " " + q2.ToString() + "\n";
-                errstr = errstr + " qs " + q1 + "\n";
-                errstr = errstr + " magr1o " + magr1o.ToString() + " delr1 " + deltar1.ToString()
+                outTextAll = outTextAll + " qs " + q1 + "\n";
+                outTextAll = outTextAll + " magr1o " + magr1o.ToString() + " delr1 " + deltar1.ToString()
                     + " magr1 " + magr1in.ToString() + " " + magr1old.ToString() + "\n";
-                errstr = errstr + " magr2o " + magr2o.ToString() + " delr2 " + deltar2.ToString()
+                outTextAll = outTextAll + " magr2o " + magr2o.ToString() + " delr2 " + deltar2.ToString()
                     + " magr21 " + magr2in.ToString() + " " + magr2old.ToString() + "\n";
 
                 pf1pr1 = (f1delr1 - f1) / deltar1;
                 pf2pr1 = (f2delr1 - f2) / deltar1;
-                errstr = errstr + " pf1pr1a " + pf1pr1.ToString() + " pf2pr1 " + pf2pr1.ToString() + "\n";
+                outTextAll = outTextAll + " pf1pr1a " + pf1pr1.ToString() + " pf2pr1 " + pf2pr1.ToString() + "\n";
 
                 // ----------------  re-calculate f1 and f2 with r2 = r2 + delta r2
                 magr1in = magr1o;
@@ -10091,19 +10395,19 @@ namespace AstroLibMethods
                 doubler(cc1, cc2, magrsite1, magrsite2, magr1in, magr2in, los1, los2, los3,
                     rs1, rs2, rs3, tau1, tau3, n12, n13, n23,
                     out r2, out r3, out f1delr2, out f2delr2, out q3, out magr2,
-                    out a2, out deltae32, out tmpstr);
+                    out a2, out deltae32, out tmpstr, out _);
 
                 pf1pr2 = (f1delr2 - f1) / deltar2;
                 pf2pr2 = (f2delr2 - f2) / deltar2;
 
-                errstr = errstr + tmpstr + " loop3 " + ktr.ToString() + " magr1in " + magr1in.ToString() + " magr2in " + magr2in.ToString()
+                outTextAll = outTextAll + tmpstr + " loop3 " + ktr.ToString() + " magr1in " + magr1in.ToString() + " magr2in " + magr2in.ToString()
                     + " " + a2.ToString() + " " + q3.ToString() + "\n";
-                errstr = errstr + " qs " + q1 + "\n";
-                errstr = errstr + " magr1o " + magr1o.ToString() + " delr1 " + deltar1.ToString()
+                outTextAll = outTextAll + " qs " + q1 + "\n";
+                outTextAll = outTextAll + " magr1o " + magr1o.ToString() + " delr1 " + deltar1.ToString()
                     + " magr1 " + magr1in.ToString() + " " + magr1old.ToString() + "\n";
-                errstr = errstr + " magr2o " + magr2o.ToString() + " delr2 " + deltar2.ToString()
+                outTextAll = outTextAll + " magr2o " + magr2o.ToString() + " delr2 " + deltar2.ToString()
                     + " magr22 " + magr2in.ToString() + " " + magr2old.ToString() + "\n";
-                errstr = errstr + " pf1pr1b " + pf1pr1.ToString() + " pf2pr1 " + pf2pr1.ToString() + "\n";
+                outTextAll = outTextAll + " pf1pr1b " + pf1pr1.ToString() + " pf2pr1 " + pf2pr1.ToString() + "\n";
 
                 // ------------ now calculate an update
                 // get this back to the original, since magr1in already set back
@@ -10113,14 +10417,14 @@ namespace AstroLibMethods
                 delta1 = pf2pr2 * f1 - pf1pr2 * f2;
                 delta2 = pf1pr1 * f2 - pf2pr1 * f1;
 
-                errstr = errstr + "delta1 " + delta1.ToString() + " delta2 " + delta2.ToString() + " mag " + delta.ToString() + "\n";
+                outTextAll = outTextAll + "delta1 " + delta1.ToString() + " delta2 " + delta2.ToString() + " mag " + delta.ToString() + "\n";
 
                 if (Math.Abs(delta) < 0.0000001)
                 {
                     deltar1 = -delta1;
                     deltar2 = -delta2;
 
-                    errstr = errstr + "delta was 0 dr1 " + deltar1.ToString() + " dr2 " + deltar2.ToString() + "\n";
+                    outTextAll = outTextAll + "delta was 0 dr1 " + deltar1.ToString() + " dr2 " + deltar2.ToString() + "\n";
                     //Console.WriteLine("delta was 0 dr1 " + deltar1.ToString() + " dr2 " + deltar2.ToString());
                 }
                 else
@@ -10133,16 +10437,16 @@ namespace AstroLibMethods
                 double chkamt = 0.15;
                 if (Math.Abs(deltar1 / magr1in) > chkamt)  // chg 0.10 to pctchg here
                 {
-                    errstr = errstr + deltar1.ToString() + " deltar1 too large \n";
+                    outTextAll = outTextAll + deltar1.ToString() + " deltar1 too large \n";
                     deltar1 = magr1in * chkamt * Math.Sign(deltar1);
                 }
                 if (Math.Abs(deltar2 / magr2in) > chkamt)
                 {
-                    errstr = errstr + deltar2.ToString() + " deltar2 too large \n";
+                    outTextAll = outTextAll + deltar2.ToString() + " deltar2 too large \n";
                     deltar2 = magr2in * chkamt * Math.Sign(deltar2);
                 }
 
-                errstr = errstr + "deltar1 " + deltar1.ToString() + " dr2 " + deltar2.ToString() + "\n" + "------------" + "\n";
+                outTextAll = outTextAll + "deltar1 " + deltar1.ToString() + " dr2 " + deltar2.ToString() + "\n" + "------------" + "\n";
                 //Console.WriteLine("deltar1 " + deltar1.ToString() + " deltar2 " + deltar2.ToString() + " " 
                 //    + a.ToString() + " " + a1.ToString() + " " + a2.ToString());
 
@@ -10156,8 +10460,8 @@ namespace AstroLibMethods
                 // fprintf(1,'magr2o %11.7f delr2 %11.7f magr2 %11.7f %11.7f  \n', magr2o, deltar2, magr2in, magr2old);
                 newqr = Math.Sqrt(q1 * q1 + q2 * q2 + q3 * q3);
 
-                errstr = errstr + "\n";
-                errstr = errstr + "q1 " + q1.ToString() + " q2 " + q2.ToString() + " q3 " + q3.ToString()
+                outTextAll = outTextAll + "\n";
+                outTextAll = outTextAll + "q1 " + q1.ToString() + " q2 " + q2.ToString() + " q3 " + q3.ToString()
                     + " qr " + newqr.ToString() + "\n";
 
                 // try adaptive pctchg, smaller at end. Seems to do better.
@@ -10168,17 +10472,17 @@ namespace AstroLibMethods
             doubler(cc1, cc2, magrsite1, magrsite2, magr1in, magr2in, los1, los2, los3,
                 rs1, rs2, rs3, tau1, tau3, n12, n13, n23,
                 out r2, out r3, out f1, out f2, out q1, out magr2,
-                out a, out deltae32, out tmpstr);
+                out a, out deltae32, out tmpstr, out _);
 
-            errstr = errstr + tmpstr + " loop last " + ktr.ToString() + " magr1in " + magr1in.ToString()
+            outTextAll = outTextAll + tmpstr + " loop last " + ktr.ToString() + " magr1in " + magr1in.ToString()
                 + " magr2in " + magr2in.ToString()
                  + " a== " + a.ToString() + " q1 " + q1.ToString() + "\n";
-            errstr = errstr + " qs " + q1 + "\n";
-            errstr = errstr + " magr1o " + magr1o.ToString() + " delr1 " + deltar1.ToString()
+            outTextAll = outTextAll + " qs " + q1 + "\n";
+            outTextAll = outTextAll + " magr1o " + magr1o.ToString() + " delr1 " + deltar1.ToString()
                 + " magr1L " + magr1in.ToString() + " " + magr1old.ToString() + "\n";
-            errstr = errstr + " magr2o " + magr2o.ToString() + " delr2 " + deltar2.ToString()
+            outTextAll = outTextAll + " magr2o " + magr2o.ToString() + " delr2 " + deltar2.ToString()
                 + " magr2L " + magr2in.ToString() + " " + magr2old.ToString() + "\n";
-            errstr = errstr + "n values " + n12 + " " + n13 + " " + n23 + "\n";
+            outTextAll = outTextAll + "n values " + n12 + " " + n13 + " " + n23 + "\n";
 
             // check it out here from original results 
             // hyperbolic case
@@ -10188,7 +10492,7 @@ namespace AstroLibMethods
                 g = tau3 - Math.Sqrt(-a * -a * -a / astroConsts.mu) * (deltae32 - Math.Sinh(deltae32));
                 for (i = 0; i < 3; i++)
                     v2[i] = (r3[i] - f * r2[i]) / g;
-                errstr = errstr + "v2 hyp " + v2[0].ToString() + " " + v2[1].ToString() + " " + v2[2].ToString() + "\n";
+                outTextAll = outTextAll + "v2 hyp " + v2[0].ToString() + " " + v2[1].ToString() + " " + v2[2].ToString() + "\n";
             }
             else
             {
@@ -10196,8 +10500,11 @@ namespace AstroLibMethods
                 g = tau3 - Math.Sqrt(a * a * a / astroConsts.mu) * (deltae32 - Math.Sin(deltae32));
                 for (i = 0; i < 3; i++)
                     v2[i] = (r3[i] - f * r2[i]) / g;
-                errstr = errstr + "v2 ell " + v2[0].ToString() + " " + v2[1].ToString() + " " + v2[2].ToString() + "\n" + ktr.ToString();
+                outTextAll = outTextAll + "v2 ell " + v2[0].ToString() + " " + v2[1].ToString() + " " + v2[2].ToString() + "\n" + ktr.ToString();
             }
+
+            outTextSum = "Double-r: a=" + a.ToString("0.0") + " km, " + (a < 0.0 ? "hyperbolic" : "elliptical")
+                + ", " + ktr.ToString() + " iteration(s), n12/n13/n23=" + n12 + "/" + n13 + "/" + n23;
         } // anglesdoubler
 
 
@@ -10212,30 +10519,43 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //   ind     =  indicator identifying which of the two
-        //                          (when there are two) lambert solutions
-        //                          to use.
-        //                               = 0       if nhrev = 0 or 1
-        //                               = 0 or 1  if nhrev.ge. 2
-        //    trtasc1      - right ascension #1                           rad
-        //    trtasc2      - right ascension #2                           rad
-        //    trtasc3      - right ascension #3                           rad
         //    tdecl1       - declination #1                               rad
         //    tdecl2       - declination #2                               rad
         //    tdecl3       - declination #3                               rad
-        //    jd1          - julian date of 1st sighting            days from 4713 bc
-        //    jd2          - julian date of 2nd sighting            days from 4713 bc
-        //    jd3          - julian date of 3rd sighting            days from 4713 bc
-        //    rs           -  site position vector                        km
-        //    rng1         -  initial range estimate at time t1
-        //    rng3         -  initial range estimate at time t3
-        //    rng1         - converged value of range estimate
-        //    numhalfrev   - number of half evolutions between observations
-        //                   number of half-revs(k) included in the angle p1-*-p3
-        //   
+        //    trtasc1      - right ascension #1                           rad
+        //    trtasc2      - right ascension #2                           rad
+        //    trtasc3      - right ascension #3                           rad
+        //    jd1, jdf1    - julian date of 1st sighting                  days from 4713 bc
+        //    jd2, jdf2    - julian date of 2nd sighting                  days from 4713 bc
+        //    jd3, jdf3    - julian date of 3rd sighting                  days from 4713 bc
+        //    rs1          - eci site position vector #1                  km
+        //    rs2          - eci site position vector #2                  km
+        //    rs3          - eci site position vector #3                  km
+        //    numhalfrev   - number of half-revs (k) between observations
+        //                   included in the angle p1-*-p3
+        //    indIn        - indicator identifying which of the two
+        //                   (when there are two) lambert solutions to use
+        //                               = 0       if nhrev = 0 or 1
+        //                               = 0 or 1  if nhrev.ge. 2
+        //    rng1         - initial range estimate at time t1               km
+        //    rng2         - initial range estimate at time t2 (middle obs)  km
+        //    rng3         - initial range estimate at time t3               km
         //    outputs      :
         //    r2           - middle observation position vector (eci)      km
         //    v2           - middle observation velocity vector (eci)      km/s
+        //    nfail        - convergence status: 0=converged, -1=ran out of
+        //                   iterations, 1/2/3=early return from Lambert-
+        //                   failure/partial-derivative recovery paths
+        //    itnumFinal   - iteration count obs3lsx actually took
+        //    critsqFinal  - final convergence metric (converged when < critval)
+        //    axrtio       - Gooding's indeterminacy indicator "d" (CMDA 1997
+        //                   Eq. 15); near 0 means a near-singular Jacobian /
+        //                   a neighboring solution is close by
+        //    bearng       - corresponding axis orientation in the rho1/rho3 plane
+        //    outTextAll   - full diagnostic text: obs3lsx's own verbose log
+        //                   plus the one-line solve-status summary below
+        //    outTextSum   - one-line result summary: nfail, itnum, critsq,
+        //                   crit, axrtio, bearng, numhalfrev(k), ind
         //   the following is in solution array for each solution see "ix_solution" for layout
         //
         //   itnum   = iteration count
@@ -10263,8 +10583,9 @@ namespace AstroLibMethods
             double trtasc1, double trtasc2, double trtasc3,
             double jd1, double jdf1, double jd2, double jdf2, double jd3, double jdf3,
             double[] rs1, double[] rs2, double[] rs3,
-            Int32 numhalfrev, double rng1, double rng2, double rng3,
-            out double[] r2, out double[] v2, out string errstr
+            Int32 numhalfrev, int indIn, double rng1, double rng2, double rng3,
+            out double[] r2, out double[] v2, out int nfail, out int itnumFinal, out double critsqFinal,
+            out double axrtio, out double bearng, out string outTextAll, out string outTextSum
         )
         {
             int ind;
@@ -10285,12 +10606,18 @@ namespace AstroLibMethods
             double[] xs = new double[6];
             double alpha, a, ecc, rp, incl, raan, argp;
             double p, arglat, truelon, lonper, nu, m;
-            int ngm, nmod, nfail, itnum, ikn;
-            double crit, axrtio, bearng;
+            int ngm, nmod, itnum, ikn;
+            // crit is obs3lsx's raw convergence metric (critsqFinal is its square, which is
+            // what's actually compared against the convergence threshold and is genuinely
+            // useful to callers) - kept as a local since obs3lsx still needs to compute it,
+            // but no longer exposed as an output: it was never read anywhere outside this
+            // method once critsqFinal existed.
+            double crit;
 
             double rad = 180.0 / Math.PI;
             string tmpstr;
-            errstr = "";
+            outTextAll = "";
+            outTextSum = "";
 
             double[] r1 = new double[] { 0.0, 0.0, 0.0 };
             r2 = new double[] { 0.0, 0.0, 0.0 };
@@ -10334,25 +10661,45 @@ namespace AstroLibMethods
             //tau13 = (jd1 - jd3) * 86400.0 + (jdf1 - jdf3) * 86400.0;
             tau13 = (jd3 - jd1) * 86400.0 + (jdf3 - jdf1) * 86400.0;
 
-            if (tau12 > 86400.0)
-                numhalfrev = 2 * (int)Math.Floor(tau12 / 86400.0);
-            if (tau13 > 86400.0)
-                numhalfrev = 2 * (int)Math.Floor(tau13 / 86400.0);
-
+            // NOTE: this used to silently override whatever numhalfrev (k) the caller passed
+            // in with its own crude "day-count" estimate (2*floor(tau/86400)) whenever the
+            // observation gap exceeded a day - which is true for every multi-rev case by
+            // construction. That meant frmGauss.cs's k-candidate search (trying several
+            // different k values per case, seeded from Double-r's own semi-major axis) had
+            // no actual effect: every candidate got silently collapsed back to this same
+            // internal estimate before calcps() ever saw it, which is exactly why every
+            // trial in a case's search kept converging to bit-for-bit identical results
+            // regardless of which k was requested. numhalfrev is now used as given.
             itnum = 25;
             alpha = astroConsts.mu / rng1;  // 12245 km reciprocal of sma
-            ind = 0;
-            crit = 10.0;
-            axrtio = 0.3;
-            bearng = 0.3;
+            ind = indIn;
+            // crit/axrtio/bearng used to be seeded here (10.0/0.3/0.3), but now that obs3lsx
+            // treats them as real out parameters, those seed values were always discarded -
+            // obs3lsx computes and returns them fresh.
             ngm = 0;
             nmod = 0;
             rp = 6800.0;  // 1.05;
 
             obs3lsx(los1, los2, los3, rs1, rs2, rs3, numhalfrev, pdinc, ind, ikn,
-                tau12, tau13, rng1, rng3, alpha, itnum, ngm, nmod, out nfail,
-                rng2, crit, axrtio, bearng, out r1, out r2, out r3, out tmpstr);
-            errstr = errstr + tmpstr;
+                tau12, tau13, rng1, rng3, alpha, itnum, ngm, nmod, out nfail, out itnumFinal, out critsqFinal,
+                rng2, out crit, out axrtio, out bearng, out r1, out r2, out r3, out tmpstr, out _);
+            outTextAll = outTextAll + tmpstr;
+
+            // diagnostics: nfail == 0 means obs3lsx actually converged; nfail == -1 means it
+            // ran out of iterations without converging; nfail == 1/2/3 means it returned early
+            // out of the Lambert-failure / partial-derivative recovery paths. itnumFinal and
+            // critsqFinal show how far it got and how close it was. axrtio is Gooding's
+            // indeterminacy indicator "d" (CMDA 1997 Eq. 15) - close to 0 means the Jacobian
+            // is near-singular / a neighboring solution is close by, which is exactly the
+            // condition his papers flag as the hard case for this method. bearng is the
+            // corresponding axis orientation in the rho1/rho3 plane. These are now real out
+            // params on anglesgooding (not just buried in outTextAll) so the caller can print them
+            // directly on a summary line instead of having to go dig through the verbose log.
+            outTextSum = "gooding solve status: nfail=" + nfail + " itnum=" + itnumFinal
+                + " critsq=" + critsqFinal.ToString("G6") + " crit=" + crit.ToString("G6")
+                + " axrtio=" + axrtio.ToString("G6") + " bearng=" + bearng.ToString("G6")
+                + " numhalfrev(k)=" + numhalfrev + " ind=" + ind;
+            outTextAll = outTextAll + outTextSum + "\n";
 
             //obs3lsx(numhalfrev, ind, obs, tau12, tau13, rng1, rng3, itnum, ngm, nmod, 
             //    out nfail, cr, crit,
@@ -10394,6 +10741,253 @@ namespace AstroLibMethods
 
 
         // ------------------------------------------------------------------------------
+        //                                anglesgoodingRobust
+        //
+        //  Wraps anglesgooding() with the multi-candidate search that makes it actually
+        //  robust in practice: the classical angles-only problem can have more than one
+        //  genuinely converged mathematical solution (Der, AAS 19-626), varying by the
+        //  assumed number of half-revolutions (k) between observations and, for k>=2,
+        //  by which of Lambert's two energy-branch solutions (ind) applies. A single
+        //  (k, ind) guess - which is all the underlying anglesgooding() takes - is not
+        //  enough to reliably find the physically correct answer.
+        //
+        //  This method was moved here from what was originally a driver/UI loop
+        //  (frmGauss.cs's "run all" test harness) specifically so that any caller of this
+        //  library gets the same robustness automatically, without needing to reimplement
+        //  the candidate search themselves - the concern that motivated the move was that
+        //  checks and search logic living only in a test loop don't travel with the base
+        //  method when it's ported elsewhere, while logic living in the method itself
+        //  always does.
+        //
+        //  author        : david vallado             davallado@gmail.com      1 sep 2026
+        //
+        //  inputs          description                                    range / units
+        //    tdecl1,2,3   - topocentric declination of 1st, 2nd, 3rd obs         rad
+        //    trtasc1,2,3  - topocentric right ascension of 1st, 2nd, 3rd obs     rad
+        //    jd#, jdf#    - julian date (and fraction) of each obs               days
+        //    rs1,rs2,rs3  - site position vectors (eci) at each obs time         km
+        //    bigr2        - fallback range/size estimate (e.g. from getGaussRoot),
+        //                   used when no Double-r shape reference is supplied, or
+        //                   Double-r's own estimate isn't usable                 km
+        //    aDRshape     - Double-r's own semi-major axis, for the shape-match
+        //                   tiebreaker and for sizing k>0 candidates; pass <= 0
+        //                   (or NaN) if unavailable - the search still runs, just
+        //                   without the shape-match tiebreaker or Double-r sizing
+        //    eccDRshape   - Double-r's own eccentricity, for the shape-match tiebreaker
+        //    inclDRshape  - Double-r's own inclination (rad), for the shape-match tiebreaker
+        //
+        //  outputs       :
+        //    r2, v2       - middle observation position/velocity vectors (eci)   km, km/s
+        //    nfail        - 0 = converged, -1 = ran out of iterations, 1+ = see anglesgooding
+        //    itnum        - iteration count of the winning candidate
+        //    critsq       - convergence metric of the winning candidate (smaller = tighter fit)
+        //    axrtio       - Gooding's indeterminacy indicator for the winning candidate
+        //    bearng       - direction of corresponding axes in the rho1/rho3 plane
+        //    kUsed        - the number of half-revolutions actually used by the winning candidate
+        //    kEst         - the initial point-estimate of k, before the candidate search
+        //                   (kUsed will often differ from this - that's the point of searching)
+        //    indUsed      - the Lambert energy-branch indicator actually used by the winner
+        //    outTextAll   - full diagnostic text: the k-estimate derivation, one
+        //                   line per candidate tried (k, ind, nfail, itnum,
+        //                   critsq, bound/shape info), and the winning
+        //                   candidate's own full anglesgooding outTextAll
+        //    outTextSum   - one-line result summary: the winning candidate's
+        //                   own anglesgooding outTextSum, plus kUsed/kEst/
+        //                   indUsed so it's clear whether the search actually
+        //                   moved away from the initial point estimate
+        //
+        //  references     :
+        //    Der, "Analysis and Application of Angles-only Orbit Determination Techniques
+        //          Aided by GEOWATCH Observations" (AAS 19-626)
+        // --------------------------------------------------------------------------------
+        public void anglesgoodingRobust
+        (
+            double tdecl1, double tdecl2, double tdecl3,
+            double trtasc1, double trtasc2, double trtasc3,
+            double jd1, double jdf1, double jd2, double jdf2, double jd3, double jdf3,
+            double[] rs1, double[] rs2, double[] rs3,
+            double bigr2, double aDRshape, double eccDRshape, double inclDRshape,
+            out double[] r2, out double[] v2,
+            out int nfail, out int itnum, out double critsq,
+            out double axrtio, out double bearng,
+            out int kUsed, out int kEst, out int indUsed,
+            out string outTextAll, out string outTextSum
+        )
+        {
+            outTextAll = "";
+            outTextSum = "";
+            double tau13sec = (jd3 - jd1) * 86400.0 + (jdf3 - jdf1) * 86400.0;
+
+            // Prefer Double-r's own semi-major axis if the caller supplied a usable one;
+            // fall back to the range estimate (e.g. from getGaussRoot) otherwise.
+            bool haveDRshape = (aDRshape > 0.0 && !double.IsNaN(aDRshape)
+                && !double.IsNaN(eccDRshape) && !double.IsNaN(inclDRshape));
+            double aForPeriod = (aDRshape > 0.0 && !double.IsNaN(aDRshape)) ? aDRshape : bigr2;
+            double periodEst = 2.0 * Math.PI * Math.Sqrt(Math.Pow(aForPeriod, 3) / astroConsts.mu);
+            double nrevEst = tau13sec / periodEst;
+
+            // Round at HALF-revolution resolution directly (k's parity controls dm inside
+            // calcps(): 'S' short way for even k, 'L' long way for odd k) - rounding
+            // nrevEst to the nearest full revolution first and only then doubling would
+            // discard exactly the half-revolution resolution needed and always land on an
+            // even k as the central estimate, which is wrong whenever the true sweep is a
+            // bit more than an odd multiple of half a revolution.
+            kEst = (int)Math.Round(2.0 * nrevEst);
+            if (kEst < 0)
+                kEst = 0;
+            outTextAll = outTextAll + "gooding k estimate: tau13sec=" + tau13sec.ToString("G6") + " aForPeriod=" + aForPeriod.ToString("G6")
+                + " periodEst=" + periodEst.ToString("G6") + " nrevEst=" + nrevEst.ToString("G4") + " -> numhalfrev(k)=" + kEst + "\n";
+
+            // The k estimate depends on Double-r's own preliminary orbit (or the cruder
+            // getGaussRoot range estimate), which can itself be quite far off - and since
+            // period scales as a^1.5, even a modest error there can push the estimated
+            // revolution count across a rounding boundary and pick the wrong k. Rather than
+            // trust one point estimate, try a small neighborhood of candidates (the
+            // estimate, one revolution below/above it, and k=0 as a floor) and keep
+            // whichever actually converges best. Each attempt is only single-digit
+            // milliseconds, so trying a handful is cheap.
+            var kCandidates = new System.Collections.Generic.List<int> { kEst };
+            if (kEst - 2 >= 0)
+                kCandidates.Add(kEst - 2);
+            kCandidates.Add(kEst + 2);
+            if (kEst != 0)
+                kCandidates.Add(0);
+            if (kEst - 1 >= 0)
+                kCandidates.Add(kEst - 1);
+            kCandidates.Add(kEst + 1);
+
+            double[] bestR2 = null, bestV2 = null;
+            int bestNfail = int.MinValue, bestItnum = 0, bestK = kEst, bestInd = 0;
+            double bestCritsq = double.PositiveInfinity, bestAxrtio = 0, bestBearng = 0;
+            double bestShapeDiff = double.PositiveInfinity;
+            bool bestBound = false;
+            string bestTrialOutTextAll = "";
+            string bestTrialOutTextSum = "";
+
+            foreach (int kTry in kCandidates)
+            {
+                // The orbit's physical size doesn't depend on which revolution count (k) is
+                // being tested - only the Lambert nrev/dm parameters inside calcps() should
+                // vary with k. Use Double-r's own size estimate for every candidate when
+                // it's available; only fall back to a period-inversion estimate (for k>0)
+                // or the raw range estimate (for k=0) when it isn't.
+                double aTry;
+                if (aDRshape > 0.0 && !double.IsNaN(aDRshape))
+                {
+                    aTry = aDRshape;
+                }
+                else if (kTry > 0)
+                {
+                    double nrevTry = kTry / 2.0;
+                    double periodImplied = tau13sec / nrevTry;
+                    aTry = Math.Pow(astroConsts.mu * Math.Pow(periodImplied / (2.0 * Math.PI), 2), 1.0 / 3.0);
+                }
+                else
+                {
+                    aTry = bigr2;
+                }
+
+                double rng1Try = aTry;
+                double rng2Try = aTry * 1.02;
+                double rng3Try = aTry * 1.08;
+
+                // for k >= 2 (nrev >= 1) there are up to two distinct Lambert solutions
+                // (low/high energy branch), selected by ind. For k = 0 or 1 there's only
+                // one Lambert solution regardless of ind, so only try ind=0 there.
+                int[] indCandidates = (kTry >= 2) ? new int[] { 0, 1 } : new int[] { 0 };
+                foreach (int indTry in indCandidates)
+                {
+                    anglesgooding(tdecl1, tdecl2, tdecl3, trtasc1, trtasc2, trtasc3,
+                        jd1, jdf1, jd2, jdf2, jd3, jdf3,
+                        rs1, rs2, rs3, kTry, indTry, rng1Try, rng2Try, rng3Try, out double[] tryR2, out double[] tryV2,
+                        out int tryNfail, out int tryItnum, out double tryCritsq,
+                        out double tryAxrtio, out double tryBearng, out string tryOutTextAll, out string tryOutTextSum);
+
+                    bool tryConverged = (tryNfail == 0);
+                    bool bestConverged = (bestNfail == 0);
+
+                    // For every converged candidate, check whether it's a bound orbit
+                    // (e<1) - a tracked, cataloged satellite has to be in a closed orbit to
+                    // have been observed repeatedly, so a hyperbolic/escape solution is
+                    // essentially never the physically correct answer no matter how tightly
+                    // it converges numerically - and only THEN, among bound candidates,
+                    // prefer whichever one's shape (eccentricity, inclination) agrees best
+                    // with Double-r's own answer. Comparing against Double-r only within
+                    // the bound tier (rather than as the top-level tiebreaker) matters:
+                    // Double-r's own shape can itself be quite wrong on hard cases, and
+                    // using it as the top-level tiebreaker previously caused a real
+                    // regression (a case that used to converge near the true answer got
+                    // pulled toward matching Double-r's own bad shape instead).
+                    double tryShapeDiff = double.PositiveInfinity;
+                    bool tryBound = false;
+                    double tryA = 0.0, tryEcc = 0.0, tryIncl = 0.0;
+                    if (tryConverged)
+                    {
+                        rv2coe(tryR2, tryV2, out double _p, out tryA, out tryEcc, out tryIncl,
+                            out double _raan, out double _argp, out double _nu, out double _m,
+                            out double _arglat, out double _truelon, out double _lonper);
+                        tryBound = (!double.IsNaN(tryEcc) && tryEcc < 1.0);
+                        if (haveDRshape)
+                            tryShapeDiff = Math.Abs(tryEcc - eccDRshape) + Math.Abs(tryIncl - inclDRshape);
+                    }
+
+                    outTextAll = outTextAll + "gooding k trial: k=" + kTry + " ind=" + indTry + " rng1=" + rng1Try.ToString("G6")
+                        + " nfail=" + tryNfail + " itnum=" + tryItnum + " critsq=" + tryCritsq.ToString("G6")
+                        + " bound=" + (tryConverged ? tryBound.ToString() : "n/a")
+                        + " a=" + (tryConverged ? tryA.ToString("G6") : "n/a")
+                        + " e=" + (tryConverged ? tryEcc.ToString("G4") : "n/a")
+                        + " i=" + (tryConverged ? (tryIncl * 180.0 / Math.PI).ToString("G4") : "n/a")
+                        + " shapeDiff=" + (tryConverged && haveDRshape ? tryShapeDiff.ToString("G4") : "n/a") + "\n";
+
+                    bool tryIsBetter;
+                    if (bestR2 == null)
+                        tryIsBetter = true;
+                    else if (tryConverged != bestConverged)
+                        tryIsBetter = tryConverged && !bestConverged;
+                    else if (!tryConverged)
+                        // neither converged - fall back to preferring the smaller critsq
+                        tryIsBetter = !double.IsNaN(tryCritsq) && tryCritsq < bestCritsq;
+                    else if (tryBound != bestBound)
+                        // both converged, but one is a bound orbit and the other isn't - the
+                        // bound one wins regardless of shape or critsq
+                        tryIsBetter = tryBound && !bestBound;
+                    else if (tryBound && haveDRshape)
+                        // both converged and both bound - among bound candidates
+                        // specifically, use Double-r's shape as the tiebreaker. (A
+                        // critsq-dominance override was tried here and reverted: on a real
+                        // test case, the mathematically best-fitting candidate was also the
+                        // most physically wrong one - fit quality and physical correctness
+                        // were anti-correlated across candidates, which is exactly the
+                        // short/sparse-arc overfitting failure mode this tiebreaker exists
+                        // to guard against in the first place.)
+                        tryIsBetter = tryShapeDiff < bestShapeDiff;
+                    else
+                        // both converged and both hyperbolic, or no Double-r shape
+                        // available - fall back to the smaller critsq
+                        tryIsBetter = !double.IsNaN(tryCritsq) && tryCritsq < bestCritsq;
+
+                    if (tryIsBetter)
+                    {
+                        bestR2 = tryR2; bestV2 = tryV2;
+                        bestNfail = tryNfail; bestItnum = tryItnum; bestCritsq = tryCritsq;
+                        bestAxrtio = tryAxrtio; bestBearng = tryBearng;
+                        bestTrialOutTextAll = tryOutTextAll; bestTrialOutTextSum = tryOutTextSum; bestK = kTry; bestInd = indTry;
+                        bestShapeDiff = tryShapeDiff; bestBound = tryBound;
+                    }
+                }
+            }
+
+            r2 = bestR2; v2 = bestV2;
+            nfail = bestNfail; itnum = bestItnum; critsq = bestCritsq;
+            axrtio = bestAxrtio; bearng = bestBearng;
+            kUsed = bestK; indUsed = bestInd;
+            outTextAll = outTextAll + bestTrialOutTextAll;
+            outTextSum = bestTrialOutTextSum + " | kUsed=" + kUsed + " kEst=" + kEst + " indUsed=" + indUsed;
+        }  // anglesgoodingRobust
+
+
+
+        // ------------------------------------------------------------------------------
         //                                obs3lsx
         //                                
         //  compute orbit from three observed lines of sight (angles only). this is a subroutine of the 
@@ -10402,25 +10996,48 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
+        //    los1        - line of sight unit vector #1                            
+        //    los2        - line of sight unit vector #2                            
+        //    los3        - line of sight unit vector #3                            
         //    tau12       - t2 - t1                                                s  
         //    tau13       - t3 - t1                                                s
         //    rs1eci      - site position vector #1 eci                            km
         //    rs2eci      - site position vector #2 eci                            km
         //    rs3eci      - site position vector #3 eci                            km
-        //    rho1        - assumed range at time t1                               km
-        //    rho3        - assumed range at time t3                               km
+        //    rng1        - assumed range at time t1                               km
+        //    rng3        - assumed range at time t3                               km
+        //    rng2        - assumed range at time t2 (used as the convergence
+        //                  comparison point, not iterated on directly)      km
         //    numhalfrev  - number of half-revs (k) included in input angle p1-*-p3
         //    ind         - indicator for which of two lambert solutions to use
         //                    = 0       if numHalfRev  (k) = 0 or 1          
         //                    = 0 or 1  if numHalfRev  (k) >= 2            
-        //    r1          -  position vector #1                                    km
-        //    r2          -  position vector #2                                    km
-        //    r3          -  position vector #3                                    km
-        //    magr1, magr2, magr3     = computed position magnitude from earth center at times t1, t2, t3          
+        //    ikn         - flag for a known solution branch (see inline comments)
+        //    pdinc       - starting partial derivative "increment":
+        //                  delta-x = pdinc* r1, delta-y = pdinc* r3
+        //    alpha       - angle used in the recovery/retry path (see inline comments)
+        //    itnum       - iteration count carried in from the caller
+        //    ngm         - counts use of "g" means
+        //    nmod        - overall modification count
         //                                                                    
         //  outputs       :
-        //    num         - number of solutions found by lambert valamb    (0, unlikely 1, 2)
-        //    rho2sez     - slant range vector for t2                              km
+        //    nfail       - count/code of lambert failures (0 = converged;
+        //                  -1 = ran out of iterations; 1/2/3 = early return
+        //                  from a specific recovery path - see inline comments)
+        //    itnumFinal  - iteration count actually taken
+        //    critsqFinal - final convergence metric (converges when < critval)
+        //    crit        - |*| where * is the calculated range vector at time t2
+        //    axrtio      - ratio (minor:major) for an ellipse in the f/g plane;
+        //                  indicates jacobian condition (0=singular, 1=ideal)
+        //    bearng      - direction of corresponding axes in the rho1/rho3 plane
+        //    r1          - converged position vector #1                    km
+        //    r2          - converged position vector #2 (middle obs)       km
+        //    r3          - converged position vector #3                    km
+        //    outTextAll  - full diagnostic text: every calcps sub-call's
+        //                  Lambert-issue notes, each outer-loop iteration's
+        //                  range guesses/partials/deltas, the final f/g
+        //                  computation, and the one-line summary below
+        //    outTextSum  - one-line result summary: nfail, itnumFinal, critsqFinal
         //    
         //  locals        :
         //   cntrol = input flags & controls inputs see original gooding /cntrol/ common     
@@ -10468,8 +11085,8 @@ namespace AstroLibMethods
             double[] rs1eci, double[] rs2eci, double[] rs3eci,
             int numhalfrev, double pdinc, int ind, int ikn,
             double tau12, double tau13, double rng1, double rng3, double alpha,
-            int itnum, int ngm, int nmod, out int nfail,
-            double rng2, double crit, double axrtio, double bearng, out double[] r1, out double[] r2, out double[] r3, out string errstr
+            int itnum, int ngm, int nmod, out int nfail, out int itnumFinal, out double critsqFinal,
+            double rng2, out double crit, out double axrtio, out double bearng, out double[] r1, out double[] r2, out double[] r3, out string outTextAll, out string outTextSum
         )
         {
             double magr1, magr2, magr3;
@@ -10509,7 +11126,8 @@ namespace AstroLibMethods
             double rad = 180.0 / Math.PI;
             double small = 0.000000001;
             string tmpstr;
-            errstr = "";
+            outTextAll = "";
+            outTextSum = "";
 
 
             // bool lobdep = true;  // true if range starting estimates are observer-dependent
@@ -10542,6 +11160,8 @@ namespace AstroLibMethods
             double[] r3knsq = new double[9] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
             axrtio = 0.0;
+            bearng = 0.0;
+            crit = 0.0;
             fcold = 0.0;        // zero old 'f' ['f' & 'g' (= 0) are target fns computed for point 'p2)]
             nfail = 0;          // not fail(yet!)
             d1nr = 0.0;
@@ -10556,7 +11176,16 @@ namespace AstroLibMethods
             if (lminly)
                 crtold = 0.0;
             lmincv = false;
-            crival = 100.0;
+            // CMDA 1997 Sec 3.3: "a value of 10^-12 was adopted, which is much severer than it
+            // appears" for the CRIT^2 < CRIVAL convergence test. This was hardcoded to 100.0,
+            // roughly 14 orders of magnitude looser than Gooding's own criterion - since crit
+            // is a small dimensionless ratio (f/den), almost any first-or-second-iteration
+            // critsq trivially satisfies "< 100", so the loop was declaring false convergence
+            // (nfail=0) after essentially no real iteration, regardless of whether it was
+            // anywhere near the true root. 1e-8 is a tighter, more defensible value for this
+            // finite-difference-derivative reimplementation (1e-12 may be unachievably strict
+            // given the numerical derivatives here, but 100.0 was never a real convergence test).
+            crival = 1.0e-8;
 
             // convergence deemed for 'alternative goal' of minimization run, if/when.true.
             nmod = 0;  // 1
@@ -10565,8 +11194,8 @@ namespace AstroLibMethods
             if (ikn == 0 && Math.Abs(rng1 - rng3) < small)  // lobdep &&
             {
                 calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13, rng1, rng3, ind,
-                    out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                errstr = errstr + tmpstr;
+                    out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                outTextAll = outTextAll + tmpstr;
 
                 if (numsoltns > 0)
                 {
@@ -10577,8 +11206,8 @@ namespace AstroLibMethods
                         // control the part deriv est of the next step (1e-5*rsites)
                         dr = pdinc * (magr1 + magr3);
                         calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13,
-                            rng1 + dr, rng3 + dr, ind, out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                        errstr = errstr + tmpstr;
+                            rng1 + dr, rng3 + dr, ind, out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                        outTextAll = outTextAll + tmpstr;
                         rng1 = rng1 + dr * rng2 / (rng2 - los2[0] * rho2sez[0] - los2[1] * rho2sez[1] -
                             los2[2] * rho2sez[2]);
                         if (rng1 < 0.0)
@@ -10613,8 +11242,8 @@ namespace AstroLibMethods
 
                 // GOTO 3 computed slant range vector at t2
                 calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13, rng1, rng3, ind,
-                    out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                errstr = errstr + tmpstr;
+                    out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                outTextAll = outTextAll + tmpstr;
                 r10 = magr1;
                 r30 = magr3;
 
@@ -10639,8 +11268,8 @@ namespace AstroLibMethods
                         //5000 format('lambert fail', i2, ' so cut est by 2/3 to', 2e18.10)
                         //goto 3;
                         calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13, rng1, rng3, ind,
-                            out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                        errstr = errstr + tmpstr;
+                            out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                        outTextAll = outTextAll + tmpstr;
                         r10 = magr1;
                         r30 = magr3;
                         //hmmh just let it go back???????
@@ -10694,7 +11323,9 @@ namespace AstroLibMethods
                                 // goto 1
                                 break;
                             default:
-                                errstr = errstr + "default return" + "\n";
+                                outTextAll = outTextAll + "default return" + "\n";
+                                itnumFinal = itnum;
+                                critsqFinal = critsq;
                                 return;
                         }  // switch
 
@@ -10704,7 +11335,9 @@ namespace AstroLibMethods
                         if (lminly)
                             crtold = 0.0;
                         lmincv = false;
-                        crival = 100.0;
+                        // see the matching fix/comment at the initial-entry crival assignment
+                        // above - was 100.0 (far too loose), now a real convergence test.
+                        crival = 1.0e-8;
 
                         // convergence deemed for 'alternative goal' of minimization run, if/when true
                         nmod = 0;  // 1
@@ -10713,9 +11346,8 @@ namespace AstroLibMethods
                         if (ikn == 0 && rng1 == rng3) // lobdep &&
                         {
                             calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13, rng1, rng3, ind,
-                                out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                            errstr = errstr + tmpstr + "rhosez a " + rho2sez[0].ToString() + " " + rho2sez[1].ToString() + " "
-                                + rho2sez[2].ToString() + "\n";
+                                out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                            outTextAll = outTextAll + tmpstr;
                             if (numsoltns > 0)
                             {
                                 rng2 = MathTimeLibr.dot(los2, rho2sez);
@@ -10724,9 +11356,8 @@ namespace AstroLibMethods
                                     dr = pdinc * (magr1 + magr3);
                                     calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13,
                                         rng1 + dr, rng3 + dr, ind,
-                                        out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                                    errstr = errstr + tmpstr + "rhosez b " + rho2sez[0].ToString() + " " + rho2sez[1].ToString() + " "
-                                        + rho2sez[2].ToString() + "\n";
+                                        out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                                    outTextAll = outTextAll + tmpstr;
                                     rng1 = rng1 + dr * rng2 / (rng2 - los2[0] * rho2sez[0] - los2[1] * rho2sez[1] -
                                         los2[2] * rho2sez[2]);
                                     if (rng1 < 0.0)
@@ -10769,7 +11400,6 @@ namespace AstroLibMethods
                     magqvecest = MathTimeLibr.mag(qvecest);
 
                     // test for convergence
-                    errstr = errstr + " difference " + magqvecest.ToString() + " " + itnum.ToString() + " " + nfail.ToString() + "\n";
                     if (Math.Abs(magqvecest) < small)
                     {
                         // converged!
@@ -10816,9 +11446,8 @@ namespace AstroLibMethods
                             nmod = nmod + 1;
                             //goto 3;
                             calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13, rng1, rng3, ind,
-                                out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                            errstr = errstr + tmpstr + "rhosez c " + rho2sez[0].ToString() + " " + rho2sez[1].ToString() + " "
-                                + rho2sez[2].ToString() + "\n";
+                                out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                            outTextAll = outTextAll + tmpstr;
                             r10 = magr1;
                             r30 = magr3;
                             //
@@ -10844,14 +11473,14 @@ namespace AstroLibMethods
                         dro3sq = dro3 * dro3;
                         calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13,
                             rng1 - dro1, rng3, ind,
-                            out nldf[1], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                        errstr = errstr + tmpstr + "rhosez d1 " + rho2sez[0].ToString() + " " + rho2sez[1].ToString() + " " + rho2sez[2].ToString() + "\n";
+                            out nldf[1], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                        outTextAll = outTextAll + tmpstr;
                         fm1 = MathTimeLibr.dot(pvec, rho2sez) / magpvec - f;
                         gm1 = MathTimeLibr.dot(qvecest, rho2sez) / magqvecest - g;
                         calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13,
                             rng1 + dro1, rng3, ind,
-                            out nldf[2], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                        errstr = errstr + tmpstr + "rhosez d2 " + rho2sez[0].ToString() + " " + rho2sez[1].ToString() + " " + rho2sez[2].ToString() + "\n";
+                            out nldf[2], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                        outTextAll = outTextAll + tmpstr;
                         fp1 = MathTimeLibr.dot(pvec, rho2sez) / magpvec - f;
                         gp1 = MathTimeLibr.dot(qvecest, rho2sez) / magqvecest - g;
                         fd1 = (fp1 - fm1) / d2ro1;
@@ -10860,14 +11489,14 @@ namespace AstroLibMethods
                         gdd1 = (gp1 + gm1) / dro1sq;
                         calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13,
                             rng1, rng3 - dro3, ind,
-                            out nldf[3], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                        errstr = errstr + tmpstr + "rhosez d3 " + rho2sez[0].ToString() + " " + rho2sez[1].ToString() + " " + rho2sez[2].ToString() + "\n";
+                            out nldf[3], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                        outTextAll = outTextAll + tmpstr;
                         fm3 = MathTimeLibr.dot(pvec, rho2sez) / magpvec - f;
                         gm3 = MathTimeLibr.dot(qvecest, rho2sez) / magqvecest - g;
                         calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13,
                             rng1, rng3 + dro3, ind,
-                            out nldf[4], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                        errstr = errstr + tmpstr + "rhosez d4 " + rho2sez[0].ToString() + " " + rho2sez[1].ToString() + " " + rho2sez[2].ToString() + "\n";
+                            out nldf[4], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                        outTextAll = outTextAll + tmpstr;
                         fp3 = MathTimeLibr.dot(pvec, rho2sez) / magpvec - f;
                         gp3 = MathTimeLibr.dot(qvecest, rho2sez) / magqvecest - g;
                         fd3 = (fp3 - fm3) / d2ro3;
@@ -10876,8 +11505,8 @@ namespace AstroLibMethods
                         gdd3 = (gp3 + gm3) / dro3sq;
                         calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13,
                             rng1 + dro1, rng3 + dro3, ind,
-                            out nldf[5], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                        errstr = errstr + tmpstr + "rhosez d5 " + rho2sez[0].ToString() + " " + rho2sez[1].ToString() + " " + rho2sez[2].ToString() + "\n";
+                            out nldf[5], out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                        outTextAll = outTextAll + tmpstr;
                         f13 = MathTimeLibr.dot(pvec, rho2sez) / magpvec - f;
                         g13 = MathTimeLibr.dot(qvecest, rho2sez) / magqvecest - g;
                         rofac = dro1 / dro3;
@@ -10901,8 +11530,8 @@ namespace AstroLibMethods
                                     nmods = 0;
                                     nflmod = 0;
                                     calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13, rng1, rng3, ind,
-                                        out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
-                                    errstr = errstr + tmpstr;
+                                        out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+                                    outTextAll = outTextAll + tmpstr;
                                     r10 = magr1;
                                     r30 = magr3;
                                     //
@@ -10914,7 +11543,9 @@ namespace AstroLibMethods
                                 else
                                 {
                                     nfail = 1;
-                                    errstr = errstr + "nfail 1 opt  return" + "\n";
+                                    outTextAll = outTextAll + "nfail 1 opt  return" + "\n";
+                                    itnumFinal = itnum;
+                                    critsqFinal = critsq;
                                     return;
                                 }
                             }
@@ -11047,32 +11678,49 @@ namespace AstroLibMethods
                     }  // Math.Abs(magqvecest) > small
 
                     fcold = fc;
-                    nfail = -1;
 
-                    // convergence satisfied!!        
-                    if (critsq > crival || lmincv)    // 7
+                    // Fortran: "7 IF (CRITSQ.LT.CRIVAL) GOTO 9 ... 9 NFAIL = 0" - NFAIL is set
+                    // to 0 only on convergence. The prior port unconditionally set nfail = -1
+                    // every iteration and then flipped it to 0 when critsq > crival (i.e. NOT
+                    // converged) - backwards from Gooding's convention, and it clobbered nfail
+                    // between iterations even when nothing had actually failed.
+                    if (critsq < crival || lmincv)    // 7 - converged
                     {
-                        // goto 9;
                         nfail = 0;
-                        // unknown next line? int conversion?
-                        //alpha = alpha;
-                        errstr = errstr + "critsq return alpha " + alpha.ToString() + "\n";
-                        //q = e;
-                        //ei = eideg;
-                        //return;
+                        outTextAll = outTextAll + "critsq return alpha " + alpha.ToString() + "\n";
                     }
-
-                    itnum = itnum + 1;
                 }  // if numsltns > 0
+
+                // itnum now advances unconditionally once per outer pass, regardless of which
+                // branch above executed. Previously this only happened inside the
+                // "numsoltns > 0" branch - but nflmod is reset to 0 at the very top of every
+                // pass (before the "itnum > 1 && nflmod < 3" retry check further up), so once
+                // itnum > 1, that check is true again on every subsequent pass for as long as
+                // Lambert keeps returning numsoltns == 0. With itnum, nfail, and critsq all
+                // frozen in that case, nothing in this loop's own continuation condition could
+                // ever become false - a genuine infinite loop whenever the current (rho1, rho3)
+                // trial genuinely has no nearby Lambert solution (a real possibility for some
+                // k >= 2 multi-rev cases now that numsoltns actually reports failure). Advancing
+                // itnum here guarantees the loop is bounded by maxit no matter what.
+                    itnum = itnum + 1;
 
                 // end of big 'main' loop
             }  // while itnum && nfail && critsq > crival    8
 
-            calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13, rng1, rng3, ind,  //num
-                out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr);
+            // The true test for whether this solve actually converged is critsq < crival -
+            // that's the one condition Fortran's label-9 success path is gated on. Deriving
+            // nfail from that directly (rather than trusting whatever incidental value it was
+            // last left at) covers every non-convergent exit uniformly: running out of
+            // iterations (itnum > maxit) with a critsq nowhere near crival, a NaN critsq
+            // (comparisons against NaN are always false, so it fails this test the same way),
+            // and any other case - a stress test with itnum=21 (exhausted) and critsq=0.18
+            // (nowhere near crival=1e-8) still reported nfail=0 under the previous NaN-only
+            // guard, because nfail simply never got touched away from its 0 default.
+            nfail = (critsq < crival) ? 0 : -1;
 
-            errstr = errstr + "try  rho2sez " + rho2sez[0].ToString() + " " + rho2sez[1].ToString()
-                + " " + rho2sez[2].ToString() + "\n";
+            calcps(los1, los3, rs1eci, rs2eci, rs3eci, numhalfrev, tau12, tau13, rng1, rng3, ind,  //num
+                out numsoltns, out magr1, out magr3, out r1, out r3, out rho2sez, out tmpstr, out _);
+            outTextAll = outTextAll + tmpstr;
 
             // get a final 'best' vector
             rng2 = MathTimeLibr.dot(los2, rho2sez);
@@ -11081,7 +11729,13 @@ namespace AstroLibMethods
             r2[1] = rho2sez[1] + rs2eci[1];
             r2[2] = rho2sez[2] + rs2eci[2];
 
-            errstr = errstr + tmpstr + "end return r2 " + r2[0].ToString() + " " + r2[1].ToString() + " " + r2[2].ToString() + "\n";
+            // surface the final iteration count and convergence metric to the caller so it can
+            // tell converged-vs-ran-out-of-iterations apart (nfail == 0 means converged, per
+            // Gooding's convention - see OBS3LS label 9 vs the post-loop NFAIL = -1 path)
+            itnumFinal = itnum;
+            critsqFinal = critsq;
+            outTextSum = "obs3lsx final: nfail=" + nfail + " itnum=" + itnumFinal + " critsq=" + critsqFinal.ToString("G6");
+            outTextAll = outTextAll + outTextSum + "\n";
         }  // obs3lsx
 
 
@@ -11105,12 +11759,12 @@ namespace AstroLibMethods
         //    los3        - line of sight vector for t3                            
         //    tau12       - t2 - t1                                                s  
         //    tau13       - t3 - t1                                                s
-        //    rs1         - site position vector #1 eci                            km
-        //    rs2         - site position vector #2 eci                            km
-        //    rs3         - site position vector #3 eci                            km
+        //    rs1eci      - site position vector #1 eci                            km
+        //    rs2eci      - site position vector #2 eci                            km
+        //    rs3eci      - site position vector #3 eci                            km
         //    rho1        - estimated range at time t1                             km
         //    rho3        - estimated range at time t3                             km
-        //    hrev        - number of half-revs (k) included in input angle p1-*-p3
+        //    numHalfRev  - number of half-revs (k) included in input angle p1-*-p3
         //    ind         - indicator for which of two lambert solutions to use
         //                    = 0       if numHalfRev  (k) = 0 or 1          
         //                    = 0 or 1  if numHalfRev  (k) >= 2            
@@ -11118,10 +11772,14 @@ namespace AstroLibMethods
         //  outputs       :
         //    numsoltns   - number of solutions found by lambert valamb    (0, unlikely 1, 2)
         //    r1          -  position vector #1                                    km
-        //    r2          -  position vector #2                                    km
         //    r3          -  position vector #3                                    km
-        //    magr1, magr3     = computed position magnitude from earth center at times t1, t3          
+        //    magr1, magr3  - computed position magnitude from earth center at times t1, t3          
         //    rho2sez     - slant range vector for t2                              km
+        //    outTextAll  - full diagnostic text: any Lambert-solution issue
+        //                  detected (bad detailSum, invalid/NaN v1t) for this
+        //                  calcps evaluation
+        //    outTextSum  - one-line result summary: numsoltns and whether a
+        //                  valid Lambert solution was found
         //    
         //  locals        :
         //  
@@ -11132,7 +11790,7 @@ namespace AstroLibMethods
             double[] los1, double[] los3, double[] rs1eci, double[] rs2eci, double[] rs3eci,
             int numHalfRev, double tau12, double tau13, double rho1, double rho3, int ind,
             out int numsoltns, out double magr1, out double magr3,
-            out double[] r1, out double[] r3, out double[] rho2sez, out string errstr
+            out double[] r1, out double[] r3, out double[] rho2sez, out string outTextAll, out string outTextSum
         )
         {
             char dm, de;
@@ -11141,7 +11799,8 @@ namespace AstroLibMethods
             rho2sez = new double[] { 0.0, 0.0, 0.0 };
             // hardwire this for now, could be an input
             double altpadc = 200.0 / astroConsts.re;
-            errstr = "";
+            outTextAll = "";
+            outTextSum = "";
 
             // internal variables 
             //int ktrm;
@@ -11176,24 +11835,24 @@ namespace AstroLibMethods
             //    th = Math.PI - th;
             //th = th + numHalfRev * Math.PI;
 
-            // not needed since lambert does it all
-            // specify one direction and that's it you don't need "all" the options. 
-            dm = 'S';
-            //dm = 'L';  // unlikely to be going the long way
-            de = 'L';
-            //de = 'H';  // unlikely to be high energy if nrev = 0
+            // Gooding's k (numHalfRev) is the count of half-revolutions included in the
+            // p1-*-p3 transfer angle: k=0 -> short way, 0 revs; k=1 -> long way, 0 revs;
+            // k=2 -> short way, 1 complete rev; k=3 -> long way, 1 complete rev; etc.
+            // (CMDA 1997 Sec. 3.1/3.5: "if k = 0 or 1 there is always exactly one Lambert
+            // solution, but for k >= 2 there will be two or none.") That maps directly onto
+            // our Lambert routine's (nrev, dm) pair as nrev = k/2, dm = 'S' if k even else 'L'.
+            // Previously nrev was guessed from tau12/tau13 >= 86400 sec and numHalfRev (k)
+            // was never actually consulted, so multi-rev cases could never be posed correctly.
+            nrev = numHalfRev / 2;
+            dm = (numHalfRev % 2 == 0) ? 'S' : 'L';
 
-            // this seems to help in the multi-rev cases
-            if (tau12 >= 86400.0 && tau13 >= 86400.0)
-                nrev = 1;
-            else
-                nrev = 0;
+            // for k >= 2 (nrev >= 1) there are two Lambert solutions (low-energy / high-energy
+            // branch); "ind" is Gooding's indicator selecting which one CALCPS should use.
+            // ind must be 0 when k = 0 or 1 (only one solution exists then, per the paper).
+            de = (nrev > 0 && ind == 1) ? 'H' : 'L';
 
             // lambert solution to get radial and transverse velocity components at time t1
             //valamb(r1, r3, th, tau13, numsoltns, vr1, vt1, vr3, vt3, alv, wr1, wt1, wr3, wt3, alw);
-            errstr = errstr + "r1 " + r1[0].ToString() + " " + r1[1].ToString() + " " + r1[2].ToString();
-            errstr = errstr + "r3 " + r3[0].ToString() + " " + r3[1].ToString() + " " + r3[2].ToString()
-                + tau13.ToString() + "\n";
 
             // NOTE: previously this passed a literal 0.0 for time-of-flight to both Lambert
             // solvers (dtsec was hardcoded), which poses a degenerate zero-TOF boundary-value
@@ -11205,11 +11864,41 @@ namespace AstroLibMethods
             // parameters (v1t, v2t, detailSum, detailAll) that the very next lambertbattin()
             // call immediately overwrote, so its result was always discarded - it did nothing
             // but cost an extra solve.
-            lambertbattin(r1, r3, v1, dm, de, nrev, tau13, 'y',
+            lambertbattin(r1, r3, v1, dm, de, nrev, tau13,
                 out v1t, out v2t, out detailSum, out detailAll);
-            errstr = errstr + "Lambert " + " " + detailSum + "\n";
-            // hardwire for now, numsoltns of solutions
-            numsoltns = 1;
+            // calcps() is called up to ~6 times per outer iteration (1 main + 5 partial-
+            // derivative estimates) for up to maxit=20 iterations - that's up to ~120 calls
+            // per single Gooding solve. Unconditionally dumping r1/r3/detailSum text here on
+            // every call (as this used to) built outTextAll via plain string concatenation
+            // ("outTextAll = outTextAll + ...", not a StringBuilder), which is O(n^2) in the number of
+            // appends - fine when Lambert failed fast (pre-tau13-fix), but now that it actually
+            // iterates to convergence this could balloon outTextAll into hundreds of KB per case
+            // across a full run-all. Only note it when Lambert actually reports a problem.
+            if (detailSum != "ok")
+                outTextAll = outTextAll + "Lambert issue: " + detailSum + " r1=" + r1[0].ToString() + "," + r1[1].ToString() + "," + r1[2].ToString()
+                    + " r3=" + r3[0].ToString() + "," + r3[1].ToString() + "," + r3[2].ToString() + " tau13=" + tau13.ToString() + "\n";
+
+            // NOTE: lambertbattin() sets detailSum = "ok" unconditionally at entry and never
+            // updates it on failure - confirmed by inspection, it cannot be used to detect a
+            // failed or non-existent Lambert solution. This matters a lot for k >= 2 (nrev > 0):
+            // Gooding's own algorithm expects "for k >= 2 there will be two [solutions] or none"
+            // (CMDA 1997 Sec. 3.5) - when there's none, the real CALCPS/VALAMB reports zero
+            // solutions and OBS3LS's nLs recovery ladder (reduced increments, restart with
+            // different starters) is supposed to engage. With numsoltns hardwired to 1
+            // regardless, that recovery path could never fire, and a genuine "no solution"
+            // case would silently hand NaN forward through f/g/crit instead - which is exactly
+            // what surfaced once real convergence testing (crival) was in place: every k=2 test
+            // case came back with critsq=NaN yet nfail=0, because a NaN critsq makes the
+            // "critsq > crival" loop-continuation test AND the "critsq < crival" convergence
+            // test both false (IEEE NaN comparisons are always false), so the loop exits
+            // immediately looking exactly like silent success. Check the actual output for
+            // validity instead of trusting detailSum.
+            bool lambertOk = !double.IsNaN(v1t[0]) && !double.IsNaN(v1t[1]) && !double.IsNaN(v1t[2])
+                && !double.IsInfinity(v1t[0]) && !double.IsInfinity(v1t[1]) && !double.IsInfinity(v1t[2]);
+            numsoltns = lambertOk ? 1 : 0;
+            if (!lambertOk)
+                outTextAll = outTextAll + "Lambert nLs: invalid v1t for k=" + numHalfRev + " nrev=" + nrev + " dm=" + dm + " de=" + de
+                    + " r1=" + r1[0] + "," + r1[1] + "," + r1[2] + " r3=" + r3[0] + "," + r3[1] + "," + r3[2] + " tau13=" + tau13 + "\n";
 
             // proceed if at least one solution exists 
             // check hitearth...
@@ -11252,7 +11941,7 @@ namespace AstroLibMethods
                 // note he uses tau, since perigee passage, as an orbital element
                 // alv gives better accuracy than al for near-parabolic orbits
                 //els3pv(alv, q, ei, bom, om, tau + tau12, out r2, out v2);
-                kepler(r1, v1t, tau12, out r2, out v2);
+                kepler(r1, v1t, tau12, out r2, out v2, out _);
 
                 // only for the convergence criterion in the calling routine
                 // slant range vector - eci
@@ -11265,6 +11954,8 @@ namespace AstroLibMethods
                 // need to do something if no roots were found - perhaps delete guess?
             }
 
+
+            outTextSum = "calcps: numsoltns=" + numsoltns + (numsoltns == 0 ? " (no valid Lambert solution)" : "");
         } // calcps
 
         // -------------------------- conversion techniques ---------------------------
@@ -11287,6 +11978,8 @@ namespace AstroLibMethods
         //  outputs       :
         //    v2          -  velocity vector for r2                    km / s
         //    theta       - angle between vectors                         rad
+        //    theta1      - angle between the r2-r3 vectors                    rad
+        //    copa        - coplanarity angle                                  rad
         //    error       - flag indicating success                       'ok',...
         //
         //  locals        :
@@ -11411,6 +12104,8 @@ namespace AstroLibMethods
         //  outputs       :
         //    v2          -  velocity vector for r2                     km / s
         //    theta       - angle between vectors                       rad
+        //    theta1      - angle between the r2-r3 vectors                  rad
+        //    copa        - coplanarity angle                                rad
         //    error       - flag indicating success                     'ok',...
         //
         //  locals        :
@@ -11606,8 +12301,6 @@ namespace AstroLibMethods
         //
         //  outputs       :
         //    jpldearr    - array of jplde data records
-        //    jdjpldestart- julian date of the start of the jpldearr data
-        //    jdfjpldestart- julian date fraction of the start of the jpldearr data
         //
         //  references    :
         //
@@ -11700,27 +12393,16 @@ namespace AstroLibMethods
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
         //  inputs          description                              range / units
-        //    jdtdb         - epoch julian date                      days from 4713 BC
-        //    jdtdbF        - epoch julian date fraction             day fraction from jdutc
+        //    jdtdb         - epoch julian date (tdb)                 days from 4713 BC
+        //    jdtdbF        - epoch julian date fraction               day fraction from jdtdb
         //    interp        - interpolation                          n-none, l-linear, s-spline
         //    jpldearr      - array of jplde data records
-        //    jdjpldestart  - julian date of the start of the jpldearr data (set in initjplde)
         //
         //  outputs       :
-        //    dut1        - delta ut1 (ut1-utc)                        sec
-        //    dat         - number of leap seconds                     sec
-        //    lod         - excess length of day                       sec
-        //    xp          - x component of polar motion                rad
-        //    yp          - y component of polar motion                rad
-        //    ddpsi       - correction to delta psi (iau-76 theory)    rad
-        //    ddeps       - correction to delta eps (iau-76 theory)    rad
-        //    dx          - correction to x (cio theory)               rad
-        //    dy          - correction to y (cio theory)               rad
-        //    x           - x component of cio                         rad
-        //    y           - y component of cio                         rad
-        //    s           -                                            rad
-        //    deltapsi    - nutation longitude angle                   rad
-        //    deltaeps    - obliquity of the ecliptic correction       rad
+        //    rsun          - sun position vector (eci)                 km
+        //    rsmag         - magnitude of the sun position vector       km
+        //    rmoon         - moon position vector (eci)                km
+        //    rmmag         - magnitude of the moon position vector      km
         //
         //  locals        :
         //                -
@@ -11856,8 +12538,8 @@ namespace AstroLibMethods
         //
         //                           function sunmoonjpl
         //
-        //  this function calculates the geocentric equatorial position vector
-        //    the sun given the julian date. these are the jpl de ephemerides.
+        //  this function calculates the geocentric equatorial position vectors of
+        //    the sun and moon given the julian date. these are the jpl de ephemerides.
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
@@ -11866,12 +12548,14 @@ namespace AstroLibMethods
         //    jdtdbF        - epoch julian date fraction     day fraction from jdutc
         //    interp        - interpolation                        n-none, l-linear, s-spline
         //    jpldearr      - array of jplde data records
-        //    jdjpldestart  - julian date of the start of the jpldearr data (set in initjplde)
         //
         //  outputs       :
         //    rsun        - ijk position vector of the sun au
-        //    rtasc       - right ascension                rad
-        //    decl        - declination                    rad
+        //    rtascs      - right ascension of the sun                   rad
+        //    decls       - declination of the sun                       rad
+        //    rmoon       - ijk position vector of the moon               km
+        //    rtascm      - right ascension of the moon                  rad
+        //    declm       - declination of the moon                      rad
         //
         //  locals        :
         //    meanlong    - mean longitude
@@ -12399,7 +13083,8 @@ namespace AstroLibMethods
         //    degree      - size of gravity field (zonals)                          1.. 2000 ..
         //
         //  outputs       :
-        //    normxx   - arrays of normalized Legendre polynomials, constant portion
+        //    norm1, norm2, norm11, normn10, norm1m, norm2m, normn1  - arrays of
+        //                normalized Legendre polynomial recursion coefficients
         //
         //  locals :
         //    L,m         - degree and order indices
@@ -12466,7 +13151,8 @@ namespace AstroLibMethods
         //    degree      - size of gravity field (zonals)                          1.. 2000 .. 
         //
         //  outputs       :
-        //    normxx   - arrays of normalized Legendre polynomials, constant portion
+        //    norm1, norm2, norm11, norm1m, norm2m  - arrays of normalized
+        //                Legendre polynomial recursion coefficients
         //
         //  locals :
         //    L,m         - degree and order indices
@@ -12685,15 +13371,19 @@ namespace AstroLibMethods
         //    degree      - size of gravity field (zonals)                          1.. 170 
         //    order       - size of gravity field (other)                           1.. 170 
         //    normArr     - array of normalization values                  
-        //    gravarr     - structure containing the gravity field coefficients, 
+        //    gravData    - structure containing the gravity field coefficients, 
         //                  radius of the Earth, and gravitational parameter
         //
         //  outputs       :
         //    apertG      - efc perturbation acceleration                  km / s^2
-        //    straccum    - string containing the various intermediate steps
+        //    outTextAll  - full diagnostic text: legarrGU/trigArr sample
+        //                  values when degree > 4 (was gated behind a
+        //                  caller-supplied show=='y' flag; now always built
+        //                  when degree > 4, since that's also the condition
+        //                  under which legarrGU[4]/trigArr[2] are valid to read)
+        //    outTextSum  - one-line result summary: aPertG magnitude
         //
         //  locals :
-        //    show        - show intermediate steps                        'y', 'n'
         //    conv        - conversion to normalize
         //    L, m        - degree and order indices
         //    trigArr     - array of trigonometric terms
@@ -12714,8 +13404,8 @@ namespace AstroLibMethods
             double[][] normArr,
             Int32 degree, Int32 order,
             out double[] aPertG,
-            out string straccum,
-            char show
+            out string outTextAll,
+            out string outTextSum
         )
         {
             Int32 L, m;
@@ -12728,7 +13418,8 @@ namespace AstroLibMethods
             sumM1 = 0.0;
             sumM2 = 0.0;
             sumM3 = 0.0;
-            straccum = "";
+            outTextAll = "";
+            outTextSum = "";
 
             // --------------------find latgc and lon---------------------- }
             ecef2ll(recef, out latgc, out latgd, out lon, out hellp);
@@ -12787,14 +13478,15 @@ namespace AstroLibMethods
             aPertG[1] = temp * recef[1] + oordeltasqrt * oordeltasqrt * dRdlon * recef[0]; // - tmp * recef[1];
             aPertG[2] = oor * dRdr * recef[2] + oor * oor *RDelta * dRdlat; // - tmp * recef[2];
 
-            if (show == 'y' && degree > 4)
+            if (degree > 4)
             {
-                straccum = straccum + "GTDS case nonspherical, no two-body ---------- " + "\n";
-                straccum = straccum + "legarrGU 4 0   " + legarrGU[4][0].ToString() + "  4 1   "
+                outTextAll = outTextAll + "GTDS case nonspherical, no two-body ---------- " + "\n";
+                outTextAll = outTextAll + "legarrGU 4 0   " + legarrGU[4][0].ToString() + "  4 1   "
                    + legarrGU[4][1].ToString() + "  4 4   " + legarrGU[4][4].ToString() + "\n";
-                straccum = straccum + "trigarr 2 2 Sin  " + trigArr[2, 0].ToString() + "  Cos   "
+                outTextAll = outTextAll + "trigarr 2 2 Sin  " + trigArr[2, 0].ToString() + "  Cos   "
                     + trigArr[2, 1].ToString() + "  Tan   " + trigArr[2, 2].ToString() + "\n";
             }
+            outTextSum = "GravAccelGTDS: |aPertG|=" + MathTimeLibr.mag(aPertG).ToString("G6") + " km/s^2";
 
         }  // GravAccelGTDS 
 
@@ -12819,6 +13511,11 @@ namespace AstroLibMethods
         //
         //  outputs       :
         //    apertMC     - efc perturbation acceleration                      km / s^2
+        //    outTextAll  - full diagnostic text: VArr/WArr sample values when
+        //                  degree > 4 (was gated behind a caller-supplied
+        //                  show=='y' flag; now always built when degree > 4,
+        //                  the condition under which VArr[4]/WArr[4] are valid)
+        //    outTextSum  - one-line result summary: aPertMC magnitude
         //
         //  locals :
         //    L, m        - degree and order indices
@@ -12841,14 +13538,15 @@ namespace AstroLibMethods
             double[][] normArr,
             Int32 degree, Int32 order,
             out double[] aPertMC,
-            out string straccum,
-            char show
+            out string outTextAll,
+            out string outTextSum
         )
         {
             Int32 L, m;
             double temp, latgc, latgd, hellp, lon, magr2;
             aPertMC = new double[3];
-            straccum = "";
+            outTextAll = "";
+            outTextSum = "";
 
             double rho, Fac;                
             double x0, y0, z0;                
@@ -12939,28 +13637,30 @@ namespace AstroLibMethods
             aPertMC[1] = temp * aPertMC[1];
             aPertMC[2] = temp * aPertMC[2];
 
-            if (show == 'y' && degree > 4)
+            if (degree > 4)
             {
-                straccum = straccum + "Montenbruck C case ---------- " + "\n";
-                straccum = straccum + "VArr   1    " + VArr[1][0].ToString() + "    " + VArr[1][1].ToString()
+                outTextAll = outTextAll + "Montenbruck C case ---------- " + "\n";
+                outTextAll = outTextAll + "VArr   1    " + VArr[1][0].ToString() + "    " + VArr[1][1].ToString()
                     + "\n";
-                straccum = straccum + "WArr   1    " + WArr[1][0].ToString() + "    " + WArr[1][1].ToString()
+                outTextAll = outTextAll + "WArr   1    " + WArr[1][0].ToString() + "    " + WArr[1][1].ToString()
                     + "\n";
-                straccum = straccum + "VArr   2    " + VArr[2][0].ToString() + "    " + VArr[2][1].ToString()
+                outTextAll = outTextAll + "VArr   2    " + VArr[2][0].ToString() + "    " + VArr[2][1].ToString()
                     + "    " + VArr[2][2].ToString() + "\n";
-                straccum = straccum + "WArr   2    " + WArr[2][0].ToString() + "    " + WArr[2][1].ToString()
+                outTextAll = outTextAll + "WArr   2    " + WArr[2][0].ToString() + "    " + WArr[2][1].ToString()
                     + "    " + WArr[2][2].ToString() + "\n";
-                straccum = straccum + "VArr   3    " + VArr[3][0].ToString() + "    " + VArr[3][1].ToString()
+                outTextAll = outTextAll + "VArr   3    " + VArr[3][0].ToString() + "    " + VArr[3][1].ToString()
                     + "    " + VArr[3][2].ToString() + "\n";
-                straccum = straccum + "WArr   3    " + WArr[3][0].ToString() + "    " + WArr[3][1].ToString()
+                outTextAll = outTextAll + "WArr   3    " + WArr[3][0].ToString() + "    " + WArr[3][1].ToString()
                     + "    " + WArr[3][2].ToString() + "\n";
-                straccum = straccum + "VArr   4    " + VArr[4][0].ToString() + "    " + VArr[4][1].ToString()
+                outTextAll = outTextAll + "VArr   4    " + VArr[4][0].ToString() + "    " + VArr[4][1].ToString()
                     + "    " + VArr[4][2].ToString() + "    " + VArr[4][3].ToString() + "    " + VArr[4][4].ToString() + "\n";
-                straccum = straccum + "WArr   4    " + WArr[4][0].ToString() + "    " + WArr[4][1].ToString()
+                outTextAll = outTextAll + "WArr   4    " + WArr[4][0].ToString() + "    " + WArr[4][1].ToString()
                     + "    " + WArr[4][2].ToString() + "    " + WArr[4][3].ToString() + "    " + WArr[4][4].ToString() + "\n";
-                straccum = straccum + "apertMC unbf " + order + " " + order + " " + aPertMC[0].ToString() + "     "
+                outTextAll = outTextAll + "apertMC unbf " + order + " " + order + " " + aPertMC[0].ToString() + "     "
                     + aPertMC[1].ToString() + "     " + aPertMC[2].ToString() + "\n";
             }
+
+            outTextSum = "GravAccelMont: |aPertMC|=" + MathTimeLibr.mag(aPertMC).ToString("G6") + " km/s^2";
 
         }  // GravAccelMont 
 
@@ -13140,7 +13840,8 @@ namespace AstroLibMethods
         //  inputs          description                                             range / units
         //    recef       - earth fixed position vector for satellite               km
         //    gravData    - structure containing the gravity field coefficients 
-        //    normxx      - constant normalization parameters pre-calculated              
+        //    norm1, norm2, norm11, norm1m, norm2m  - constant normalization
+        //                parameters pre-calculated
         //    degree      - size of gravity field (zonals)                          1.. 2000 .. 
         //    order       - size of gravity field (other)                           1.. 2000 .. 
         //
@@ -13341,7 +14042,8 @@ namespace AstroLibMethods
         //  inputs          description                                             range / units
         //    recef       - earth fixed position vector for satellite               km
         //    gravData    - structure containing the gravity field coefficients 
-        //    normxx      - constant normalization parameters pre-calculated              
+        //    norm1, norm2, norm11, normn10, norm1m, norm2m, normn1  - constant
+        //                normalization parameters pre-calculated
         //    degree      - size of gravity field (zonals)                          1.. 2000 .. 
         //    order       - size of gravity field (other)                           1.. 2000 .. 
         //
