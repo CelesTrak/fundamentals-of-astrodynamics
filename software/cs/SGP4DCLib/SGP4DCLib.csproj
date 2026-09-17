@@ -4,18 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{E5FC2F10-CD2B-480A-BB86-20A7FBC71B37}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
-    <RootNamespace>TestSGP4DC</RootNamespace>
-    <AssemblyName>TestSGP4DC</AssemblyName>
+    <ProjectGuid>{7428E716-A9CA-438D-814B-2B11E8D064F9}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SGP4DCLib</RootNamespace>
+    <AssemblyName>SGP4DCLib</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -25,7 +23,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -40,65 +37,27 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
-    <Reference Include="System.Drawing" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Form1.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form1.Designer.cs">
-      <DependentUpon>Form1.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="Form1.resx">
-      <DependentUpon>Form1.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
-    </Compile>
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
+    <Compile Include="SGP4DCLib.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\libraries\Astrolib\Astrolib\Astrolib.csproj">
+    <ProjectReference Include="..\Astrolib\Astrolib\Astrolib.csproj">
       <Project>{8509fde2-2245-4977-8f2d-d13648aab613}</Project>
       <Name>Astrolib</Name>
     </ProjectReference>
-    <ProjectReference Include="..\libraries\EOPSPWLib\EOPSPWLib\EOPSPWLib.csproj">
+    <ProjectReference Include="..\EOPSPWLib\EOPSPWLib\EOPSPWLib.csproj">
       <Project>{b64e8863-15b0-4d1d-a48d-debea17469b8}</Project>
       <Name>EOPSPWLib</Name>
     </ProjectReference>
-    <ProjectReference Include="..\libraries\MathTimeLib\MathTimeLib\MathTimeLib.csproj">
+    <ProjectReference Include="..\MathTimeLib\MathTimeLib\MathTimeLib.csproj">
       <Project>{106694e6-9585-487e-9904-e4ccc344dd69}</Project>
       <Name>MathTimeLib</Name>
     </ProjectReference>
-    <ProjectReference Include="..\libraries\SGP4DCLib\SGP4DCLib.csproj">
-      <Project>{7428e716-a9ca-438d-814b-2b11e8d064f9}</Project>
-      <Name>SGP4DCLib</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\libraries\SGP4Lib\SGP4Lib\SGP4Lib.csproj">
+    <ProjectReference Include="..\SGP4Lib\SGP4Lib\SGP4Lib.csproj">
       <Project>{d4340452-9b56-44b6-8788-ef5250461a88}</Project>
       <Name>SGP4Lib</Name>
     </ProjectReference>

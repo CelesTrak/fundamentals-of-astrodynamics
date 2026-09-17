@@ -6131,8 +6131,7 @@ namespace AstroLibMethods
         //    xnew        - converged universal variable x
         //    znew        - converged value of z = alpha * xnew^2
         //    outTextAll  - full diagnostic text: every newton iteration's
-        //                  x/z/rval/dtnew values in both km and canonical
-        //                  (ER/TU) units
+        //                  x/z/rval/dtnew values in both km and canonical units
         //
         //  locals        :
         //    numiter     - iteration limit                             50
@@ -6278,8 +6277,7 @@ namespace AstroLibMethods
         //  CAUTION: this function is called from calcps, which itself runs up to
         //  ~120 times per single Gooding solve (see calcps/lambertbattin notes) -
         //  and each kepler call can iterate its own newton loop up to 50 times.
-        //  Building outTextAll unconditionally here (added per explicit request,
-        //  converting the original MATLAB printf trace) reintroduces the same
+        //  Building outTextAll unconditionally here reintroduces the same
         //  O(iterations) per-call string growth that lambertbattin's equivalent
         //  trace was deliberately left out to avoid. Worth watching for a real
         //  slowdown on full TestAll/Gooding runs; if it shows up, the fix is the
@@ -7869,8 +7867,7 @@ namespace AstroLibMethods
         //                  now always reflects errorstr)
         //    outTextAll  - full diagnostic text: every bisection loop
         //                  iteration's y/x/dtnew/bounds, and the yneg
-        //                  recovery loop's iterations when triggered (was
-        //                  gated behind show=='y'; now always built)
+        //                  recovery loop's iterations when triggered 
         //
         //  locals        :
         //    vara        - variable of the iteration,
@@ -8417,11 +8414,9 @@ namespace AstroLibMethods
         //  CAUTION: this function is called up to ~120 times per single
         //  Gooding solve (see calcps), each with its own loop of up to 30
         //  iterations - building outTextAll unconditionally here means up
-        //  to ~3600 string appends per solve. Re-enabled per explicit
-        //  request (converting a previously-commented-out C# draft, not
-        //  MATLAB this time); if this shows up as a real slowdown on full
-        //  TestAll/Gooding runs, the fix is to drop or bound this trace,
-        //  same as noted for kepler above.
+        //  to ~3600 string appends per solve. Re-enabled if this shows up
+        //  as a real slowdown on full TestAll/Gooding runs, the fix is to
+        //  drop or bound this trace, same as noted for kepler above.
         //
         //  references    :
         //    vallado       2022, 505, Alg 61, ex 7-5
@@ -8817,7 +8812,8 @@ namespace AstroLibMethods
         //    chosen between (see checkArcVsPeriod below, which flags this into outTextAll). for
         //    long-arc cases, prefer double-r or gooding, which do not rely on a local series
         //    truncation. a fallback position is a halley iteration permits a quick solution to
-        //    find a root, with a starting guess of 20000 km. 
+        //    find a root, with a starting guess of 20000 km.performs ok for Earth rbits, but best
+        //    if the arc is small.
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
@@ -8843,11 +8839,9 @@ namespace AstroLibMethods
         //    outTextAll   - full diagnostic text: tau values, LOS vectors,
         //                   ldot/lddot, rs2dot/rs2ddot, d/d1/d2 determinants,
         //                   poly coefficients, root search detail, r2/rho,
-        //                   and any checkArcVsPeriod warning (was gated
-        //                   behind show=='a'; now always built)
+        //                   and any checkArcVsPeriod warning 
         //    outTextSum   - one-line result summary: bigr2, root count, and
         //                   any arc/period or degenerate-geometry warning
-        //                   (was gated behind show=='y'; now always built)
         //
         //  locals         :
         //    l1           - line of sight vector for 1st
@@ -9118,10 +9112,6 @@ namespace AstroLibMethods
                 //Console.WriteLine( "Poly------------------------------");
                 //Console.WriteLine( poly[1] + " " + poly[2] + " " + poly[3] + " " + poly[4]);
                 //Console.WriteLine( poly[5] + " " + poly[6] + " " + poly[7] + " " + poly[8] + " " + poly[9]);
-                // note that there will usually be only 1 real positive root (See Der AAS 19-626)
-                // only in cases where poly[3] is negative and poly[6] is positive could there be multiple
-                // positive real roots. 
-                // the real positive root is the one to select. 
                 //MathTimeLibr.factor(poly, 8, out roots);
 
                 // simply iterate to find the correct root
@@ -9385,7 +9375,7 @@ namespace AstroLibMethods
         //    quite large and canonical units are used only until the root is found, 
         //    then regular units are resumed. there is usually only 1 real positive root
         //    (Der AAS 19-626). only in cases where poly[3] is negative and poly[6] is
-        //    positive could there be multiple positive real roots. laplace has a limitation
+        //    positive could there be multiple positive real roots. gauss has a limitation
         //    in that the octic is derived from a truncated f-g series expansion of position around t2,
         //    valid only when the observation span (tau13) is a small fraction of the orbit's period.
         //    once tau13 approaches or exceeds roughly one full revolution, this doesn't merely mis-locate
@@ -9396,7 +9386,7 @@ namespace AstroLibMethods
         //    chosen between (see checkArcVsPeriod below, which flags this into outTextAll). for
         //    long-arc cases, prefer double-r or gooding, which do not rely on a local series
         //    truncation. a fallback position is a halley iteration permits a quick solution to
-        //    find a root, with a starting guess of 20000 km. 
+        //    find a root, with a starting guess of 20000 km. probably better for shorter arcs.
         //
         //  author        : david vallado             davallado@gmail.com      20 jan 2025
         //
@@ -9923,9 +9913,6 @@ namespace AstroLibMethods
         //    outTextAll   - full diagnostic text: initial r1/r2 guess, w/w1
         //                  vectors, magnitudes, true-anomaly/eccentric-
         //                  anomaly differences, and the f1/f2/q1 result
-        //                  (was gated behind a hardcoded show='y' flag that
-        //                  always evaluated true, so this is a pure rename -
-        //                  no behavior change)
         //    outTextSum   - one-line result summary: f1, f2, q1
         //    
         //  coupling       :
@@ -10215,9 +10202,7 @@ namespace AstroLibMethods
         //    v2           -  velocity vector at t2                       km / s
         //    outTextAll   - full diagnostic text: every double-r iteration's
         //                   range guesses, partials, delta values, and the
-        //                   final f/g and velocity computation (was always
-        //                   unconditional; now just renamed for consistency
-        //                   with angleslaplace/anglesgauss)
+        //                   final f/g and velocity computation 
         //    outTextSum   - one-line result summary: a, orbit type
         //                   (hyperbolic/elliptical), iteration count, and
         //                   the n12/n13/n23 multi-rev estimates
@@ -10692,9 +10677,8 @@ namespace AstroLibMethods
             // indeterminacy indicator "d" (CMDA 1997 Eq. 15) - close to 0 means the Jacobian
             // is near-singular / a neighboring solution is close by, which is exactly the
             // condition his papers flag as the hard case for this method. bearng is the
-            // corresponding axis orientation in the rho1/rho3 plane. These are now real out
-            // params on anglesgooding (not just buried in outTextAll) so the caller can print them
-            // directly on a summary line instead of having to go dig through the verbose log.
+            // corresponding axis orientation in the rho1/rho3 plane. These are real out
+            // params on anglesgooding so the caller can print them directly on a summary line
             outTextSum = "gooding solve status: nfail=" + nfail + " itnum=" + itnumFinal
                 + " critsq=" + critsqFinal.ToString("G6") + " crit=" + crit.ToString("G6")
                 + " axrtio=" + axrtio.ToString("G6") + " bearng=" + bearng.ToString("G6")
@@ -13377,10 +13361,7 @@ namespace AstroLibMethods
         //  outputs       :
         //    apertG      - efc perturbation acceleration                  km / s^2
         //    outTextAll  - full diagnostic text: legarrGU/trigArr sample
-        //                  values when degree > 4 (was gated behind a
-        //                  caller-supplied show=='y' flag; now always built
-        //                  when degree > 4, since that's also the condition
-        //                  under which legarrGU[4]/trigArr[2] are valid to read)
+        //                  values when degree > 4 
         //    outTextSum  - one-line result summary: aPertG magnitude
         //
         //  locals :
