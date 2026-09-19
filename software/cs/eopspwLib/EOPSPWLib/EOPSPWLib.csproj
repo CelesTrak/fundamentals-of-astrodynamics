@@ -53,9 +53,13 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MathTimeLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="EOPSPWLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\MathTimeLib\MathTimeLib\bin\Debug\MathTimeLib.dll</HintPath>
+      <HintPath>bin\Debug\EOPSPWLib.dll</HintPath>
+    </Reference>
+   <ProjectReference Include="..\..\MathTimeLib\MathTimeLib\MathTimeLib.csproj" />
+    <Reference Include="MSIS_Vers">
+      <HintPath>..\..\MSIS_Vers\MSIS_Vers\bin\Debug\MSIS_Vers.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

@@ -1,0 +1,6 @@
+sphinx
+sphinx-autoapi
+nbsphinx
+sphinx-collections
+sphinx-copybutton
+pydata-sphinx-theme

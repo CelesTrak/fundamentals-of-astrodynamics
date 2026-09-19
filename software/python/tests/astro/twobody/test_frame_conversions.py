@@ -5,10 +5,7 @@ import src.valladopy.astro.twobody.frame_conversions as fc
 from src.valladopy.astro.time.data import iau80in
 from src.valladopy.astro.twobody.utils import OrbitType
 from src.valladopy.constants import ARCSEC2RAD, AU2KM, DAY2SEC, MUSUN, TWOPI
-from ...conftest import custom_isclose, custom_allclose
-
-
-DEFAULT_TOL = 1e-12
+from ...conftest import custom_isclose, custom_allclose, DEFAULT_TOL
 
 
 @pytest.fixture()
