@@ -5,7 +5,9 @@ Folks,
 It’s a great pleasure to release the codes from my book on GitHub. Over the years, I’ve received many requests for this, and now seems like the right time to do it! A few important notes:
 
 ## License
-This code is released under the [GNU Affero General Public License v3.0](./LICENSE). You are free to use, modify, and distribute it under the terms of this license, provided that any modifications or derivative works are also made available under the same license.
+Most of this repository is released under the [GNU Affero General Public License v3.0](./LICENSE). You are free to use, modify, and distribute it under the terms of this license, provided that any modifications or derivative works are also made available under the same license.
+
+**Exception — SGP4 C++ source:** The C++ SGP4 implementation (`software/cpp/SGP4/`) derives from Vallado et al., AIAA 2006-6753, which was released without restriction for any use. That code retains its original unrestricted terms. See the [NOTICE](./NOTICE) file for details.
 
 
 ## Code Availability and Testing

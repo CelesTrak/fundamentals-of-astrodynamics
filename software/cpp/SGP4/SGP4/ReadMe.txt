@@ -2,6 +2,11 @@
     DYNAMIC LINK LIBRARY : SGP4 Project Overview
 ========================================================================
 
+Licensing: This code derives from Vallado et al., AIAA 2006-6753, and
+retains its original unrestricted terms. See the NOTICE file at the
+repository root for details.
+
+
 AppWizard has created this SGP4 DLL for you.  
 
 This file contains a summary of what you will find in each of the files that
