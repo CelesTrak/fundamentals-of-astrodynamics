@@ -1,0 +1,16 @@
+NOTICE — Licensing
+
+The SGP4 C++ implementation (software/cpp/SGP4/) is derived from the code
+published in:
+
+    Vallado, D. A., Crawford, P., Hujsak, R., & Kelso, T. S. (2006).
+    Revisiting Spacetrack Report #3: Rev 1. AIAA 2006-6753.
+    American Institute of Aeronautics and Astronautics.
+
+That original code was released without restriction for any use. The SGP4
+C++ source retains those original unrestricted terms.
+
+All other code in this repository — including the Python package
+(software/python/), MATLAB, and C# implementations — is licensed under the
+GNU Affero General Public License v3.0. See the LICENSE file for the full
+text.
