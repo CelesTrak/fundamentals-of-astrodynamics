@@ -49,6 +49,11 @@ namespace EOPSPWMethods
         // actual number of records read in
         public long numbeop, numbspw;
 
+        // set true (by findeopparam) whenever a time falls outside the loaded eop data and the
+        // default values were used (dut1 = 0, dat = 37, no polar motion / nutation corrections).
+        // it stays set until the caller clears it - eopdefault below is just the last call.
+        public bool eopdefaultsused = false;
+
         // this is just the EOP data setup so it can grow
         public class EOPdataClass
         {
@@ -403,6 +408,18 @@ namespace EOPSPWMethods
         }    // iau06in
 
 
+        // ---------------------------------------------------------------------------
+        //  splitFields - split a data line on runs of whitespace. for lines
+        //    with no leading whitespace this gives the same fields as the previous
+        //    Regex.Replace(line, @"\s+", " ").Split(' '), about 5x faster. leading whitespace is
+        //    simply skipped (the regex version put an empty field first).
+        // ---------------------------------------------------------------------------
+        private static readonly char[] fieldSep = { ' ', '\t', '\r', '\n', '\f', '\v' };
+        public static string[] splitFields(string line)
+        {
+            return line.Split(fieldSep, StringSplitOptions.RemoveEmptyEntries);
+        }
+
 
         // ---------------------------------------------------------------------------
         //
@@ -478,8 +495,11 @@ namespace EOPSPWMethods
                 eopdata[ktr] = new EOPdataClass();
 
                 // replace multiple spaces with just one
-                string line3 = Regex.Replace(EOParray[ktr + i + 2].ToString(), @"\s+", " ");
-                linedata = line3.Split(' ');
+                //string line3 = Regex.Replace(EOParray[ktr + i + 2].ToString(), @"\s+", " ");
+                //linedata = line3.Split(' ');
+                // CHANGED 29 sep 2026: plain split instead of regex (~5x faster); line3 kept for the messages
+                linedata = splitFields(EOParray[ktr + i + 2].ToString());
+                string line3 = string.Join(" ", linedata);
                 // do all at once?
                 //eopdata = new EOPdataClass();
 
@@ -518,8 +538,11 @@ namespace EOPSPWMethods
             for (ktr = 0; ktr < numrecsobs; ktr++)
             {
                 // replace multiple spaces with just one
-                string line3 = Regex.Replace(EOParray[ktr + i + 2].ToString(), @"\s+", " ");
-                linedata = line3.Split(' ');
+                //string line3 = Regex.Replace(EOParray[ktr + i + 2].ToString(), @"\s+", " ");
+                //linedata = line3.Split(' ');
+                // CHANGED 29 sep 2026: plain split instead of regex (~5x faster); line3 kept for the messages
+                linedata = splitFields(EOParray[ktr + i + 2].ToString());
+                string line3 = string.Join(" ", linedata);
                 Int32 ktr1 = ktrActualObs + ktr;
                 // set new record as they are needed
                 eopdata[ktr1] = new EOPdataClass();
@@ -582,6 +605,9 @@ namespace EOPSPWMethods
         //    none        -
         // ---------------------------------------------------------------------------
 
+        // true when the last findeopparam call was outside the eop data and used default values
+        public bool eopdefault = false;
+
         public void findeopparam(double jd, double jdFrac, char interp, EOPdataClass[] eopdata,
                out double dut1, out int dat, out double lod, out double xp, out double yp,
                out double ddpsi, out double ddeps, out double dx, out double dy)
@@ -600,11 +626,22 @@ namespace EOPSPWMethods
                 mfme = 1440.0 + mfme;
 
             // ---- read data for day of interest
+            recnum = -1;
+            if (eopdata != null && eopdata.Length > 0 && eopdata[0] != null)
+            {
             jdeopstarto = Math.Floor(jd + jdFrac - eopdata[0].mjd - 2400000.5); // needed to get correct start day
             recnum = Convert.ToInt32(jdeopstarto);
+            }
 
-            // check for out of bound values
-            if ((recnum >= 1) && (recnum < eopdata.Count()))
+            // check for out of bound values. eopdata is allocated to numb entries but only the
+            // records readeop actually read are non-null, and the spline uses recnum-1 .. recnum+2,
+            // so a date past the end of the file (observed + predicted) falls to the defaults below
+            // instead of throwing a null reference.
+            eopdefault = !((recnum >= 1) && (recnum + 2 < eopdata.Length)
+                && eopdata[recnum - 1] != null && eopdata[recnum + 2] != null);
+            if (eopdefault)
+                eopdefaultsused = true;
+            if (!eopdefault)
             {
                 // ---- set non-interpolated values
                 dut1 = eopdata[recnum].dut1;
@@ -764,8 +801,11 @@ namespace EOPSPWMethods
                 // replace multiple spaces with just one
                 try
                 {
-                    line3 = Regex.Replace(SPWarray[ktr + i + 2].ToString(), @"\s+", " ");
-                    linedata = line3.Split(' ');
+                    //line3 = Regex.Replace(SPWarray[ktr + i + 2].ToString(), @"\s+", " ");
+                    //linedata = line3.Split(' ');
+                    // CHANGED 29 sep 2026: plain split instead of regex (~5x faster); line3 kept for the messages
+                    linedata = splitFields(SPWarray[ktr + i + 2].ToString());
+                    line3 = string.Join(" ", linedata);
                     if (line3.Contains("-1"))
                         errstr = errstr + "Error " + line3 + "\n";
 
@@ -849,7 +889,10 @@ namespace EOPSPWMethods
 
             // ---- check file for 45 day predicted values
             ktr = ktrActualObs - 1;
-            for (int ktr1 = ktrActualObs + 23; ktr1 < ktrActualObs + ktrDayPred + 23; ktr1++)  // use  - 15 if old format of spw files
+            // data starts 2 lines after NUM_DAILY_PREDICTED_POINTS (skip the BEGIN line) - found
+            // from the header itself rather than a fixed line offset from the observed count
+            int daystart = i + 2;
+            for (int ktr1 = daystart; ktr1 < daystart + ktrDayPred; ktr1++)  // use  - 15 if old format of spw files
             {
                 ktr = ktr + 1;
                 // set new record as they are needed
@@ -858,8 +901,11 @@ namespace EOPSPWMethods
                 try
                 {
                     // replace multiple spaces with just one
-                    line3 = Regex.Replace(SPWarray[ktr1].ToString(), @"\s+", " ");
-                    linedata = line3.Split(' ');
+                    //line3 = Regex.Replace(SPWarray[ktr1].ToString(), @"\s+", " ");
+                    //linedata = line3.Split(' ');
+                    // plain split instead of regex (~5x faster); line3 kept for the messages
+                    linedata = splitFields(SPWarray[ktr1].ToString());
+                    line3 = string.Join(" ", linedata);
                     if (line3.Contains("-1"))
                         errstr = errstr + "Error " + line3 + "\n";
 
@@ -938,7 +984,11 @@ namespace EOPSPWMethods
 
             // ---- check file for 45 day predicted values
             ktr = ktrActualObs + ktrDayPred - 1;
-            for (int ktr1 = ktrActualObs + ktrDayPred + 23; ktr1 < ktrActualObs + ktrDayPred + ktrMonthPred + 23; ktr1++) 
+            // BUG FIX 25 sep 2026: this used the same +23 offset as the daily section, but the monthly
+            // data sits 4 lines further down (END DAILY_PREDICTED, blank, NUM_, BEGIN), so the first 4
+            // "records" were header lines and every monthly record was shifted. start from the NUM_ line.
+            int monstart = i + 2;
+            for (int ktr1 = monstart; ktr1 < monstart + ktrMonthPred; ktr1++)
             {
                 ktr = ktr + 1;
                 // set new record as they are needed
@@ -947,8 +997,11 @@ namespace EOPSPWMethods
                 // replace multiple spaces with just one
                 try
                 {
-                    line3 = Regex.Replace(SPWarray[ktr1].ToString(), @"\s+", " ");
-                    linedata = line3.Split(' ');
+                    //line3 = Regex.Replace(SPWarray[ktr1].ToString(), @"\s+", " ");
+                    //linedata = line3.Split(' ');
+                    // plain split instead of regex (~5x faster); line3 kept for the messages
+                    linedata = splitFields(SPWarray[ktr1].ToString());
+                    line3 = string.Join(" ", linedata);
                     if (line3.Contains("-1"))
                         errstr = errstr + "Error " + line3 + "\n";
 
@@ -1376,6 +1429,61 @@ namespace EOPSPWMethods
             else
                 return 0.0;
         }  // ap2kp
+
+
+
+        // ------------------------------------------------------------------------------
+        //                           procedure loadEOPSPWdata
+        //
+        //  loads the iau-76/fk5 nutation coefficients, the eop data and the space
+        //  weather data
+        //
+        //  author        : david vallado                                 25 sep 2026
+        //
+        //  inputs          description                    range / units
+        //    nutfile       - nut80.dat including directory
+        //    EOPFileName   - EOPFilename including directory
+        //    SPWFileName   - SPWFilename including directory
+        //
+        //  outputs       :
+        //    eopdata       - eopdata array
+        //    spwdata       - spwdata array
+        //    iau80arr      - iau-76/fk5 nutation coefficients
+        //    errstr        - empty on success, else the problem (returns false)
+        //
+        // ------------------------------------------------------------------------------
+
+        public bool loadEOPSPWdata(string nutfile, string EOPFileName, string SPWFileName,
+            ref EOPdataClass[] eopdata, ref SPWdataClass[] spwdata, out iau80Class iau80arr, out string errstr)
+        {
+            errstr = "";
+            iau80arr = null;
+            try
+            {
+                iau80in(nutfile, out iau80arr);
+                string eopupdate;
+                Int32 ktractobs;
+                readeop(ref eopdata, EOPFileName, out ktractobs, out eopupdate);
+                
+                Int32 ktrspwobs, ktrdaypred, ktrmonthpred;
+                string spwerr;
+                readspw(ref spwdata, SPWFileName, out ktrspwobs, out ktrdaypred, out ktrmonthpred,
+                    out spwerr);
+
+                if (spwerr != null && spwerr.Contains("act obs wrong"))
+                {
+                    errstr = "loadEOPSPWdata: readspw could not parse some records\n  spw file " + SPWFileName;
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                errstr = "loadEOPSPWdata: " + ex.Message + "\n  nut file " + nutfile + "\n  eop file " + EOPFileName +
+                    "\n  spw file " + SPWFileName;
+                return false;
+            }
+        }  // loadEOPSPWdata
 
     }  // EOPSPWLib
 

@@ -25,6 +25,7 @@
 // ----------------------------------------------------------------------------      
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;  
@@ -46,6 +47,10 @@ namespace MathTimeMethods
         {
             public static double infinite = 999999.9;
             public static double undefined = 999999.1;
+            public static double small = 0.00000001;
+
+            // switch for verbose diagnostic output thoruhgout libraries
+            public static char show = 'y';
         }
 
         public enum Edirection { efrom, eto };
@@ -282,8 +287,8 @@ namespace MathTimeMethods
         //    theta       - angle between the two vectors  -Math.PI to Math.PI
         //    magv1       - magnitude of vec1
         //    magv2       - magnitude of vec2
-        //    small       - value defining a small value
-        //    undefined   - large number to use in place of a not defined number 
+        //    MathTimeLib.globals.small     - tolerance for roundoff
+        //    MathTimeLib.globals.undefined - large number to use in place of a not defined number
         //
         //  locals        :
         //    temp        - temporary real variable
@@ -294,14 +299,12 @@ namespace MathTimeMethods
 
         public double angle (double[] vec1, double[] vec2)
         {
-            double small, undefined, magv1, magv2, temp;
-            small = 0.00000001;
-            undefined = 999999.1;
+            double magv1, magv2, temp;
 
             magv1 = mag(vec1);
             magv2 = mag(vec2);
 
-            if (magv1 * magv2 > small * small)
+            if (magv1 * magv2 > globals.small * globals.small)
             {
                 temp = dot(vec1, vec2) / (magv1 * magv2);
                 if (Math.Abs(temp) > 1.0)
@@ -309,7 +312,7 @@ namespace MathTimeMethods
                 return Math.Acos(temp);
             }
             else
-                return undefined;
+                return globals.undefined;
         }  //  angle
 
 
@@ -1041,7 +1044,6 @@ namespace MathTimeMethods
 
         public double determinant(double[,] mat1, int order)
         {
-            double small = 0.00000001;
             int i, j, k;
             double temp, d, sum;
             double[,] l = new double[order, order];
@@ -1049,12 +1051,12 @@ namespace MathTimeMethods
 
             sum = 0.0;
             // ----------- Switch a non zero row to the first row---------- 
-            if (Math.Abs(mat1[0, 0]) < small)
+            if (Math.Abs(mat1[0, 0]) < globals.small)
             {
                 j = 0;
                 while (j < order)
                 {
-                    if (Math.Abs(mat1[j, 0]) > small)
+                    if (Math.Abs(mat1[j, 0]) > globals.small)
                     {
                         for (k = 0; k < order; k++)
                         {
@@ -1981,7 +1983,6 @@ namespace MathTimeMethods
         {
             const double rad = 57.29577951308230;
             const double onethird = 1.0 / 3.0;
-            const double small = 0.00000001;
             double temp1, temp2, p, q, r, delta, e0, cosphi, sinphi, phi;
             // ------------------------  implementation   // ------------------------
             r1r = 0.0;
@@ -1991,7 +1992,7 @@ namespace MathTimeMethods
             r3r = 0.0;
             r3i = 0.0;
 
-            if (Math.Abs(a3) > small)
+            if (Math.Abs(a3) > globals.small)
             {
                 // ------------- force coefficients into std form -------------------
                 p = b2 / a3;
@@ -2004,7 +2005,7 @@ namespace MathTimeMethods
                 delta = (a3 * a3 * a3 / 27.0) + (b2 * b2 * 0.25);
 
                 // -------------------- use cardans formula ------------------------
-                if (delta > small)
+                if (delta > globals.small)
                 {
                     temp1 = (-b2 * 0.5) + Math.Sqrt(delta);
                     temp2 = (-b2 * 0.5) - Math.Sqrt(delta);
@@ -2028,7 +2029,7 @@ namespace MathTimeMethods
                 else
                 {
                     // -------------------- evaluate zero point ------------------------
-                    if (Math.Abs(delta) < small)
+                    if (Math.Abs(delta) < globals.small)
                     {
                         r1r = -2.0 * Math.Sign(b2) * Math.Pow(Math.Abs(b2 * 0.5), onethird) - p * onethird;
                         r2r = Math.Sign(b2) * Math.Pow(Math.Abs(b2 * 0.5), onethird) - p * onethird;
@@ -3015,6 +3016,423 @@ namespace MathTimeMethods
             //ttcb = (jdtcb + jdtcbfrac - 2451545.0) / 36525.0;
             //fprintf(1,'     tcb %8.6f ttcb  %16.12f jdtcb  %18.11f %18.11f \n', tcb, ttcb, jdtcb, jdtcbfrac );
         }  // convtime
+
+        // ============================================================================
+        //
+        //                     GENERIC ODE INTEGRATORS
+        //
+        //  added 21 sep 2026 david vallado. Ported from astPert.cpp's rk4/rkF45,
+        //  which hand-rolled a fixed 7-row state vector and called deriv/pderiv
+        //  directly. Refactored here into a generic delegate-based stepper so it
+        //  isn't tied to any one physical model or state size - AstroLib.propagateRK4
+        //  supplies the astro-specific derivative (derivTwoBody/derivPerturbed) as
+        //  the delegate. Any other state (attitude, a different dynamical system,
+        //  etc.) can reuse these unchanged.
+        //
+        // ============================================================================
+
+        // a generic first-order ODE right-hand side: given the state, return its
+        // time derivative. (Time itself isn't a delegate parameter here since
+        // AstroLib's derivatives close over the epoch-dependent pieces - frame
+        // rotation, sun/moon position - that are held fixed for one step; a
+        // time-varying delegate can be built the same way if a future integrator
+        // needs to re-evaluate those mid-step.)
+        public delegate double[] OdeDerivFunc(double[] x);
+
+
+        // ----------------------------------------------------------------------------
+        //
+        //                           function rk4Generic
+        //
+        //  this function is a generic fixed-step classic 4th-order Runge-Kutta
+        //    integrator for a first-order ODE dx/dt = deriv(x), of any state
+        //    dimension. ported/refactored from astPert.cpp's rk4 (the astro-specific
+        //    parts - EOP lookup, frame rotation, sun/moon - now live in
+        //    AstroLib.propagateRK4, which supplies deriv as a closure).
+        //
+        //  author        : david vallado             davallado@gmail.com      21 sep 2026
+        //
+        //  inputs          description                              range / units
+        //    x0          - state at start of step                        (any units)
+        //    dtsec       - step size                                     sec
+        //    deriv       - state derivative delegate                     OdeDerivFunc
+        //
+        //  outputs       :
+        //    (return)    - state at end of step                          (any units)
+        //
+        //  locals        :
+        //    k1..k4      - the four RK4 stage derivatives
+        //
+        //  coupling      :
+        //    none (deriv is supplied by the caller)
+        //
+        //  references    :
+        //    vallado       2022, 526
+        // ----------------------------------------------------------------------------
+
+        public double[] rk4Generic(double[] x0, double dtsec, OdeDerivFunc deriv)
+        {
+            int n = x0.Length;
+
+            double[] k1 = deriv(x0);
+
+            double[] x2 = new double[n];
+            for (int i = 0; i < n; i++)
+                x2[i] = x0[i] + 0.5 * dtsec * k1[i];
+            double[] k2 = deriv(x2);
+
+            double[] x3 = new double[n];
+            for (int i = 0; i < n; i++)
+                x3[i] = x0[i] + 0.5 * dtsec * k2[i];
+            double[] k3 = deriv(x3);
+
+            double[] x4 = new double[n];
+            for (int i = 0; i < n; i++)
+                x4[i] = x0[i] + dtsec * k3[i];
+            double[] k4 = deriv(x4);
+
+            double[] xf = new double[n];
+            for (int i = 0; i < n; i++)
+                xf[i] = x0[i] + dtsec / 6.0 * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
+
+            return xf;
+        }  // rk4Generic
+
+
+        // ----------------------------------------------------------------------------
+        //
+        //                           function rkf45Generic
+        //
+        //  this function is a generic single-step 4th/5th-order Runge-Kutta-Fehlberg
+        //    integrator (RKF45, classic Fehlberg coefficients) for a first-order ODE
+        //    dx/dt = deriv(x), of any state dimension. Returns both the 5th-order
+        //    solution (used to advance the state) and an error estimate (5th minus
+        //    4th order result) that a caller can use for step-size control.
+        //    ported/refactored from astPert.cpp's rkF45 the same way rk4Generic was -
+        //    the astro-specific parts belong in an AstroLib-level wrapper (not yet
+        //    written - propagateRK4 currently only wires up the fixed-step rk4Generic;
+        //    add a propagateRKF45 analogous to it if adaptive stepping is wanted).
+        //
+        //  author        : david vallado             davallado@gmail.com      21 sep 2026
+        //
+        //  inputs          description                              range / units
+        //    x0          - state at start of step                        (any units)
+        //    dtsec       - step size                                     sec
+        //    deriv       - state derivative delegate                     OdeDerivFunc
+        //
+        //  outputs       :
+        //    xf          - 5th-order state at end of step                (any units)
+        //    errEst      - per-component error estimate (5th - 4th order) (any units)
+        //
+        //  locals        :
+        //    k1..k6      - the six RKF45 stage derivatives
+        //
+        //  coupling      :
+        //    none (deriv is supplied by the caller)
+        //
+        //  references    :
+        //    vallado       2022, 526 (Fehlberg 4(5) coefficients)
+        // ----------------------------------------------------------------------------
+
+        public void rkf45Generic(double[] x0, double dtsec, OdeDerivFunc deriv, out double[] xf, out double[] errEst)
+        {
+            int n = x0.Length;
+
+            double[] k1 = deriv(x0);
+
+            double[] x2 = StepState(x0, dtsec, n, (1.0 / 4.0, k1));
+            double[] k2 = deriv(x2);
+
+            double[] x3 = StepState(x0, dtsec, n, (3.0 / 32.0, k1), (9.0 / 32.0, k2));
+            double[] k3 = deriv(x3);
+
+            double[] x4 = StepState(x0, dtsec, n, (1932.0 / 2197.0, k1), (-7200.0 / 2197.0, k2), (7296.0 / 2197.0, k3));
+            double[] k4 = deriv(x4);
+
+            double[] x5 = StepState(x0, dtsec, n, (439.0 / 216.0, k1), (-8.0, k2), (3680.0 / 513.0, k3), (-845.0 / 4104.0, k4));
+            double[] k5 = deriv(x5);
+
+            double[] x6 = StepState(x0, dtsec, n, (-8.0 / 27.0, k1), (2.0, k2), (-3544.0 / 2565.0, k3), (1859.0 / 4104.0, k4), (-11.0 / 40.0, k5));
+            double[] k6 = deriv(x6);
+
+            xf = new double[n];
+            double[] x4th = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                // 5th-order solution
+                xf[i] = x0[i] + dtsec * (16.0 / 135.0 * k1[i] + 6656.0 / 12825.0 * k3[i] + 28561.0 / 56430.0 * k4[i]
+                    - 9.0 / 50.0 * k5[i] + 2.0 / 55.0 * k6[i]);
+                // 4th-order solution, for the error estimate
+                x4th[i] = x0[i] + dtsec * (25.0 / 216.0 * k1[i] + 1408.0 / 2565.0 * k3[i] + 2197.0 / 4104.0 * k4[i]
+                    - 1.0 / 5.0 * k5[i]);
+            }
+
+            errEst = new double[n];
+            for (int i = 0; i < n; i++)
+                errEst[i] = xf[i] - x4th[i];
+        }  // rkf45Generic
+
+
+        // small local helper for rkf45Generic - x0 + dtsec * sum(coeff_j * k_j),
+        // taking a variable number of (coefficient, stage-derivative) pairs so each
+        // RKF45 stage reads as one line instead of an unrolled loop.
+        private double[] StepState(double[] x0, double dtsec, int n, params (double coeff, double[] k)[] terms)
+        {
+            double[] x = (double[])x0.Clone();
+            foreach (var term in terms)
+                for (int i = 0; i < n; i++)
+                    x[i] = x[i] + dtsec * term.coeff * term.k[i];
+            return x;
+        }  // StepState
+
+
+        // ----------------------------------------------------------------------------
+        //
+        //                           function gaussLegendre16
+        //
+        //  this function integrates a supplied function over [a, b] using fixed
+        //    16-point Gauss-Legendre quadrature (nodes/weights for the standard
+        //    [-1, 1] interval, mapped to [a, b]). Added for AstroLib.dragperts, which
+        //    needs to average several true-anomaly-dependent integrands over a full
+        //    orbit (0 to 2*pi) per Chao AOP2e Eq. 3.56 - a generic quadrature routine
+        //    belongs here rather than in AstroLib, the same reasoning as rk4Generic/
+        //    rkf45Generic. 16 points is a common choice for these smooth,
+        //    once-per-orbit averaging integrals; pass a different node/weight set
+        //    (or add an overload) if a particular density model needs more precision.
+        //
+        //  author        : david vallado             davallado@gmail.com      22 sep 2026
+        //
+        //  inputs          description                              range / units
+        //    a, b        - integration limits                         (any units)
+        //    f           - the integrand, f(x)                        OdeDerivFunc-style
+        //                  delegate but scalar in and out (see QuadFunc below)
+        //
+        //  outputs       :
+        //    (return)    - the definite integral of f over [a, b]
+        //
+        //  locals        :
+        //    nodes, weights - the 16 standard Gauss-Legendre abscissas/weights on
+        //                  [-1, 1] (generated via numpy.polynomial.legendre.leggauss(16)
+        //                  for full double precision, not hand-transcribed)
+        //
+        //  coupling      :
+        //    none (f is supplied by the caller)
+        //
+        //  references    :
+        //    vallado       2022, 954 (numerical integration); Chao AOP2e Eq. 3.56
+        // ----------------------------------------------------------------------------
+
+        public delegate double QuadFunc(double x);
+
+        public double gaussLegendre16(double a, double b, QuadFunc f)
+        {
+            gaussLegendre16NodesWeights(out double[] nodes, out double[] weights);
+
+            double xm = 0.5 * (b + a);
+            double xr = 0.5 * (b - a);
+            double sum = 0.0;
+            for (int i = 0; i < 16; i++)
+            {
+                double x = xm + xr * nodes[i];
+                sum = sum + weights[i] * f(x);
+            }
+            return xr * sum;
+        }  // gaussLegendre16
+
+
+        // exposes the same 16-point Gauss-Legendre nodes/weights (on [-1,1]) that
+        // gaussLegendre16 uses internally, for callers that need to evaluate several
+        // integrands at the same quadrature points in one pass (e.g. AstroLib's
+        // dragperts, which would otherwise call an expensive atmosphere model 7x more
+        // often than necessary by calling gaussLegendre16 once per integrand).
+        public void gaussLegendre16NodesWeights(out double[] nodes, out double[] weights)
+        {
+            nodes = new double[16]
+            {
+                -0.98940093499164994, -0.9445750230732326, -0.86563120238783176, -0.755404408355003,
+                -0.61787624440264377, -0.45801677765722737, -0.28160355077925892, -0.095012509837637441,
+                 0.095012509837637441,  0.28160355077925892,  0.45801677765722737,  0.61787624440264377,
+                 0.755404408355003,     0.86563120238783176,  0.9445750230732326,   0.98940093499164994
+            };
+            weights = new double[16]
+            {
+                0.027152459411754176, 0.062253523938647456, 0.095158511682492605, 0.12462897125553407,
+                0.14959598881657671,  0.16915651939500265,  0.18260341504492364,  0.18945061045506864,
+                0.18945061045506864,  0.18260341504492364,  0.16915651939500265,  0.14959598881657671,
+                0.12462897125553407,  0.095158511682492605, 0.062253523938647456, 0.027152459411754176
+            };
+        }  // gaussLegendre16NodesWeights
+
+
+        // ----------------------------------------------------------------------------
+        //
+        //                           class GaussJackson8
+        //
+        //  fixed-step order-8/9 Gauss-Jackson (summed-Adams/Cowell-family) predictor-
+        //  corrector for second-order vector ODEs y'' = f(t, y, y') - i.e. orbital
+        //  equations of motion directly on position, with velocity as the first
+        //  integral, rather than reducing to a 6-dimensional first-order system the
+        //  way rk4Generic/rkf45Generic do. Needs 8 points of history before it can
+        //  step (see Seed); a self-starting method (rk4Generic/rkf45Generic) is
+        //  expected to supply those first 8 points before Step is called.
+        //
+        //  DERIVATION NOTE: rather than transcribing a published Gauss-Jackson
+        //  coefficient table by hand (easy to get subtly wrong and hard to catch,
+        //  same risk flagged for a possible future RK7(8)), these coefficients were
+        //  derived from first principles: fit the Lagrange-interpolating polynomial
+        //  of the acceleration through 8 (predictor) or 9 (corrector, including the
+        //  predicted a_(n+1)) equally-spaced points, then integrate it exactly
+        //  (symbolic, exact rational arithmetic) once for the velocity update and
+        //  via the (t_(n+1)-tau)-weighted form for the position update. Verified
+        //  against the exact solution of y''=-y (simple harmonic oscillator, seeding
+        //  history from the exact solution to isolate the recursion's own accuracy):
+        //  error shrank ~340-530x per step-size halving, consistent with the
+        //  corrector's own order-9 accuracy, down to machine precision - not just an
+        //  internal consistency check (sum(beta)=1, sum(gamma)=1/2, both confirmed
+        //  too) but agreement with an independently-known correct answer.
+        //
+        //  VELOCITY-DEPENDENT FORCES (drag): the corrector needs a_(n+1) =
+        //  f(t_(n+1), y_(n+1), y'_(n+1)), but y'_(n+1) isn't “final” until after the
+        //  corrector runs. Standard PECE practice (Predict-Evaluate-Correct-Evaluate,
+        //  used here) evaluates a_(n+1) at the PREDICTED position and velocity, then
+        //  runs one corrector pass - not iterated further. This is one evaluation of
+        //  f per step  total for a_(n+1) (plus whatever f costs) beyond the history
+        //  already held, versus rk4Generic's 4 or rkf45Generic's 6.
+        //
+        //  author        : david vallado             davallado@gmail.com      23 sep 2026
+        //
+        //  references    :
+        //    berry & healy 2004, "implementation of gauss-jackson integration for
+        //    orbit propagation"; herrick, astrodynamics; vallado 2022, ch 8
+        // ----------------------------------------------------------------------------
+
+        public delegate double[] SecondOrderDerivFunc(double t, double[] y, double[] yDot);
+
+        public class GaussJackson8
+        {
+            // pred_beta[j]/pred_gamma[j] = coefficient of a_(n-j), j=0..7 (order-8 predictor)
+            private static readonly double[] predBeta = new double[8]
+            {
+                3.5899553571428573, -9.525206679894179, 18.054538690476189, -22.027752976190477,
+                17.379654431216931, -8.612127976190477, 2.4451636904761904, -0.30422453703703706
+            };
+            private static readonly double[] predGamma = new double[8]
+            {
+                1.2310113536155203, -2.5378053350970018, 4.6257919973544972, -5.5479717813051144,
+                4.3352320326278662, -2.134943783068783, 0.60353780864197526, -0.074852292768959439
+            };
+            // corr_beta[0]/corr_gamma[0] = coefficient of a_(n+1); [1..8] = a_n .. a_(n-7)
+            // (order-9 corrector)
+            private static readonly double[] corrBeta = new double[9]
+            {
+                0.2948680004409171, 1.2310113536155203, -1.2689026675485009, 1.5419306657848324,
+                -1.3869929453262786, 0.86704640652557319, -0.3558239638447972, 0.086219686948853611, -0.0093565365961199298
+            };
+            private static readonly double[] corrGamma = new double[9]
+            {
+                0.071032986111111113, 0.66274746472663137, -0.54888172398589063, 0.64794477513227511,
+                -0.57566275352733687, 0.35738481040564374, -0.14602017195767195, 0.03527391975308642, -0.0038193066578483246
+            };
+
+            private List<double[]> yHist = new List<double[]>();       // 8 most recent, oldest first
+            private List<double[]> yDotHist = new List<double[]>();
+            private List<double[]> accelHist = new List<double[]>();
+            private int n;   // state dimension (3 for a plain position-only Cowell/GJ propagator)
+
+            public bool IsReady { get { return yHist.Count >= 8; } }
+
+            // adds one (y, yDot, accel) point to the 8-point rolling history buffer, in
+            // chronological order - call exactly 8 times (typically from a self-starter's
+            // output, each point's accel evaluated via the same derivFunc Step will use)
+            // before the first call to Step.
+            public void Seed(double[] y, double[] yDot, double[] accel)
+            {
+                yHist.Add((double[])y.Clone());
+                yDotHist.Add((double[])yDot.Clone());
+                accelHist.Add((double[])accel.Clone());
+                if (yHist.Count > 8)
+                {
+                    yHist.RemoveAt(0);
+                    yDotHist.RemoveAt(0);
+                    accelHist.RemoveAt(0);
+                }
+                n = y.Length;
+            }
+
+            // advances one fixed step of size h from time t (the CURRENT, most-recently-
+            // seeded/stepped time) to t+h, via one PECE (Predict-Evaluate-Correct-
+            // Evaluate) pass. Throws if fewer than 8 points have been seeded.
+            // NOTE 23 sep 2026: a P(EC)^n iterated-corrector variant was tried here (to
+            // address a genuine stability boundary found for a real force model between
+            // 120 and 300 sec) and reverted - it helped in the marginal/large-step
+            // regime but measurably worsened some already-well-resolved cases, since
+            // iterating to convergence tracks the corrector's OWN fixed point (which
+            // carries its own truncation error) rather than the true solution, and a
+            // single PECE pass can occasionally sit closer to the truth than that fixed
+            // point does. Kept as the simpler, single-pass design; the practical
+            // takeaway from that investigation stands regardless: keep stepSec at or
+            // below roughly 120 sec for problems with real perturbations (see
+            // propagateNumericalGJ8's TestNumericalPropagation Test 6/7 history).
+            public void Step(double h, double t, SecondOrderDerivFunc derivFunc, out double[] yNew, out double[] yDotNew)
+            {
+                if (!IsReady)
+                    throw new InvalidOperationException("GaussJackson8.Step called before 8 points were seeded (call Seed 8 times first)");
+
+                double[] y_n = yHist[yHist.Count - 1];
+                double[] yDot_n = yDotHist[yDotHist.Count - 1];
+
+                // ---- predictor ----
+                double[] yPred = new double[n];
+                double[] yDotPred = new double[n];
+                for (int i = 0; i < n; i++)
+                {
+                    double dv = 0.0, dy = 0.0;
+                    for (int j = 0; j < 8; j++)
+                    {
+                        double a_j = accelHist[accelHist.Count - 1 - j][i];   // j=0 -> a_n, j=7 -> a_(n-7)
+                        dv = dv + predBeta[j] * a_j;
+                        dy = dy + predGamma[j] * a_j;
+                    }
+                    yDotPred[i] = yDot_n[i] + h * dv;
+                    yPred[i] = y_n[i] + h * yDot_n[i] + h * h * dy;
+                }
+
+                // ---- evaluate at the predicted state (PECE) ----
+                double[] aPred = derivFunc(t + h, yPred, yDotPred);
+
+                // ---- corrector ----
+                double[] yCorr = new double[n];
+                double[] yDotCorr = new double[n];
+                for (int i = 0; i < n; i++)
+                {
+                    double dv = corrBeta[0] * aPred[i];
+                    double dy = corrGamma[0] * aPred[i];
+                    for (int j = 0; j < 8; j++)
+                    {
+                        double a_j = accelHist[accelHist.Count - 1 - j][i];
+                        dv = dv + corrBeta[j + 1] * a_j;
+                        dy = dy + corrGamma[j + 1] * a_j;
+                    }
+                    yDotCorr[i] = yDot_n[i] + h * dv;
+                    yCorr[i] = y_n[i] + h * yDot_n[i] + h * h * dy;
+                    }
+
+                // ---- re-evaluate at the corrected state, for the next step's history ----
+                double[] aCorr = derivFunc(t + h, yCorr, yDotCorr);
+
+                yNew = yCorr;
+                yDotNew = yDotCorr;
+
+                yHist.Add(yCorr);
+                yDotHist.Add(yDotCorr);
+                accelHist.Add(aCorr);
+                yHist.RemoveAt(0);
+                yDotHist.RemoveAt(0);
+                accelHist.RemoveAt(0);
+            }  // Step
+        }  // class GaussJackson8
+
+
 
     }  //  class MathTimeLib
 
