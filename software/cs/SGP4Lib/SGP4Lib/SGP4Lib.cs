@@ -1646,6 +1646,7 @@ namespace SGP4Methods
         *                   4 - semi-latus rectum < 0.0
         *                   5 - epoch elements are sub-orbital
         *                   6 - satellite has decayed
+        *                   7 - satellite number field is not valid (twoline2rv only)
         *
         *  locals        :
         *    am          -
@@ -2169,6 +2170,81 @@ namespace SGP4Methods
 
         /* -----------------------------------------------------------------------------
         *
+        *                           function decodealpha5
+        *
+        *  this function decodes the 5-character satellite number field of a tle. the
+        *    field is either the original five digits, or an alpha-5 field - a letter
+        *    giving the leading 10 to 33, followed by four digits. the letters i and o
+        *    are never used in an alpha-5 field as they are too easily read as 1 and 0,
+        *    so a field beginning with either, or one whose last four characters are not
+        *    digits, is not a satellite number and is refused.
+        *
+        *  inputs        :
+        *    satnumStr   - satellite number field        '00005', 'E8493'
+        *
+        *  outputs       :
+        *    satnum      - satellite number, -1 if the field is not valid
+        *
+        *  returns       :
+        *    true if the field was decoded, false if it is not a valid field
+        *
+        *  references    :
+        *    space-track.org "what is alpha-5?"
+          --------------------------------------------------------------------------- */
+
+        public bool decodealpha5
+             (
+              string satnumStr, out int satnum
+             )
+        {
+            // the alpha-5 blocks, a to z with i and o left out
+            int[] alpha5 = new int[26] { 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33 };
+
+            satnum = -1;
+            if (satnumStr == null)
+                return false;
+            satnumStr = satnumStr.Trim();
+            if ((satnumStr.Length < 1) || (satnumStr.Length > 5))
+                return false;
+
+            // ---- the original satellite number, all digits ----
+            if (isdigit(satnumStr[0]))
+            {
+                for (int j = 1; j < satnumStr.Length; j++)
+                    if (!isdigit(satnumStr[j]))
+                        return false;
+                satnum = Convert.ToInt32(satnumStr);
+                return true;
+            }
+
+            // ---- an alpha-5 field, one letter and four digits ----
+            if (satnumStr.Length != 5)
+                return false;
+            for (int j = 1; j <= 4; j++)
+                if (!isdigit(satnumStr[j]))
+                    return false;
+            char ch = Char.ToUpperInvariant(satnumStr[0]);
+            if ((ch < 'A') || (ch > 'Z'))
+                return false;
+            int index = alpha5[ch - 'A'];
+            // i and o are not part of the scheme
+            if (index == 0)
+                return false;
+
+            satnum = index * 10000 + Convert.ToInt32(satnumStr.Substring(1, 4));
+            return true;
+        }   // end decodealpha5
+
+
+        // only the ascii digits are allowed in a satellite number field
+        private static bool isdigit(char ch)
+        {
+            return (ch >= '0') && (ch <= '9');
+        }   // end isdigit
+
+
+        /* -----------------------------------------------------------------------------
+        *
         *                           function twoline2rv
         *
         *  this function converts the two line element set character string data to
@@ -2197,9 +2273,12 @@ namespace SGP4Methods
         *
         *  outputs       :
         *    satrec      - structure containing all the sgp4 satellite information
+        *                  satrec.error is 7 and nothing else is parsed if the
+        *                  satellite number field is not valid
         *
         *  coupling      :
         *    getgravconst-
+        *    decodealpha5- decode the satellite number field
         *    days2mdhms  - conversion of days to month, day, hour, minute, second
         *    jday        - convert day month year hour minute second into julian date
         *    sgp4init    - initialize the sgp4 variables
@@ -2258,15 +2337,13 @@ namespace SGP4Methods
             }
             
             cardnumb = Convert.ToInt16(linedata[1]);
-            satrec.satnumStr = linedata[2].Trim();  // now a string for alpha5 
-            if (Char.IsDigit(satrec.satnumStr[0]))
-                satrec.satnum = Convert.ToInt32(satrec.satnumStr);
-            else
+            satrec.satnumStr = linedata[2].Trim();  // now a string for alpha5
+            // sgp4fix refuse a satellite number field that is neither all digits nor
+            // a valid alpha5 field, rather than reading it as an ordinary number
+            if (!decodealpha5(satrec.satnumStr, out satrec.satnum))
             {
-                int[] alpha5 = new int[26] { 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33 };
-                int strIndex = Char.ToUpper(satrec.satnumStr[0]) - 'A';
-                Int32 index = alpha5[strIndex];
-                satrec.satnum = index * 10000 + Convert.ToInt32(satrec.satnumStr.Substring(1, 4));
+                satrec.error = 7;
+                return;
             }
 
             satrec.classification = Convert.ToChar(linedata[3]);
