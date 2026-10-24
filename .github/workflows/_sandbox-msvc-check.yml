@@ -1,0 +1,37 @@
+name: "[SANDBOX] MSVC check for #172"
+
+# Throwaway. Confirms the C++ fix in PR #175 compiles with the real MSVC
+# toolchain and behaves correctly, since this repo has no C++ CI. Only runs
+# on the sandbox branch below - never on main or on pull requests.
+# Delete this file and the branch once the result is known.
+
+on:
+  push:
+    branches:
+      - 'sandbox/172-msvc-check'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  msvc:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      # the gap this job exists to close: TestSGP4.cpp is MSVC-only
+      # (_tmain, fopen_s, strncpy_s) so it cannot be compiled on mac/linux.
+      # compiled directly rather than via TestSGP4.vcxproj, whose include and
+      # .lib paths point outside this repo.
+      - name: Compile TestSGP4 (MSVC)
+        working-directory: software/cpp/TestSGP4/TestSGP4
+        run: cl /EHsc /nologo /I..\..\SGP4\SGP4 TestSGP4.cpp ..\..\SGP4\SGP4\SGP4.cpp
+
+      - name: Compile and run alpha-5 behavior test (MSVC)
+        working-directory: software/cpp/SGP4/SGP4
+        run: |
+          cl /EHsc /nologo _sandbox_alpha5_check.cpp SGP4.cpp
+          .\_sandbox_alpha5_check.exe
