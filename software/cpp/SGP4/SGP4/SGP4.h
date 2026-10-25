@@ -149,6 +149,11 @@ namespace SGP4Funcs
 		);
 
 	// older sgp4io methods
+	bool decodealpha5_SGP4
+		(
+		const char satnumStr[6], int& satnum
+		);
+
 	void twoline2rv
 		(
 		char      longstr1[130], char longstr2[130],
