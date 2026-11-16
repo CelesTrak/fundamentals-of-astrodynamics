@@ -1,8 +1,8 @@
 # Default
-* @samotiwala @dvallado88
+* @samrolander @dvallado88
 
 # Specific languages
-software/python/** @samotiwala
+software/python/** @samrolander
 software/cpp/** @dvallado88
 software/cs/** @dvallado88
 software/fortran/** @dvallado88
