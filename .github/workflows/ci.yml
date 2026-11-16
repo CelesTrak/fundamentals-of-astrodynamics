@@ -23,7 +23,10 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12.2'
+        # floating patch version - pinning an exact patch (was 3.12.2) breaks
+        # whenever the ubuntu-latest runner image moves to a release that
+        # version was never built for
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |
