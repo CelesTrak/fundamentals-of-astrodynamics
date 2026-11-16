@@ -40,9 +40,12 @@
 %
 %   outputs       :
 %     satrec      - structure containing all the sgp4 satellite information
+%                   satrec.error is 7 and nothing else is parsed if the
+%                   satellite number field is not valid
 %
 %   coupling      :
 %     getgravconst
+%     decodealpha5 - decode the satellite number field
 %     days2mdhms  - conversion of days to month, day, hour, minute, second
 %     jday        - convert day month year hour minute second into julian date
 %     sgp4init    - initialize the sgp4 variables
@@ -128,14 +131,14 @@ function [startmfe, stopmfe, deltamin, satrec] = twoline2rv(longstr1, longstr2, 
 
     satrec.satnumStr = longstr1(3:7);
 
-    if (isnumeric(satrec.satnumStr(1)))
-        satrec.satnum = str2num(char(satrec.satnumStr));
-    else
-        alpha5 = [10 11 12 13 14 15 16 17 0 18 19 20 21 22 0 23 24 25 26 27 28 29 30 31 32 33];
-        ch = char(satrec.satnumStr);
-        strIndex = double(upper(ch(1))) - double('A') + 1;  % matlab array starts at 1
-        index = alpha5(strIndex);
-        satrec.satnum = index * 10000 + (str2num(char(extractBetween(ch, 2, 5))));
+    % sgp4fix refuse a satellite number field that is neither all digits nor a
+    % valid alpha5 field, rather than reading it as an ordinary number. note that
+    % isnumeric is always false for a character, so every satellite number used to
+    % take the alpha5 path
+    [satrec.satnum, valid] = decodealpha5(satrec.satnumStr);
+    if (~valid)
+        satrec.error = 7;
+        return;
     end
 
     satrec.classification = longstr1(8);

@@ -35,6 +35,7 @@
 %                    4 - semi-latus rectum < 0.0
 %                    5 - epoch elements are sub-orbital
 %                    6 - satellite has decayed
+%                    7 - satellite number field is not valid (twoline2rv only)
 %
 %   locals        :
 %     am          -

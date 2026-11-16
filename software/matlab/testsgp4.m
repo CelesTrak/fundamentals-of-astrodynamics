@@ -123,8 +123,14 @@
             [startmfe, stopmfe, deltamin, satrec] = twoline2rv( ...
                 longstr1, longstr2, typerun, typeinput, opsmode, whichconst);
 
+            % sgp4fix twoline2rv sets error 7 and parses nothing else if the
+            % satellite number field is not valid, so check before propagating
+            if (satrec.error == 7)
+                fprintf(1, ' invalid satellite number field, tle skipped: %s\n', satrec.satnumStr);
+            end
+
             % sgp4fix note that the ephtype must be 0 for SGP4. SGP4-XP uses 4.
-            if (satrec.ephtype == 0)
+            if ((satrec.error ~= 7) && (satrec.ephtype == 0))
 
                 fprintf(outfile, '%d xx\n', satrec.satnumStr);
                 fprintf(1,' %d\n', satrec.satnumStr);
