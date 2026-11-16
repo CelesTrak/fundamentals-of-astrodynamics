@@ -1689,6 +1689,7 @@ namespace SGP4Funcs
 	*                   4 - semi-latus rectum < 0.0
 	*                   5 - epoch elements are sub-orbital
 	*                   6 - satellite has decayed
+	*                   7 - satellite number field is not valid (twoline2rv only)
 	*
 	*  locals        :
 	*    am          -
@@ -2138,6 +2139,73 @@ namespace SGP4Funcs
 	// older sgp4io methods
 	/* -----------------------------------------------------------------------------
 	*
+	*                           function decodealpha5_SGP4
+	*
+	*  this function decodes the 5-character satellite number field of a tle. the
+	*    field is either the original five digits, or an alpha-5 field - a letter
+	*    giving the leading 10 to 33, followed by four digits. the letters i and o
+	*    are never used in an alpha-5 field as they are too easily read as 1 and 0,
+	*    so a field beginning with either, or one whose last four characters are not
+	*    digits, is not a satellite number and is refused.
+	*
+	*  inputs        :
+	*    satnumStr   - satellite number field        '00005', 'E8493'
+	*
+	*  outputs       :
+	*    satnum      - satellite number, -1 if the field is not valid
+	*
+	*  returns       :
+	*    true if the field was decoded, false if it is not a valid field
+	*
+	*  references    :
+	*    space-track.org "what is alpha-5?"
+	--------------------------------------------------------------------------- */
+
+	bool decodealpha5_SGP4
+		(
+		const char satnumStr[6], int& satnum
+		)
+	{
+		// the alpha-5 blocks, a to z with i and o left out
+		static const int alpha5[] = { 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33 };
+		size_t len, j;
+		int ch, index;
+
+		satnum = -1;
+		len = strlen(satnumStr);
+		if ((len < 1) || (len > 5))
+			return false;
+
+		// ---- the original satellite number, all digits ----
+		if (isdigit(static_cast<unsigned char>(satnumStr[0])))
+		{
+			for (j = 1; j < len; j++)
+				if (!isdigit(static_cast<unsigned char>(satnumStr[j])))
+					return false;
+			satnum = std::stoi(std::string(satnumStr));
+			return true;
+		}
+
+		// ---- an alpha-5 field, one letter and four digits ----
+		if (len != 5)
+			return false;
+		for (j = 1; j <= 4; j++)
+			if (!isdigit(static_cast<unsigned char>(satnumStr[j])))
+				return false;
+		ch = toupper(static_cast<unsigned char>(satnumStr[0]));
+		if ((ch < 'A') || (ch > 'Z'))
+			return false;
+		index = alpha5[ch - 'A'];
+		// i and o are not part of the scheme
+		if (index == 0)
+			return false;
+
+		satnum = index * 10000 + std::stoi(std::string(satnumStr).substr(1, 4));
+		return true;
+	}   // decodealpha5_SGP4
+
+	/* -----------------------------------------------------------------------------
+	*
 	*                           function twoline2rv
 	*
 	*  this function converts the two line element set character string data to
@@ -2166,9 +2234,12 @@ namespace SGP4Funcs
 	*
 	*  outputs       :
 	*    satrec      - structure containing all the sgp4 satellite information
+	*                  satrec.error is 7 and nothing else is parsed if the
+	*                  satellite number field is not valid
 	*
 	*  coupling      :
 	*    getgravconst-
+	*    decodealpha5- decode the satellite number field
 	*    days2mdhms  - conversion of days to month, day, hour, minute, second
 	*    jday        - convert day month year hour minute second into julian date
 	*    sgp4init    - initialize the sgp4 variables
@@ -2246,17 +2317,12 @@ namespace SGP4Funcs
 			&ibexp, &satrec.ephtype, &satrec.elnum);
 #endif
 
-		int strIndex, index;
-		if (isdigit(satrec.satnumStr[0]))
-			satrec.satnum = std::stoi(std::string(satrec.satnumStr));
-		else
+		// sgp4fix refuse a satellite number field that is neither five digits nor
+		// a valid alpha-5 field, rather than reading it as an ordinary number
+		if (!decodealpha5_SGP4(satrec.satnumStr, satrec.satnum))
 		{
-			int alpha5[] = {10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33};
-			strIndex = toupper(satrec.satnumStr[0]) - 'A';
-			index = alpha5[strIndex];
-			std::string s(satrec.satnumStr);
-			std::string sub = s.substr(1, 4);
-			satrec.satnum = index * 10000 + std::stoi(sub);
+			satrec.error = 7;
+			return;
 		}
 
 		// sgp4fix note that the ephtype must be 0 for SGP4. SGP4-XP uses 4.
