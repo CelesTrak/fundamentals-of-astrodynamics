@@ -191,8 +191,13 @@ namespace SGP4Program
                     SGP4Libr.twoline2rv(longstr1, longstr2, typerun, typeinput, opsmode, whichconst,
                                 out startmfe, out stopmfe, out deltamin, out satrec);
 
+                    // sgp4fix twoline2rv sets error 7 and parses nothing else if the
+                    // satellite number field is not valid, so check before propagating
+                    if (satrec.error == 7)
+                        Console.WriteLine(" invalid satellite number field, tle skipped: " + satrec.satnumStr);
+
                     // sgp4fix note that the ephtype must be 0 for SGP4. SGP4-XP uses 4.
-                    if (satrec.ephtype == 0)
+                    if ((satrec.error != 7) && (satrec.ephtype == 0))
                     {
                         // ADDED 29 oct 2026: manual start/stop times are entered here now - twoline2rv no longer asks
                         if ((typerun != 'v') && (typerun != 'c'))
