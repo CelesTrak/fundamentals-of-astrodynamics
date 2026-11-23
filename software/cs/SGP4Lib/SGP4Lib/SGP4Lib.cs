@@ -1650,6 +1650,7 @@ namespace SGP4Methods
         *                   5 - epoch elements are sub-orbital
         *                   6 - satellite has decayed
         *                   7 - satellite number field is not valid (twoline2rv only)
+        *                   8 - tle line does not fit the expected layout (twoline2rv only)
         *
         *  locals        :
         *    am          -
@@ -2282,6 +2283,8 @@ namespace SGP4Methods
         *    satrec      - structure containing all the sgp4 satellite information
         *                  satrec.error is 7 and nothing else is parsed if the
         *                  satellite number field is not valid
+        *                  satrec.error is 8, likewise, if either line does not fit
+        *                  the tle layout
         *
         *  coupling      :
         *    getgravconst-
@@ -2344,6 +2347,15 @@ namespace SGP4Methods
                                          "([-0-9. +]{7})([-0-9 +]{2})([-0-9. +]{7})([-0-9. +]{2})([-0-9. +]{2})([-0-9. ]{5})");
             }
 
+            // sgp4fix a line 1 that does not fit the tle layout makes Regex.Split return the
+            // whole line as one element, so refuse it here rather than throw on linedata[2]
+            if (linedata.Length <= 13)
+            {
+                satrec.satnum = -1;
+                satrec.error = 8;
+                return;
+            }
+
             // sgp4fix: never used
             //cardnumb = Convert.ToInt16(linedata[1]);   
             satrec.satnumStr = linedata[2].Trim();  // now a string for alpha5
@@ -2402,6 +2414,14 @@ namespace SGP4Methods
 
                     linedata = Regex.Split(longstr2, "^([0-9 ]{2})([0-9 A-Z]{5})([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{8})" +
                                                  @"([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{12})([-0-9 ]{6})\s+(\S+)\s+(\S+)\s+(\S+)");
+                    // sgp4fix a line 2 that does not fit the tle layout makes Regex.Split return the
+                    // whole line as one element, so refuse it here rather than throw on linedata[2]
+                    if (linedata.Length <= 12)
+                    {
+                        satrec.error = 8;
+                        return;
+                    }
+
                     // sgp4fix: never used
                     //cardnumb = Convert.ToInt16(linedata[1]);   
                     // sgp4fix: now a string for alpha5 or 9-digit
@@ -2422,6 +2442,14 @@ namespace SGP4Methods
                 {
                     linedata = Regex.Split(longstr2, "^([0-9 ]{2})([0-9 A-Z]{5})([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{8})" +
                                                 @"([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{12})([-0-9 ]{6})");
+                    // sgp4fix a line 2 that does not fit the tle layout makes Regex.Split return the
+                    // whole line as one element, so refuse it here rather than throw on linedata[2]
+                    if (linedata.Length <= 9)
+                    {
+                        satrec.error = 8;
+                        return;
+                    }
+
                     // sgp4fix: never used
                     //cardnumb = Convert.ToInt16(linedata[1]);   
                     // sgp4fix: now a string for alpha5 or 9-digit
