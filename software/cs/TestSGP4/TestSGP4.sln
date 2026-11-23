@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.6.33815.320
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11806.211 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestSGP4", "TestSGP4\TestSGP4.csproj", "{E72B8B5E-F60D-4F5F-953F-8E4F7A97CFBA}"
 	ProjectSection(ProjectDependencies) = postProject

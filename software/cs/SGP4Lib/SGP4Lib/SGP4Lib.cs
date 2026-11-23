@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Drawing;
-using System.Text;
+// sgp4fix InputBox moved out, no ui in SGP4Lib
+//using System.Drawing;    
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
-using System.IO;
-using System.Runtime.CompilerServices;
 
 
 namespace SGP4Methods
@@ -66,11 +61,19 @@ namespace SGP4Methods
             public string not_orbital; // "Orbiting S/C" flag (0=n, 1=y)  
             public double rcs_m2; // "RCS (m^2)" storage  
 
+            // sgp4fix elsetrec is a class, so "satrecp = satrec" makes a second name for the same
+            // record, not a copy - changing one changes both. Copy() gives an independent record (every field
+            // is a number, char or string, so a memberwise copy is complete).
+            public elsetrec Copy()
+            {
+                return (elsetrec)this.MemberwiseClone();
+            }
+
         }  // elsetrec class
 
         public enum gravconsttype { wgs72old, wgs72, wgs84 }; // wgs72 is the standard and should be used with JSPOC TLEs
 
-        // use a struct for all the elsetrec so it can be processed
+        // use a class for all the elsetrec so it can be processed
         public elsetrec satrec = new elsetrec();
 
 
@@ -2191,11 +2194,15 @@ namespace SGP4Methods
         *    longstr2    - second line of the tle
         *    typerun     - type of run                    verification 'v', catalog 'c', 
         *                                                 manual 'm'
-        *    typeinput   - type of manual input           mfe 'm', epoch 'e', dayofyr 'd'
+        *    typeinput   - type of manual input           mfe 'm', epoch 'e', dayofyr 'd' (not used here now -
+        *                  manual start/stop is set by the caller; kept so existing calls don't change)
         *    opsmode     - mode of operation afspc or improved 'a', 'i'
         *    whichconst  - which set of constants to use  72, 84
         *
         *  outputs       :
+        *    startmfe    - start time, min from epoch (verification and catalog runs; 0.0 for manual)
+        *    stopmfe     - stop time, min from epoch
+        *    deltamin    - time step, min
         *    satrec      - structure containing all the sgp4 satellite information
         *
         *  coupling      :
@@ -2222,16 +2229,17 @@ namespace SGP4Methods
             const double xpdotp = 1440.0 / (2.0 * Math.PI);  // 229.1831180523293
 
             double sec;
-            double startsec, stopsec, startdayofyr, stopdayofyr, jdstart, jdstop, jdstartF, jdstopF;
-            int startyear, stopyear, startmon, stopmon, startday, stopday,
-                starthr, stophr, startmin, stopmin;
-            int cardnumb; //, j;
+            // sgp4fix: manual-input locals moved out with the manual block
+            //double startsec, stopsec, startdayofyr, stopdayofyr, jdstart, jdstop, jdstartF, jdstopF;
+            //int startyear, stopyear, startmon, stopmon, startday, stopday,
+            //starthr, stophr, startmin, stopmin;
+            //int cardnumb, j;
             // sgp4fix include in satrec
             // long revnum = 0, elnum = 0;
             // char classification, intldesg[11];
             int year = 0;
             int mon, day, hr, minute, nexp, ibexp;
-            string[] linex;
+            //string[] linex;
 
             // sgp4fix no longer needed
             // getgravconst( whichconst, tumin, mu, radiusearthkm, xke, j2, j3, j4, j3oj2 );
@@ -2256,8 +2264,9 @@ namespace SGP4Methods
                 linedata = Regex.Split(longstr1, "^([0-9 ]{2})([0-9 A-Z]{5})([a-zA-Z]{1})([A-Z,a-z,0-9 ]{10})([-0-9 ]{2})([-0-9. ]{12})([-0-9. +]{11})" +
                                          "([-0-9. +]{7})([-0-9 +]{2})([-0-9. +]{7})([-0-9. +]{2})([-0-9. +]{2})([-0-9. ]{5})");
             }
-            
-            cardnumb = Convert.ToInt16(linedata[1]);
+
+            // sgp4fix: never used
+            //cardnumb = Convert.ToInt16(linedata[1]);   
             satrec.satnumStr = linedata[2].Trim();  // now a string for alpha5 
             if (Char.IsDigit(satrec.satnumStr[0]))
                 satrec.satnum = Convert.ToInt32(satrec.satnumStr);
@@ -2273,8 +2282,13 @@ namespace SGP4Methods
             satrec.intldesg = linedata[4];
             satrec.epochyr = Convert.ToInt16(linedata[5]);
             satrec.epochdays = Convert.ToDouble(linedata[6]);
-            satrec.ndot = Convert.ToDouble(linedata[7])* 0.00001;
-            satrec.nddot = Convert.ToDouble(linedata[8]);
+            //satrec.ndot = Convert.ToDouble(linedata[7])* 0.00001;
+            //satrec.nddot = Convert.ToDouble(linedata[8]);
+            // sgp4fix: the 0.00001 belongs on nddot (assumed-decimal mantissa, like bstar), not on
+            // ndot (written with its decimal point). sgp4 never uses either, so propagation is unchanged; only
+            // the stored values (and satrec2twoline) were off.
+            satrec.ndot = Convert.ToDouble(linedata[7]);
+            satrec.nddot = Convert.ToDouble(linedata[8]) * 0.00001;
             try
             {
                 nexp = Convert.ToInt16(linedata[9]);
@@ -2311,8 +2325,10 @@ namespace SGP4Methods
 
                     linedata = Regex.Split(longstr2, "^([0-9 ]{2})([0-9 A-Z]{5})([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{8})" +
                                                  @"([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{12})([-0-9 ]{6})\s+(\S+)\s+(\S+)\s+(\S+)");
-                    cardnumb = Convert.ToInt16(linedata[1]);
-                    satrec.satnumStr = linedata[2];    // now a string for alpha5 or 9-digit
+                    // sgp4fix: never used
+                    //cardnumb = Convert.ToInt16(linedata[1]);   
+                    // sgp4fix: now a string for alpha5 or 9-digit
+                    satrec.satnumStr = linedata[2];    
                     satrec.inclo = Convert.ToDouble(linedata[3]);
                     satrec.nodeo = Convert.ToDouble(linedata[4]);
                     satrec.ecco = Convert.ToDouble(linedata[5]) * 0.0000001;
@@ -2329,8 +2345,10 @@ namespace SGP4Methods
                 {
                     linedata = Regex.Split(longstr2, "^([0-9 ]{2})([0-9 A-Z]{5})([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{8})" +
                                                 @"([-0-9. ]{9})([-0-9. ]{9})([-0-9. ]{12})([-0-9 ]{6})");
-                    cardnumb = Convert.ToInt16(linedata[1]);
-                    satrec.satnumStr = linedata[2];   // now a string for alpha5 or 9-digit
+                    // sgp4fix: never used
+                    //cardnumb = Convert.ToInt16(linedata[1]);   
+                    // sgp4fix: now a string for alpha5 or 9-digit
+                    satrec.satnumStr = linedata[2];   
                     satrec.inclo = Convert.ToDouble(linedata[3]);
                     satrec.nodeo = Convert.ToDouble(linedata[4]);
                     satrec.ecco = Convert.ToDouble(linedata[5]) * 0.0000001;
@@ -2340,6 +2358,12 @@ namespace SGP4Methods
                     satrec.revnum = Convert.ToInt32(linedata[9]);
                 }
 
+                // sgp4fix: the rev number is cols 64-68 - the 6 character group above also
+                // picks up the checksum in col 69 (13667 came back as 413667). not used by sgp4, but
+                // satrec2twoline writes it back out
+                long revtemp;
+                if ((longstr2.Length >= 68) && long.TryParse(longstr2.Substring(63, 5).Trim(), out revtemp))
+                    satrec.revnum = revtemp;
 
                 // ---- find no, ndot, nddot ----
                 satrec.no_kozai = satrec.no_kozai / xpdotp; //* rad/min
@@ -2377,79 +2401,82 @@ namespace SGP4Methods
                 days2mdhms(year, satrec.epochdays, out mon, out day, out hr, out minute, out sec);
                 jday(year, mon, day, hr, minute, sec, out satrec.jdsatepoch, out satrec.jdsatepochF);
 
-                // ---- input start stop times manually
-                if ((!typerun.Equals('v')) && (!typerun.Equals('c')))
-                {
-                    // ------------- enter start/stop ymd hms values --------------------
-                    if (typeinput.Equals('e'))
-                    {
-                        string value1 = "2015-01-12 12:00:00.000";
-                        string value2 = "2015-01-14 12:00:00.000";
-                        if (InputBox.Show("Input start/stop times", "Start - Stop:", ref value1, ref value2) == DialogResult.OK)
-                        {
-                        }
-                        startyear = Convert.ToInt16(value1.Split('-')[0].Substring(0, 2));
-                        startmon = Convert.ToInt16(value1.Split('-')[1]);
-                        startday = Convert.ToInt16(value1.Split('-')[2]);
-                        starthr = Convert.ToInt16(value1.Split(':')[0].Substring(value1.Split(':')[0].Length - 2, 2));
-                        startmin = Convert.ToInt16(value1.Split(':')[1]);
-                        startsec = Convert.ToDouble(value1.Split(':')[2]);
-                        jday(startyear, startmon, startday, starthr, startmin, startsec, out jdstart, out jdstartF);
+                // sgp4fix: manual start/stop entry (typerun 'm') is the calling program's job now (see
+                // TestSGP4 Program.cs getmanualtimes) - the library does no screen or console input. for typerun 'm'
+                // startmfe, stopmfe, deltamin come back 0.0 and the caller sets them.
+                //// ---- input start stop times manually
+                //if ((!typerun.Equals('v')) && (!typerun.Equals('c')))
+                //{
+                    //// ------------- enter start/stop ymd hms values --------------------
+                    //if (typeinput.Equals('e'))
+                    //{
+                        //string value1 = "2015-01-12 12:00:00.000";
+                        //string value2 = "2015-01-14 12:00:00.000";
+                        //if (InputBox.Show("Input start/stop times", "Start - Stop:", ref value1, ref value2) == DialogResult.OK)
+                        //{
+                        //}
+                        //startyear = Convert.ToInt16(value1.Split('-')[0].Substring(0, 2));
+                        //startmon = Convert.ToInt16(value1.Split('-')[1]);
+                        //startday = Convert.ToInt16(value1.Split('-')[2]);
+                        //starthr = Convert.ToInt16(value1.Split(':')[0].Substring(value1.Split(':')[0].Length - 2, 2));
+                        //startmin = Convert.ToInt16(value1.Split(':')[1]);
+                        //startsec = Convert.ToDouble(value1.Split(':')[2]);
+                        //jday(startyear, startmon, startday, starthr, startmin, startsec, out jdstart, out jdstartF);
 
-                        stopyear = Convert.ToInt16(value1.Split('-')[0].Substring(0, 2));
-                        stopmon = Convert.ToInt16(value1.Split('-')[1]);
-                        stopday = Convert.ToInt16(value1.Split('-')[2]);
-                        stophr = Convert.ToInt16(value1.Split(':')[0].Substring(value1.Split(':')[0].Length - 2, 2));
-                        stopmin = Convert.ToInt16(value1.Split(':')[1]);
-                        stopsec = Convert.ToDouble(value1.Split(':')[2]);
-                        jday(stopyear, stopmon, stopday, stophr, stopmin, stopsec, out jdstop, out jdstopF);
-                        jday(stopyear, stopmon, stopday, stophr, stopmin, stopsec, out jdstop, out jdstopF);
+                        //stopyear = Convert.ToInt16(value1.Split('-')[0].Substring(0, 2));
+                        //stopmon = Convert.ToInt16(value1.Split('-')[1]);
+                        //stopday = Convert.ToInt16(value1.Split('-')[2]);
+                        //stophr = Convert.ToInt16(value1.Split(':')[0].Substring(value1.Split(':')[0].Length - 2, 2));
+                        //stopmin = Convert.ToInt16(value1.Split(':')[1]);
+                        //stopsec = Convert.ToDouble(value1.Split(':')[2]);
+                        //jday(stopyear, stopmon, stopday, stophr, stopmin, stopsec, out jdstop, out jdstopF);
+                        //jday(stopyear, stopmon, stopday, stophr, stopmin, stopsec, out jdstop, out jdstopF);
 
-                        startmfe = (jdstart - satrec.jdsatepoch) * 1440.0 + (jdstartF - satrec.jdsatepochF) * 1440.0;
-                        stopmfe = (jdstop - satrec.jdsatepoch) * 1440.0 + (jdstopF - satrec.jdsatepochF) * 1440.0;
+                        //startmfe = (jdstart - satrec.jdsatepoch) * 1440.0 + (jdstartF - satrec.jdsatepochF) * 1440.0;
+                        //stopmfe = (jdstop - satrec.jdsatepoch) * 1440.0 + (jdstopF - satrec.jdsatepochF) * 1440.0;
 
-                        //printf("input time step in minutes \n");
-                        //scanf("%lf", deltamin);
-                    }
-                    // -------- enter start/stop year and days of year values -----------
-                    if (typeinput.Equals('d'))
-                    {
-                        Console.Write("input start year dayofyr \n");
-                        linex = Console.ReadLine().Split(' '); // Read string from console
-                        int.TryParse(linex[0], out startyear);
-                        double.TryParse(linex[1], out startdayofyr);
+                        ////printf("input time step in minutes \n");
+                        ////scanf("%lf", deltamin);
+                    //}
+                    //// -------- enter start/stop year and days of year values -----------
+                    //if (typeinput.Equals('d'))
+                    //{
+                        //Console.Write("input start year dayofyr \n");
+                        //linex = Console.ReadLine().Split(' '); // Read string from console
+                        //int.TryParse(linex[0], out startyear);
+                        //double.TryParse(linex[1], out startdayofyr);
 
-                        Console.Write("input stop year dayofyr \n");
-                        linex = Console.ReadLine().Split(' '); // Read string from console
-                        int.TryParse(linex[0], out stopyear);
-                        double.TryParse(linex[1], out stopdayofyr);
+                        //Console.Write("input stop year dayofyr \n");
+                        //linex = Console.ReadLine().Split(' '); // Read string from console
+                        //int.TryParse(linex[0], out stopyear);
+                        //double.TryParse(linex[1], out stopdayofyr);
 
-                        days2mdhms(startyear, startdayofyr, out mon, out day, out hr, out minute, out sec);
-                        jday(startyear, mon, day, hr, minute, sec, out jdstart, out jdstartF);
-                        days2mdhms(stopyear, stopdayofyr, out mon, out day, out hr, out minute, out sec);
-                        jday(stopyear, mon, day, hr, minute, sec, out jdstop, out jdstop);
+                        //days2mdhms(startyear, startdayofyr, out mon, out day, out hr, out minute, out sec);
+                        //jday(startyear, mon, day, hr, minute, sec, out jdstart, out jdstartF);
+                        //days2mdhms(stopyear, stopdayofyr, out mon, out day, out hr, out minute, out sec);
+                        //jday(stopyear, mon, day, hr, minute, sec, out jdstop, out jdstop);
 
-                        startmfe = (jdstart - satrec.jdsatepoch) * 1440.0;
-                        stopmfe = (jdstop - satrec.jdsatepoch) * 1440.0;
+                        //startmfe = (jdstart - satrec.jdsatepoch) * 1440.0;
+                        //stopmfe = (jdstop - satrec.jdsatepoch) * 1440.0;
 
-                        Console.Write("input time step in minutes \n");
-                        linex = Console.ReadLine().Split(' '); // Read string from console
-                        double.TryParse(linex[0], out deltamin);
-                    }
-                    // ------------------ enter start/stop mfe values -------------------
-                    if (typeinput.Equals('m'))
-                    {
-                        Console.Write("input start min from epoch \n");
-                        linex = Console.ReadLine().Split(' '); // Read string from console
-                        double.TryParse(linex[0], out startmfe);
-                        Console.Write("input stop min from epoch \n");
-                        linex = Console.ReadLine().Split(' '); // Read string from console
-                        double.TryParse(linex[0], out stopmfe);
-                        Console.Write("input time step in minutes \n");
-                        linex = Console.ReadLine().Split(' '); // Read string from console
-                        double.TryParse(linex[0], out deltamin);
-                    }
-                }
+                        //Console.Write("input time step in minutes \n");
+                        //linex = Console.ReadLine().Split(' '); // Read string from console
+                        //double.TryParse(linex[0], out deltamin);
+                    //}
+                    //// ------------------ enter start/stop mfe values -------------------
+                    //if (typeinput.Equals('m'))
+                    //{
+                        //Console.Write("input start min from epoch \n");
+                        //linex = Console.ReadLine().Split(' '); // Read string from console
+                        //double.TryParse(linex[0], out startmfe);
+                        //Console.Write("input stop min from epoch \n");
+                        //linex = Console.ReadLine().Split(' '); // Read string from console
+                        //double.TryParse(linex[0], out stopmfe);
+                        //Console.Write("input time step in minutes \n");
+                        //linex = Console.ReadLine().Split(' '); // Read string from console
+                        //double.TryParse(linex[0], out deltamin);
+                    //}
+                //}
 
                 // ------------ perform complete catalog evaluation, -+ 1 day ----------- 
                 if (typerun.Equals('c'))
@@ -2465,6 +2492,162 @@ namespace SGP4Methods
                           satrec.nodeo, ref satrec);
             } // if ephtype = 0
         } // end twoline2rv
+
+
+        /* -----------------------------------------------------------------------------
+        *
+        *                           function satrec2twoline
+        *
+        *  the inverse of twoline2rv - writes the two line element set
+        *    from an sgp4 record, e.g. after a differential correction. the epoch comes from
+        *    jdsatepoch + jdsatepochF (always set by twoline2rv and a dc fit), not epochyr /
+        *    epochdays. angles are written 0 to 360 deg, and both lines get their checksum.
+        *    alpha5 numbers are kept as they are in satnumStr.
+        *
+        *  author        : david vallado                  davallado@gmail.com   29 oct 2026
+        *
+        *  inputs        :
+        *    satrec      - structure containing the sgp4 satellite information (rad, rad/min)
+        *
+        *  outputs       :
+        *    longstr1    - first line of the tle
+        *    longstr2    - second line of the tle
+        *
+        *  coupling      :
+        *    invjday, jday
+        *
+        *  references    :
+        *    norad spacetrack report #3
+        *    vallado, crawford, hujsak, kelso  2006
+          --------------------------------------------------------------------------- */
+
+        public void satrec2twoline
+             (
+              elsetrec satrec,
+              out string longstr1, out string longstr2
+             )
+        {
+            const double rad2deg = 180.0 / Math.PI;
+            const double xpdotp = 1440.0 / (2.0 * Math.PI);  // 229.1831180523293
+            System.Globalization.CultureInfo ci = System.Globalization.CultureInfo.InvariantCulture;
+            int year, mon, day, hr, minute;
+            double sec, jdjan1, jdjan1F, epochdays;
+            string satstr, intlstr, classstr;
+
+            // ---------------- epoch as yy and day of year ----------------
+            invjday(satrec.jdsatepoch, satrec.jdsatepochF, out year, out mon, out day, out hr, out minute, out sec);
+            jday(year, 1, 1, 0, 0, 0.0, out jdjan1, out jdjan1F);
+            epochdays = (satrec.jdsatepoch - jdjan1) + (satrec.jdsatepochF - jdjan1F) + 1.0;
+
+            // ------------------- identifying fields ----------------------
+            if (satrec.satnumStr == null)
+                satstr = satrec.satnum.ToString("00000");
+            else
+                satstr = satrec.satnumStr.Trim().PadLeft(5, '0');
+            if (satrec.intldesg == null)
+                intlstr = "        ";
+            else
+                intlstr = satrec.intldesg.Trim().PadRight(8).Substring(0, 8);
+            if (satrec.classification == '\0')
+                classstr = "U";
+            else
+                classstr = satrec.classification.ToString();
+
+            // ---------------------------- line 1 -------------------------
+            longstr1 = "1 " + satstr + classstr + " " + intlstr + " "
+                + (year % 100).ToString("00") + epochdays.ToString("000.00000000", ci) + " "
+                + tlendot(satrec.ndot * xpdotp * 1440.0) + " "
+                + tleexpfield(satrec.nddot * xpdotp * 1440.0 * 1440.0) + " "
+                + tleexpfield(satrec.bstar) + " "
+                + satrec.ephtype.ToString() + " "
+                + (satrec.elnum % 10000).ToString().PadLeft(4);
+            longstr1 = longstr1 + tlechecksum(longstr1).ToString();
+
+            // ---------------------------- line 2 -------------------------
+            longstr2 = "2 " + satstr + " "
+                + tleangle(satrec.inclo * rad2deg) + " "
+                + tleangle(satrec.nodeo * rad2deg) + " "
+                + Math.Round(satrec.ecco * 10000000.0).ToString("0000000", ci) + " "
+                + tleangle(satrec.argpo * rad2deg) + " "
+                + tleangle(satrec.mo * rad2deg) + " "
+                + (satrec.no_kozai * xpdotp).ToString("0.00000000", ci).PadLeft(11)
+                + (satrec.revnum % 100000).ToString().PadLeft(5);
+            longstr2 = longstr2 + tlechecksum(longstr2).ToString();
+        }  // satrec2twoline
+
+
+        // ---- helpers for satrec2twoline ----
+
+        // angle in deg, 0 to 360, as the 8 character tle field (ddd.dddd)
+        private string tleangle(double deg)
+        {
+            deg = deg % 360.0;
+            if (deg < 0.0)
+                deg = deg + 360.0;
+            return deg.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture).PadLeft(8);
+        }
+
+        // ndot/2 (rev/day^2) as the 10 character tle field: sign then .dddddddd
+        private string tlendot(double v)
+        {
+            string str = Math.Abs(v).ToString("0.00000000", System.Globalization.CultureInfo.InvariantCulture);
+            if (str.StartsWith("0"))
+                str = str.Substring(1);
+            if (v < 0.0)
+                str = "-" + str;
+            else
+                str = " " + str;
+            return str.PadLeft(10);
+        }
+
+        // value as the 8 character assumed-decimal field (nddot/6, bstar): sign, 5 digit mantissa, exponent
+        //   e.g. 0.28098e-4 -> " 28098-4"
+        private string tleexpfield(double v)
+        {
+            string sign;
+            int iexp;
+            long mant;
+            double av = Math.Abs(v);
+
+            if (av < 1.0e-15)
+                return " 00000-0";
+            if (v < 0.0)
+                sign = "-";
+            else
+                sign = " ";
+
+            iexp = (int)Math.Floor(Math.Log10(av)) + 1;   // av = 0.ddddd * 10^iexp
+            mant = (long)Math.Round(av / Math.Pow(10.0, iexp) * 100000.0);
+            if (mant >= 100000)   // rounded up to 1.0
+            {
+                mant = mant / 10;
+                iexp = iexp + 1;
+            }
+            if (iexp > 9)
+                iexp = 9;
+            if (iexp < -9)
+                return " 00000-0";
+
+            if (iexp < 0)
+                return sign + mant.ToString("00000") + "-" + (-iexp).ToString();
+            else
+                return sign + mant.ToString("00000") + "+" + iexp.ToString();
+        }
+
+        // tle checksum: sum of the digits, each '-' counts 1, mod 10
+        private int tlechecksum(string line)
+        {
+            int sum = 0;
+            int i;
+            for (i = 0; i < line.Length && i < 68; i++)
+            {
+                if (Char.IsDigit(line[i]))
+                    sum = sum + (line[i] - '0');
+                else if (line[i] == '-')
+                    sum = sum + 1;
+            }
+            return sum % 10;
+        }
 
 
         // ---------------------------------------------------------------------------------
@@ -3201,58 +3384,60 @@ namespace SGP4Methods
 
     }  // class Form1
 
-    // enable an input from the screen during runtime
-    public class InputBox
-    {
-        public static DialogResult Show(string title, string promptText, ref string value1, ref string value2)
-        {
-            Form iform = new Form();
-            Label label = new Label();
-            TextBox textBox1 = new TextBox();
-            TextBox textBox2 = new TextBox();
-            Button buttonOk = new Button();
-            Button buttonCancel = new Button();
+    // sgp4fix: InputBox is ui, not part of the sgp4 method - manual start/stop entry is now done by
+    // the calling program (TestSGP4 Program.cs getmanualtimes), so SGP4Lib needs no WinForms
+    //// enable an input from the screen during runtime
+    //public class InputBox
+    //{
+        //public static DialogResult Show(string title, string promptText, ref string value1, ref string value2)
+        //{
+            //Form iform = new Form();
+            //Label label = new Label();
+            //TextBox textBox1 = new TextBox();
+            //TextBox textBox2 = new TextBox();
+            //Button buttonOk = new Button();
+            //Button buttonCancel = new Button();
 
-            iform.Text = title;
-            label.Text = promptText;
-            textBox1.Text = value1;
-            textBox2.Text = value2;
+            //iform.Text = title;
+            //label.Text = promptText;
+            //textBox1.Text = value1;
+            //textBox2.Text = value2;
 
-            buttonOk.Text = "OK";
-            buttonCancel.Text = "Cancel";
-            buttonOk.DialogResult = DialogResult.OK;
-            buttonCancel.DialogResult = DialogResult.Cancel;
+            //buttonOk.Text = "OK";
+            //buttonCancel.Text = "Cancel";
+            //buttonOk.DialogResult = DialogResult.OK;
+            //buttonCancel.DialogResult = DialogResult.Cancel;
 
-            label.SetBounds(9, 20, 372, 13);
-            textBox1.SetBounds(12, 36, 160, 20);
-            textBox2.SetBounds(200, 36, 160, 20);
-            buttonOk.SetBounds(228, 72, 75, 23);
-            buttonCancel.SetBounds(309, 72, 75, 23);
+            //label.SetBounds(9, 20, 372, 13);
+            //textBox1.SetBounds(12, 36, 160, 20);
+            //textBox2.SetBounds(200, 36, 160, 20);
+            //buttonOk.SetBounds(228, 72, 75, 23);
+            //buttonCancel.SetBounds(309, 72, 75, 23);
 
-            label.AutoSize = true;
-            textBox1.Anchor = textBox1.Anchor | AnchorStyles.Right;
-            textBox2.Anchor = textBox2.Anchor | AnchorStyles.Right;
-            buttonOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            buttonCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            //label.AutoSize = true;
+            //textBox1.Anchor = textBox1.Anchor | AnchorStyles.Right;
+            //textBox2.Anchor = textBox2.Anchor | AnchorStyles.Right;
+            //buttonOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            //buttonCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
 
-            iform.ClientSize = new Size(396, 107);
-            iform.Controls.AddRange(new Control[] { label, textBox1, buttonOk, buttonCancel });
-            iform.Controls.AddRange(new Control[] { label, textBox2, buttonOk, buttonCancel });
-            iform.ClientSize = new Size(Math.Max(300, label.Right + 10), iform.ClientSize.Height);
-            iform.FormBorderStyle = FormBorderStyle.FixedDialog;
-            iform.StartPosition = FormStartPosition.CenterScreen;
-            iform.MinimizeBox = false;
-            iform.MaximizeBox = false;
-            iform.AcceptButton = buttonOk;
-            iform.CancelButton = buttonCancel;
+            //iform.ClientSize = new Size(396, 107);
+            //iform.Controls.AddRange(new Control[] { label, textBox1, buttonOk, buttonCancel });
+            //iform.Controls.AddRange(new Control[] { label, textBox2, buttonOk, buttonCancel });
+            //iform.ClientSize = new Size(Math.Max(300, label.Right + 10), iform.ClientSize.Height);
+            //iform.FormBorderStyle = FormBorderStyle.FixedDialog;
+            //iform.StartPosition = FormStartPosition.CenterScreen;
+            //iform.MinimizeBox = false;
+            //iform.MaximizeBox = false;
+            //iform.AcceptButton = buttonOk;
+            //iform.CancelButton = buttonCancel;
 
-            DialogResult dialogResult = iform.ShowDialog();
-            value1 = textBox1.Text;
-            value2 = textBox2.Text;
-            return dialogResult;
-        }
+            //DialogResult dialogResult = iform.ShowDialog();
+            //value1 = textBox1.Text;
+            //value2 = textBox2.Text;
+            //return dialogResult;
+        //}
 
-    }  // class inputbox
+    //}  // class inputbox
 
 
 }  // namespace
