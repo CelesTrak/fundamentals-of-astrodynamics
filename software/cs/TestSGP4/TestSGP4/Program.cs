@@ -191,9 +191,20 @@ namespace SGP4Program
                     SGP4Libr.twoline2rv(longstr1, longstr2, typerun, typeinput, opsmode, whichconst,
                                 out startmfe, out stopmfe, out deltamin, out satrec);
 
+                    // sgp4fix twoline2rv sets error 7 and parses nothing else if the
+                    // satellite number field is not valid, so check before propagating
+                    if (satrec.error == 7)
+                        Console.WriteLine(" invalid satellite number field, tle skipped: " + satrec.satnumStr);
+                    if (satrec.error == 8)
+                        Console.WriteLine(" tle line does not fit the expected layout, skipped: " + longstr1);
+
                     // sgp4fix note that the ephtype must be 0 for SGP4. SGP4-XP uses 4.
-                    if (satrec.ephtype == 0)
+                    if ((satrec.error != 7) && (satrec.error != 8) && (satrec.ephtype == 0))
                     {
+                        // ADDED 29 oct 2026: manual start/stop times are entered here now - twoline2rv no longer asks
+                        if ((typerun != 'v') && (typerun != 'c'))
+                            getmanualtimes(SGP4Libr, typeinput, satrec, out startmfe, out stopmfe, out deltamin);
+
                         // call the propagator to get the initial state vector value
                         // no longer need gravconst since it is assigned in sgp4init
                         SGP4Libr.sgp4(ref satrec, 0.0, ro, vo);
@@ -380,6 +391,105 @@ namespace SGP4Program
             } // while propagating the orbit
 
         }  // testSGP4    
+
+
+        /* ---------------------------------------------------------------------
+        *
+        *                           function getmanualtimes
+        *
+        *  ADDED 29 oct 2026 - the manual start/stop entry that used to be inside SGP4Lib.twoline2rv
+        *    (InputBox and console prompts). the library now only parses and initializes, so the input
+        *    is done here by the program. fixes from the old code: the epoch option read the stop time
+        *    from the start box and took the year as its first 2 digits ("2015" -> 20), and never got
+        *    a time step (deltamin stayed 0); the dayofyr option dropped the fraction of the day
+        *    (jdstopF overwrote jdstop). each time is entered on one line.
+        *
+        *  inputs        :
+        *    typeinput   - mfe 'm', epoch 'e', dayofyr 'd'
+        *    satrec      - sgp4 record from twoline2rv (for the epoch)
+        *
+        *  outputs       :
+        *    startmfe    - start time, min from epoch
+        *    stopmfe     - stop time, min from epoch
+        *    deltamin    - time step, min
+        *  --------------------------------------------------------------------- */
+
+        static void getmanualtimes
+            (
+            SGP4Lib SGP4Libr, char typeinput, SGP4Lib.elsetrec satrec,
+            out double startmfe, out double stopmfe, out double deltamin
+            )
+        {
+            char[] seps = new char[] { ' ', '-', ':', '/' };
+            string[] linex;
+            int year, mon, day, hr, minute;
+            double sec, dayofyr, jdstart, jdstartF, jdstop, jdstopF;
+
+            startmfe = 0.0;
+            stopmfe = 0.0;
+            deltamin = 0.0;
+
+            // ------------- enter start/stop ymd hms values --------------------
+            if (typeinput.Equals('e'))
+            {
+                Console.Write("input start  yyyy-mm-dd hh:mm:ss.sss (or yyyy mm dd hh mm ss.sss) \n");
+                linex = Console.ReadLine().Split(seps, StringSplitOptions.RemoveEmptyEntries);
+                int.TryParse(linex[0], out year);
+                int.TryParse(linex[1], out mon);
+                int.TryParse(linex[2], out day);
+                int.TryParse(linex[3], out hr);
+                int.TryParse(linex[4], out minute);
+                double.TryParse(linex[5], out sec);
+                SGP4Libr.jday(year, mon, day, hr, minute, sec, out jdstart, out jdstartF);
+
+                Console.Write("input stop   yyyy-mm-dd hh:mm:ss.sss \n");
+                linex = Console.ReadLine().Split(seps, StringSplitOptions.RemoveEmptyEntries);
+                int.TryParse(linex[0], out year);
+                int.TryParse(linex[1], out mon);
+                int.TryParse(linex[2], out day);
+                int.TryParse(linex[3], out hr);
+                int.TryParse(linex[4], out minute);
+                double.TryParse(linex[5], out sec);
+                SGP4Libr.jday(year, mon, day, hr, minute, sec, out jdstop, out jdstopF);
+
+                startmfe = (jdstart - satrec.jdsatepoch) * 1440.0 + (jdstartF - satrec.jdsatepochF) * 1440.0;
+                stopmfe = (jdstop - satrec.jdsatepoch) * 1440.0 + (jdstopF - satrec.jdsatepochF) * 1440.0;
+            }
+
+            // -------- enter start/stop year and days of year values -----------
+            if (typeinput.Equals('d'))
+            {
+                Console.Write("input start  year dayofyr \n");
+                linex = Console.ReadLine().Split(seps, StringSplitOptions.RemoveEmptyEntries);
+                int.TryParse(linex[0], out year);
+                double.TryParse(linex[1], out dayofyr);
+                SGP4Libr.days2mdhms(year, dayofyr, out mon, out day, out hr, out minute, out sec);
+                SGP4Libr.jday(year, mon, day, hr, minute, sec, out jdstart, out jdstartF);
+
+                Console.Write("input stop   year dayofyr \n");
+                linex = Console.ReadLine().Split(seps, StringSplitOptions.RemoveEmptyEntries);
+                int.TryParse(linex[0], out year);
+                double.TryParse(linex[1], out dayofyr);
+                SGP4Libr.days2mdhms(year, dayofyr, out mon, out day, out hr, out minute, out sec);
+                SGP4Libr.jday(year, mon, day, hr, minute, sec, out jdstop, out jdstopF);
+
+                startmfe = (jdstart - satrec.jdsatepoch) * 1440.0 + (jdstartF - satrec.jdsatepochF) * 1440.0;
+                stopmfe = (jdstop - satrec.jdsatepoch) * 1440.0 + (jdstopF - satrec.jdsatepochF) * 1440.0;
+            }
+
+            // ------------------ enter start/stop mfe values -------------------
+            if (typeinput.Equals('m'))
+            {
+                Console.Write("input start stop  min from epoch \n");
+                linex = Console.ReadLine().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                double.TryParse(linex[0], out startmfe);
+                double.TryParse(linex[1], out stopmfe);
+            }
+
+            Console.Write("input time step in minutes \n");
+            linex = Console.ReadLine().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            double.TryParse(linex[0], out deltamin);
+        }  // getmanualtimes
 
     } // class SGP4Programs
 
