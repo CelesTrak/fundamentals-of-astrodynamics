@@ -1,66 +1,48 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- CONVERTED 5 oct 2026: old-style project -> SDK-style, dual-targeted for the .NET 10 migration.
+       net10.0-windows is listed first so Visual Studio runs it by default (F5).
+       Library HintPaths to bin\Debug\*.dll replaced with ProjectReferences; System.Deployment (ClickOnce-only) dropped.
+       Pre-conversion version is in the backup / git baseline tag. -->
+  <!-- CHANGED 29 oct 2026: console app with no windows dependencies now that SGP4Lib is plain net10.0
+       (manual start/stop input is in Program.cs getmanualtimes) -->
+  <!-- was x86 (32-bit). Now AnyCPU 64-bit on every solution platform: x86 .NET 10 apps need the separate x86 .NET runtime, and 64-bit keeps it consistent with the other apps -->
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{E72B8B5E-F60D-4F5F-953F-8E4F7A97CFBA}</ProjectGuid>
+    <!-- <TargetFrameworks>net10.0-windows;net48</TargetFrameworks> -->
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
     <OutputType>Exe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SGP4Methods</RootNamespace>
     <AssemblyName>TestSGP4</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
-    <FileAlignment>512</FileAlignment>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <PlatformTarget>x86</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <Platforms>AnyCPU;x86;x64</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Deterministic>true</Deterministic>
+    <!-- 64-bit on both targets so net48/net10 comparisons differ only by runtime -->
     <Prefer32Bit>false</Prefer32Bit>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <!-- keep the existing AssemblyInfo.cs rather than SDK-generated assembly attributes -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- include only the files listed below (same as the old project), so backup files in the folder are ignored -->
+    <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
-    <PlatformTarget>x86</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="SGP4Lib">
-      <HintPath>..\..\SGP4Lib\SGP4Lib\obj\Debug\SGP4Lib.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+
   <ItemGroup>
     <None Include="app.config" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\SGP4Lib\SGP4Lib\SGP4Lib.csproj" />
+  </ItemGroup>
+
+  <!-- framework assemblies the old project referenced that are not SDK defaults on net48;
+       on net10 these are all part of the shared framework -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Data.DataSetExtensions" />
+  </ItemGroup>
 </Project>
